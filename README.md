@@ -31,12 +31,14 @@
 
 ## Плата: распиновка клемм
 
-| Клемма | Контакты |
-|---|---|
-| J3 датчик | +5V, SIG, GND |
-| J1 машина | GND, →K2, AUX1, →K4 |
-| J2 DinMeter | 5V, G1, G2, G13 |
-| J2b питание DinMeter | GND, +12V, DC− |
+| Клемма | Контакты | Провода к DinMeter |
+|---|---|---|
+| J3 датчик | +5V, SIG, GND | |
+| J1 машина | GND, →K2, AUX1, →K4 | |
+| J2 DinMeter | 5V, G1, G2, G13 | Grove PORT.B: красный 5V, белый G1, жёлтый G2; G13 пока свободен |
+| J2b питание DinMeter | GND, +12V, DC− | чёрный Grove → GND; пара 2×0.5: красный → +12V, чёрный → DC− |
+
+Цвета и правила: [docs/wiring_dinmeter.md](docs/wiring_dinmeter.md).
 
 ## Статус
 
