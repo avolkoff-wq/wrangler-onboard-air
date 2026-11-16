@@ -42,7 +42,7 @@ The green power terminal is the 2-pin pluggable screw plug (2.54 mm) that comes 
 
 - One wire per terminal hole. Thin wires (Grove, 0.25 mm²): strip 8 mm, fold the strands back once, then clamp.
 - The M5 Grove cable has no latch: secure the plug in PORT.B with a dab of hot glue.
-- No joins in the pod. Strain relief: tie the Grove cable and the power wires to one of the two anchors inside the cover with a 2.5 mm cable tie, leave a 3-4 cm slack loop to PORT.B, then the harness leaves through the 10.7 × 5.4 Grove slot in the back of the pod. Only the Grove plug goes through; the power wires are clamped into the green screw plug inside the pod.
+- No joins in the pod. Strain relief: tie the Grove cable and the power wires to the anchor inside the cover with a 2.5 mm cable tie, leave a 3-4 cm slack loop to PORT.B, then the harness leaves through the 10.7 × 5.4 Grove slot in the back of the pod. Only the Grove plug goes through; the power wires are clamped into the green screw plug inside the pod.
 - Label both ends "M5".
 
 Grove cable colours are not always standard on third-party cables. Go by the pin position (pin 1 GND, 2 5V, 3 yellow pin G2, 4 white pin G1, as printed on the DinMeter), not by the colour of a bought cable. The M5Stack cable is standard.

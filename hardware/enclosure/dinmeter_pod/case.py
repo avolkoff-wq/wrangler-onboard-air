@@ -36,10 +36,10 @@ for sx in(-1,1):
     cover=cover-cyl(4.0,3).translate((sx*bx,sy*by,P))
 # cable exit straight through the cover into the tunnel trim (cut a 10.7 x 5.4 slot in the trim at the same spot)
 cover=cover-slot(P+4).translate((0,0,-1))   # main slot, cable goes into the tunnel trim
-# strain relief inside the cover: two cable-tie anchors beside the Grove slot.
+# strain relief inside the cover: one cable-tie anchor beside the Grove slot.
 # The harness comes in through the slot, lies on an anchor and is tied to it with a 2.5 mm cable tie,
 # so a pull on the harness goes into the cover, not into the Grove plug. Leave a small slack loop to PORT.B.
-for sy in (1,-1):
+for sy in (1,):
     blk = Manifold.cube((10,6,5),center=True).translate((0,sy*9.0,P+2.5))
     tun = Manifold.cube((12,3.4,1.8),center=True).translate((0,sy*9.0,P+2.2))   # tunnel for the tie, along x
     cover = cover + (blk - tun)
