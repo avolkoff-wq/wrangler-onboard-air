@@ -3,7 +3,7 @@
 Writes:
   dinmeter_pod.step   both parts as solids, opens in Fusion 360 (Insert > Insert/Upload, or File > Open)
   dinmeter_body.stl   for printing
-  dinmeter_back.stl   for printing
+  dinmeter_back.stl   for printing (the cover: taped to the tunnel wall, the body clicks onto it)
 
 All sizes in mm. Change the numbers at the top and run:  python3 pod_cq.py
 """
@@ -16,15 +16,18 @@ F = 3.0                         # front wall (DinMeter clamps against it)
 R_OUT = 4.0                     # outside corner radius
 CUT_W, CUT_H = 45.2, 22.7       # 1/32 DIN cut-out + clearance
 SLOT_W, SLOT_H = 10.7, 5.4      # Grove plug slot (HY2.0-4P 9.9 x 4.6 + 0.4 per side)
-BOSS_R, BOSS_L, PILOT_D = 3.4, 12.0, 2.5   # cover screw bosses, self-tapping M3
 P = 3.0                         # cover plate
 LIP_H, LIP_W, LIP_GAP = 2.0, 2.0, 0.3      # locating lip of the cover
 ANCHOR = (10.0, 6.0, 5.0)       # cable-tie anchor on the cover: x, y, height
 ANCHOR_Y = 9.0                  # anchor centre from the slot centre
 TIE = (3.4, 1.8)                # tunnel for a 2.5 mm cable tie
+# snap fit, no screws: two flexible tabs on the cover click into windows in the long walls of the body.
+# The cover is taped to the tunnel wall; the body with the DinMeter clicks onto it.
+# To take it off: press both barbs in through the windows (small screwdriver) and pull.
+TAB_W, TAB_T, TAB_L = 10.0, 1.4, 12.0      # tab width, thickness, length into the body (bending strain < 1 % for PETG/ASA)
+BARB, BARB_L = 0.9, 2.5                     # barb height (outwards) and length at the tab tip
+WIN_GAP = 0.4                               # clearance around the barb in the window
 # DinMeter is held by its own back clip from the kit, clamping against the front wall F.
-
-bx, by = W / 2 - T - 3.0, H / 2 - T - 3.0   # boss centres
 
 # ---------- body ----------
 body = (cq.Workplane("XY").rect(W, H).extrude(D)
@@ -38,13 +41,11 @@ body = body.cut(cavity)
 cut = cq.Workplane("XY").workplane(offset=-1).rect(CUT_W, CUT_H).extrude(F + 2)
 body = body.cut(cut)
 body = body.faces("<Z").edges(cq.selectors.BoxSelector((-CUT_W/2-1, -CUT_H/2-1, -0.1), (CUT_W/2+1, CUT_H/2+1, 0.1))).chamfer(0.6)
-# cover screw bosses
-for sx in (-1, 1):
-    for sy in (-1, 1):
-        boss = cq.Workplane("XY").workplane(offset=D - BOSS_L).center(sx * bx, sy * by).circle(BOSS_R).extrude(BOSS_L)
-        body = body.union(boss)
-        pilot = cq.Workplane("XY").workplane(offset=D - BOSS_L + 1).center(sx * bx, sy * by).circle(PILOT_D / 2).extrude(BOSS_L)
-        body = body.cut(pilot)
+# snap windows in the two long walls (top / bottom), matching the cover tabs
+for sy in (-1, 1):
+    win = (cq.Workplane("XY").workplane(offset=D - TAB_L - WIN_GAP)
+           .center(0, sy * (H / 2 - T / 2)).rect(TAB_W + 2 * WIN_GAP, T + 2).extrude(BARB_L + 2 * WIN_GAP))
+    body = body.cut(win)
 # spare Grove slot in the bottom wall, near the back
 # XZ plane faces -Y: start 1 mm inside the bottom wall and cut outwards through it
 slot_b = (cq.Workplane("XZ").workplane(offset=H / 2 - T - 1).center(0, D - 11)
@@ -60,11 +61,16 @@ lip = (cq.Workplane("XY").workplane(offset=P).rect(*lip_o).extrude(LIP_H)
        .edges("|Z").fillet(R_OUT - T - LIP_GAP)
        .cut(cq.Workplane("XY").workplane(offset=P).rect(lip_o[0] - 2 * LIP_W, lip_o[1] - 2 * LIP_W).extrude(LIP_H)))
 cover = cover.union(lip)
-for sx in (-1, 1):
-    for sy in (-1, 1):
-        cover = cover.cut(cq.Workplane("XY").workplane(offset=P).center(sx * bx, sy * by).circle(4.0).extrude(LIP_H))  # lip relief
-        cover = cover.cut(cq.Workplane("XY").center(sx * bx, sy * by).circle(1.7).extrude(P + 1))                   # M3 clearance
-        cover = cover.cut(cq.Workplane("XY").workplane(offset=-0.01).center(sx * bx, sy * by).circle(3.2).extrude(1.6))  # head recess
+# snap tabs: cut the lip where the tabs stand, then add the tabs with a barb at the tip
+ty = lip_o[1] / 2                                   # outer face of a tab = outer face of the lip
+for sy in (-1, 1):
+    cover = cover.cut(cq.Workplane("XY").workplane(offset=P).center(0, sy * (ty - LIP_W / 2)).rect(TAB_W + 2, LIP_W + 0.2).extrude(LIP_H))
+    tab = cq.Workplane("XY").workplane(offset=P).center(0, sy * (ty - TAB_T / 2)).rect(TAB_W, TAB_T).extrude(TAB_L)
+    # barb: flat catch face towards the cover, ramp towards the tip (profile in the YZ plane, extruded along X)
+    y0 = sy * ty
+    prof = [(y0, P + TAB_L - BARB_L), (y0 + sy * BARB, P + TAB_L - BARB_L), (y0, P + TAB_L)]
+    barb = cq.Workplane("YZ").workplane(offset=-TAB_W / 2).polyline(prof).close().extrude(TAB_W)
+    cover = cover.union(tab).union(barb)
 # Grove slot in the middle
 cover = cover.cut(cq.Workplane("XY").workplane(offset=-1).slot2D(SLOT_W, SLOT_H, 0).extrude(P + 2))
 # cable-tie anchor with a tunnel
