@@ -22,7 +22,7 @@ hole=cyl(4.2,T+2).rotate((90,0,0)).translate((0,-H/2+T+1,D-9))
 body=body-hole
 # BACK COVER: plate + locating lip + side ears with mounting holes
 P=3
-cover=box(W,H,P,4)+box(W+24,H-14,P,3)          # ears left/right
+cover=box(W,H,P,4)                              # flat back for double-sided tape (no ears)
 lip=(box(W-2*T-0.6,H-2*T-0.6,2,1.7)-box(W-2*T-4.6,H-2*T-4.6,2,0.5)).translate((0,0,P))
 cover=cover+lip
 for sx in(-1,1):
@@ -30,7 +30,8 @@ for sx in(-1,1):
     cover=cover-cyl(1.7,P+3).translate((sx*bx,sy*by,-1))-cyl(3.2,1.6).translate((sx*bx,sy*by,-0.01))
     # lip relief around bosses
     cover=cover-cyl(4.0,3).translate((sx*bx,sy*by,P))
-  cover=cover-cyl(2.3,P+2).translate((sx*(W/2+6),0,-1))
+# cable exit straight through the cover into the tunnel trim (drill the trim at the same spot)
+cover=cover-cyl(4.5,P+4).translate((0,0,-1))
 def save(m,n):
   me=m.to_mesh(); tm=trimesh.Trimesh(me.vert_properties[:,:3],me.tri_verts); tm.export(n); return tm
 b=save(body,'dinmeter_body.stl'); c=save(cover,'dinmeter_back.stl')

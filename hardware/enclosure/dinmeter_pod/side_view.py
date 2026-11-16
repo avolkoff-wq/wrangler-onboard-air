@@ -27,7 +27,7 @@ ax.add_patch(Rectangle((0,-11.25),27,22.5,fc='#ffd2bd',ec='#c0602a',lw=1,ls='--'
 ax.text(-2.5,0,'DinMeter\nfront',rotation=90,ha='center',va='center',fontsize=9)
 ax.text(14,0,'DinMeter body\n(behind front plate)',ha='center',va='center',fontsize=9,color='#8a3c12')
 ax.text(D/2+5,H/2-6,'pod body',fontsize=10,ha='center')
-ax.text(D+2,H/2+3,'back cover\n(ears left/right, M4 to tunnel)',fontsize=9)
+ax.text(D+2,H/2+3,'back cover: flat, VHB tape\nto the tunnel side wall,\ncable Ø9 through the centre',fontsize=9)
 # dimensions
 dim(0,-H/2-9,D,-H/2-9,'45')
 dim(D+0.5,-H/2-15,D+P+0.5,-H/2-15,'3',off=(4,0))
@@ -36,7 +36,7 @@ dim(-12,-H/2,-12,H/2,'38',rot=90,off=(-2.5,0))
 dim(-8,-15,-8,15,'30',rot=90,off=(-2,0))
 dim(0,H/2+3,F,H/2+3,'3',off=(0,2.5))
 dim(-5,H/2+8,0,H/2+8,'≈5',off=(0,2.5))
-ax.text(D/2,-H/2-24,'Right side view, mm.  Front = left (towards the driver).  Width (into the page) 60, cover with ears 84.',
+ax.text(D/2,-H/2-24,'Right side view, mm.  Front = left (towards the driver).  Width (into the page) 60. Back = tunnel side wall.',
         ha='center',fontsize=9,color='#555')
 ax.set_xlim(-20,D+28); ax.set_ylim(-H/2-28,H/2+14); ax.set_aspect('equal'); ax.axis('off')
 ax.set_title('DinMeter pod - right side',fontsize=13,weight='bold')
