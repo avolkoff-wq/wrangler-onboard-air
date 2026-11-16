@@ -177,8 +177,11 @@ void drawCal() {
       canvas.drawString(String(cal.entry(), 2), 120, 80); break;
     case CState::DONE:
       canvas.setTextColor(TFT_GREEN);
-      canvas.drawString("CALIBRATION SAVED", 120, 55);
-      canvas.drawString("a=" + String(settings.calA, 3) + " b=" + String(settings.calB, 3), 120, 90); break;
+      canvas.drawString("CALIBRATION SAVED", 120, 20);
+      canvas.setTextColor(TFT_WHITE);
+      canvas.drawString("scale x" + String(settings.calA, 3), 120, 50);
+      canvas.drawString("zero " + String(settings.calB, 2) + " bar", 120, 76);
+      canvas.drawString("fit error " + String(cal.fitErr(), 2) + " bar", 120, 102); break;
     case CState::FAILED:
       canvas.setTextColor(TFT_RED);
       canvas.drawString("CALIBRATION FAILED", 120, 55);

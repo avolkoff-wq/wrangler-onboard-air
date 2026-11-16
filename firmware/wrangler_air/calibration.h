@@ -22,6 +22,7 @@ class Calibration {
   CState state() const { return state_; }
   int    index() const { return i_; }
   float  entry() const { return entry_; }
+  float  fitErr() const { return fitErr_; }   // worst point vs the fitted line, bar
   float  rawNow() const { return s_->rawBar(); }
   uint32_t phaseMs() const { return millis() - t0_; }
   static constexpr uint32_t SETTLE_TOTAL_MS = SETTLE_MS + 1000;
@@ -63,6 +64,8 @@ class Calibration {
     const float a = (N * sxy - sx * sy) / d;
     const float b = (sy - a * sx) / N;
     if (a < 0.7f || a > 1.3f || fabsf(b) > 0.5f) { state_ = CState::FAILED; return; }  // implausible
+    fitErr_ = 0;
+    for (int k = 0; k < N; k++) fitErr_ = max(fitErr_, fabsf(a * raw_[k] + b - ref_[k]));
     st_->calA = a; st_->calB = b; st_->save();
     state_ = CState::DONE;
   }
@@ -70,5 +73,5 @@ class Calibration {
   Sensor* s_ = nullptr; Settings* st_ = nullptr;
   CState state_ = CState::OFF;
   int i_ = 0; uint32_t t0_ = 0;
-  float raw_[N] = {0}, ref_[N] = {0}, entry_ = 0;
+  float raw_[N] = {0}, ref_[N] = {0}, entry_ = 0, fitErr_ = 0;
 };

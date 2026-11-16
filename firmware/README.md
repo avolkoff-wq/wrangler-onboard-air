@@ -70,6 +70,7 @@
 - Settle before a measurement: **AUTO** waits until the reading is steady (1-6 s); **MANUAL** uses a fixed time. Menu → SETTLE (AUTO or 1.0-10.0 s).
 - The stop margin adapts to how well earlier stops landed. Top-up time is learned separately.
 - Timers on screen: the whole run time and the number of starts at the top, a countdown on pauses (settle, measure, learning pulse, top-up), a stopwatch while pumping. Calibration shows a countdown on the pause and a stopwatch while pumping.
+- Calibration result reads "scale x1.012 / zero -0.02 bar / fit error 0.02 bar" instead of a= b=.
 - VERSION shows the learned values: off, c, rate, top, bias, dev, settle, starts.
 
 Simulation (4 tyres, target 2.3 bar, 3 rounds of 0.2 / 1.0 / 1.8 bar starts), compressor starts:
