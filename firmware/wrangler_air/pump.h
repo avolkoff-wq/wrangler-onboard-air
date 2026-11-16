@@ -180,6 +180,8 @@ class Pump {
     }
     const float r = pumpTime_ > 0.5f ? (p - pBefore) / pumpTime_ : 0;
     if (r > 0.001f && r < 2) st_->rate = st_->learned ? ema(st_->rate, r) : r;
+    // until a top-up has been measured, estimate its gain from the main-run rate (spin-up costs ~15 %)
+    if (!st_->topLearned) st_->kTop = 0.85f * st_->rate;
     if (!firstPulse && st_->learned) {                        // how well did the stop land?
       const float miss = p - estStop_;
       st_->bias = ema(st_->bias, miss);
@@ -190,7 +192,7 @@ class Pump {
   }
   void learnTopup(float pBefore, float p) {
     const float k = pumpTime_ > 0.2f ? (p - pBefore) / pumpTime_ : 0;
-    if (k > 0.001f && k < 2) { st_->kTop = ema(st_->kTop, k); st_->save(); }
+    if (k > 0.001f && k < 2) { st_->kTop = st_->topLearned ? ema(st_->kTop, k) : k; st_->topLearned = true; st_->save(); }
   }
 
   void onStatic(float p) {
@@ -212,7 +214,8 @@ class Pump {
       relay(true); state_ = PState::MAIN; t0_ = millis(); leakRef_ = p; leakT_ = t0_; return;
     }
     if (topups_ >= MAX_TOPUPS) { state_ = PState::DONE; endT_ = millis(); return; }
-    float s = deficit / max(0.005f, st_->kTop);
+    // aim a little short: a top-up that lands just under the target is done, one over it cannot be undone
+    float s = (deficit - 0.4f * DONE_TOL) / max(0.005f, st_->kTop);
     s = constrain(s, TOPUP_MIN_S, TOPUP_MAX_S);
     topupMs_ = (uint32_t)(s * 1000); topups_++;
     relay(true); state_ = PState::TOPUP; t0_ = millis();

@@ -23,6 +23,7 @@ struct Settings {
   float bias    = 0;              // learned miss at stop: real - estimate, bar
   float dev     = 0.05f;          // learned spread of that miss, bar
   bool  learned = false;          // false -> next auto run starts with the learning pulse
+  bool  topLearned = false;       // false -> kTop is estimated from the main-run rate
   float calA    = 1.0f;           // calibrated = calA * raw + calB
   float calB    = 0.0f;
 
@@ -43,6 +44,7 @@ struct Settings {
     bias         = p.getFloat("bias", bias);
     dev          = p.getFloat("dev", dev);
     learned      = p.getBool ("learned", learned);
+    topLearned   = p.getBool ("topL", topLearned);
     calA         = p.getFloat("calA", calA);
     calB         = p.getFloat("calB", calB);
     p.end();
@@ -66,12 +68,13 @@ struct Settings {
     p.putFloat("bias", bias);
     p.putFloat("dev", dev);
     p.putBool ("learned", learned);
+    p.putBool ("topL", topLearned);
     p.putFloat("calA", calA);
     p.putFloat("calB", calB);
     p.end();
   }
   void resetLearning() {
     offset = DEFAULT_OFFSET; c = 0; rate = DEFAULT_RATE; kTop = DEFAULT_RATE * 0.6f;
-    bias = 0; dev = 0.05f; settleLearn = SETTLE_MS / 1000.0f; learned = false; save();
+    bias = 0; dev = 0.05f; settleLearn = SETTLE_MS / 1000.0f; learned = false; topLearned = false; save();
   }
 };

@@ -56,6 +56,7 @@ constexpr int SET_N = 19;                     // 1.0 .. 10.0 s
 float offVal(int i) { return i * 0.05f; }
 float setVal(int i) { return 0.5f + i * 0.5f; }
 int editItem = M_OFFSET, editIdx = 0;
+uint32_t resetArm = 0;   // RESET LEARNING waits for a second press
 int offIdx() { return settings.offAuto ? 0 : constrain((int)roundf(settings.offManual / 0.05f), 1, OFF_N); }
 int setIdx() { return settings.settleAuto ? 0 : constrain((int)roundf((settings.settleManual - 0.5f) / 0.5f), 1, SET_N); }
 String offText(int i) { return i == 0 ? "AUTO" : String(offVal(i), 2) + " bar"; }
@@ -185,7 +186,8 @@ void drawMenu() {
     if (i == M_OFFSET) t += ": " + offText(offIdx());
     if (i == M_SETTLE) t += ": " + setText(setIdx());
     if (i == M_SCREEN) t += ": " + rotName();
-    if (i == M_RESET && portrait()) t = "RESET LEARN";
+    if (i == M_RESET && resetArm && millis() - resetArm < 3000) t = "PRESS AGAIN";
+    else if (i == M_RESET && portrait()) t = "RESET LEARN";
     canvas.drawString(t, 8, y);
   }
   canvas.pushSprite(0, 0);
@@ -339,7 +341,10 @@ void loop() {
           case M_OFFSET:  editItem = M_OFFSET; editIdx = offIdx(); screen = Screen::EDIT; break;
           case M_SETTLE:  editItem = M_SETTLE; editIdx = setIdx(); screen = Screen::EDIT; break;
           case M_SCREEN:  settings.rot = (settings.rot + 1) % 4; settings.save(); applyRotation(); break;
-          case M_RESET:   settings.resetLearning(); beep(); break;
+          case M_RESET:   // two presses within 3 s, so a stray click cannot wipe what was learned
+            if (resetArm && millis() - resetArm < 3000) { settings.resetLearning(); beep(); resetArm = 0; }
+            else resetArm = millis();
+            break;
           case M_UPDATE:  ota.start(); screen = Screen::OTA; break;
           case M_VERSION: screen = Screen::VERSION; break;
           default: screen = Screen::MAIN; break;
