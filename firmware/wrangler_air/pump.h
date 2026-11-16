@@ -48,6 +48,16 @@ class Pump {
   // timers for the screen
   uint32_t runMs()   const { return (busy() ? millis() : endT_) - runStart_; }
   uint32_t phaseMs() const { return millis() - t0_; }
+  bool paused() const { return state_ == PState::SETTLE || state_ == PState::MEASURE; }
+  // time left until the static measurement is done (settle + measure).
+  // AUTO settle has no fixed length: the last learned settle time is the estimate.
+  uint32_t pauseLeftMs() const {
+    const uint32_t el = millis() - t0_;
+    if (state_ == PState::MEASURE) return el >= MEASURE_MS ? 0 : MEASURE_MS - el;
+    if (state_ != PState::SETTLE) return 0;
+    const uint32_t len = (uint32_t)((st_->settleAuto ? st_->settleLearn : st_->settleManual) * 1000);
+    return (el >= len ? 0 : len - el) + MEASURE_MS;
+  }
   // planned length of the current phase, 0 = open-ended (show elapsed instead)
   uint32_t phaseLenMs() const {
     switch (state_) {

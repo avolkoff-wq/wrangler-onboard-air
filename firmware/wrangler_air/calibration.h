@@ -16,7 +16,8 @@ class Calibration {
   const float points[N] = {0.0f, 1.0f, 2.0f, 3.0f};
 
   void begin(Sensor* s, Settings* st) { s_ = s; st_ = st; }
-  void start() { i_ = 0; state_ = CState::ZERO_WAIT; relay(false); }
+  void start() { i_ = 0; state_ = CState::ZERO_WAIT; relay(false); tStart_ = millis(); }
+  uint32_t totalMs() const { return millis() - tStart_; }
   void abort() { relay(false); state_ = CState::OFF; }
   bool active() const { return state_ != CState::OFF; }
   CState state() const { return state_; }
@@ -72,6 +73,6 @@ class Calibration {
 
   Sensor* s_ = nullptr; Settings* st_ = nullptr;
   CState state_ = CState::OFF;
-  int i_ = 0; uint32_t t0_ = 0;
+  int i_ = 0; uint32_t t0_ = 0, tStart_ = 0;
   float raw_[N] = {0}, ref_[N] = {0}, entry_ = 0, fitErr_ = 0;
 };

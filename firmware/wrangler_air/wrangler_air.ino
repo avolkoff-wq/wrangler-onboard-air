@@ -71,14 +71,23 @@ void drawMain() {
   const bool est = pump.estimating();
   const float shown = (st == PState::IDLE) ? sensor.bar(settings.calA, settings.calB)
                                            : (est ? pump.estimate() : pump.staticBar());
-  canvas.setTextColor(sensor.fault() ? TFT_RED : TFT_GREENYELLOW);
   canvas.setTextDatum(middle_center);
   canvas.setFont(&fonts::Font7);
   canvas.setTextSize(1);
-  canvas.drawString(sensor.fault() ? "--.-" : fmt(max(0.0f, shown)), 120, 52);
-  canvas.setFont(&fonts::FreeSansBold9pt7b);
-  canvas.setTextColor(TFT_LIGHTGREY);
-  canvas.drawString(String(est ? "~ " : "") + unitName(), 120, 92);
+  if (pump.paused() && !sensor.fault()) {
+    // pause: big countdown to the end of the measurement
+    canvas.setTextColor(TFT_CYAN);
+    canvas.drawString(String(pump.pauseLeftMs() / 1000.0f, 1), 120, 52);
+    canvas.setFont(&fonts::FreeSansBold9pt7b);
+    canvas.setTextColor(TFT_LIGHTGREY);
+    canvas.drawString("s", 120, 92);
+  } else {
+    canvas.setTextColor(sensor.fault() ? TFT_RED : TFT_GREENYELLOW);
+    canvas.drawString(sensor.fault() ? "--.-" : fmt(max(0.0f, shown)), 120, 52);
+    canvas.setFont(&fonts::FreeSansBold9pt7b);
+    canvas.setTextColor(TFT_LIGHTGREY);
+    canvas.drawString(String(est ? "~ " : "") + unitName(), 120, 92);
+  }
 
   // top line: whole run time and compressor starts
   canvas.setFont(&fonts::FreeSans9pt7b);
@@ -92,8 +101,8 @@ void drawMain() {
   String line; uint16_t col = TFT_WHITE;
   switch (st) {
     case PState::IDLE:      line = "SET " + fmt(settings.target) + "  press: start"; break;
-    case PState::SETTLE:    line = "SETTLING" + tm; col = TFT_CYAN; break;
-    case PState::MEASURE:   line = "MEASURING" + tm; col = TFT_CYAN; break;
+    case PState::SETTLE:    line = "SETTLING -> " + fmt(settings.target); col = TFT_CYAN; break;
+    case PState::MEASURE:   line = "MEASURING -> " + fmt(settings.target); col = TFT_CYAN; break;
     case PState::CAL_PULSE: line = "LEARNING" + tm; col = TFT_ORANGE; break;
     case PState::MAIN:      line = "PUMP -> " + fmt(settings.target) + tm; col = TFT_ORANGE; break;
     case PState::TOPUP:     line = "TOP-UP" + tm; col = TFT_ORANGE; break;
@@ -160,6 +169,15 @@ void drawCal() {
   canvas.setTextDatum(middle_center);
   canvas.setTextColor(TFT_WHITE);
   const int i = cal.index();
+  if (cal.state() != CState::DONE && cal.state() != CState::FAILED) {
+    canvas.setFont(&fonts::FreeSans9pt7b);
+    canvas.setTextDatum(top_left);
+    canvas.setTextColor(TFT_LIGHTGREY);
+    canvas.drawString(mmss(cal.totalMs()), 4, 2);
+    canvas.setFont(&fonts::FreeSansBold9pt7b);
+    canvas.setTextDatum(middle_center);
+    canvas.setTextColor(TFT_WHITE);
+  }
   switch (cal.state()) {
     case CState::ZERO_WAIT:
       canvas.drawString("CAL 1/4: hose open to air", 120, 40);
