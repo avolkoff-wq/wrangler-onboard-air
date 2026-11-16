@@ -24,6 +24,9 @@ ax.add_patch(Rectangle((D-1.5,-H/2+T+0.3),2,H-2*T-0.6,fc='#cfd8e3',ec='#555',lw=
 # DinMeter: front bezel + body behind the 45x22.5 cutout
 ax.add_patch(Rectangle((-5,-15),5,30,fc='#ff7a3d',ec=k,lw=1.2))
 ax.add_patch(Rectangle((0,-11.25),27,22.5,fc='#ffd2bd',ec='#c0602a',lw=1,ls='--'))
+# back clip from the kit (approximate): frame right behind the front wall, ~8 deep, ears to about +/-9.5 high
+ax.add_patch(Rectangle((F,-13.3),8,26.6,fc='#f6b26b',ec='#c46a14',lw=1,ls='--'))
+ax.text(F+4,-16.5,'back clip\n(kit, approx.)',ha='center',va='top',fontsize=8,color='#a3540f')
 ax.text(-2.5,0,'DinMeter\nfront',rotation=90,ha='center',va='center',fontsize=9)
 ax.text(14,0,'DinMeter body\n(behind front plate)',ha='center',va='center',fontsize=9,color='#8a3c12')
 ax.text(D/2+5,H/2-6,'pod body',fontsize=10,ha='center')

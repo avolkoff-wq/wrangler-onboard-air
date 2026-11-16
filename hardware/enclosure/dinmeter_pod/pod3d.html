@@ -31,7 +31,7 @@ button:focus-visible,label.tg:focus-within{outline:2px solid var(--accent);outli
     <label class="tg"><input type="checkbox" id="cXray"> X-ray</label>
   </div>
 </header>
-<div id="stage"><div class="legend"><span><i style="background:#3a4250"></i>printed body</span><span><i style="background:#7d8da3"></i>back cover</span><span><i style="background:#e2602a"></i>DinMeter (mock-up)</span></div></div>
+<div id="stage"><div class="legend"><span><i style="background:#3a4250"></i>printed body</span><span><i style="background:#7d8da3"></i>back cover</span><span><i style="background:#e2602a"></i>DinMeter (mock-up)</span><span><i style="background:#f08a24"></i>back clip from the kit (approx.)</span></div></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/STLLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
@@ -63,6 +63,13 @@ const mOr=new THREE.MeshStandardMaterial({color:0xe2602a,roughness:.55});
 const fr=new THREE.Mesh(new THREE.BoxGeometry(53,30,5),mOr);fr.position.z=-2.5;din.add(fr);
 const bd=new THREE.Mesh(new THREE.BoxGeometry(44.5,22,27),new THREE.MeshStandardMaterial({color:0xf2a37f,roughness:.8}));bd.position.z=13.5;din.add(bd);
 const scr=new THREE.Mesh(new THREE.PlaneGeometry(26,15),new THREE.MeshStandardMaterial({color:0x0c0f12,roughness:.3}));scr.position.set(9,1,-5.05);scr.rotation.y=Math.PI;din.add(scr);
+// DinMeter back clip (orange frame from the M5Stack kit), approximate from the photo: frame around the body
+// right behind the front wall, two ears with brass threaded inserts on opposite corners. Measure the real part.
+const clip=new THREE.Group();din.add(clip);
+const mClip=new THREE.MeshStandardMaterial({color:0xf08a24,roughness:.6});
+[[49,2.2,8,0,12.15],[49,2.2,8,0,-12.15],[2.2,22.1,8,23.4,0],[2.2,22.1,8,-23.4,0]].forEach(p=>{const m=new THREE.Mesh(new THREE.BoxGeometry(p[0],p[1],p[2]),mClip);m.position.set(p[3],p[4],3+4);clip.add(m)});
+[[-1,1],[1,-1]].forEach(([sx,sy])=>{const ear=new THREE.Mesh(new THREE.BoxGeometry(8,8,8),mClip);ear.position.set(sx*27,sy*9.5,3+4);clip.add(ear);
+  const ins=new THREE.Mesh(new THREE.CylinderGeometry(2.4,2.4,8.2,24),new THREE.MeshStandardMaterial({color:0xc9a227,metalness:.8,roughness:.3}));ins.rotation.x=Math.PI/2;ins.position.set(sx*27,sy*9.5,3+4);clip.add(ins)});
 const knob=new THREE.Mesh(new THREE.CylinderGeometry(7,7,7,40),new THREE.MeshStandardMaterial({color:0xd8d8d8,roughness:.35,metalness:.4}));knob.rotation.x=Math.PI/2;knob.position.set(-15,0,-8.5);din.add(knob);
 // screen digits as a tiny canvas texture
 (function(){const c=document.createElement('canvas');c.width=260;c.height=150;const g=c.getContext('2d');g.fillStyle='#0c0f12';g.fillRect(0,0,260,150);g.fillStyle='#b6f34a';g.font='bold 84px monospace';g.textAlign='center';g.fillText('2.3',130,98);g.fillStyle='#9aa';g.font='22px sans-serif';g.fillText('bar',130,132);
