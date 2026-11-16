@@ -4,7 +4,7 @@
 // Controls
 //   turn            set target (0.1 bar steps, max 3.0 bar)
 //   press           start / stop
-//   long press      menu: CALIBRATE, UNITS, OFFSET, SETTLE, SCREEN, RESET LEARNING, UPDATE, VERSION, EXIT
+//   long press      menu: CALIBRATE, SENSOR (live volts for the bench), UNITS, OFFSET, SETTLE, SCREEN, RESET LEARNING, UPDATE, VERSION, EXIT
 //   SCREEN: press to turn the picture 90 degrees (WIDE, PORTRAIT, WIDE 180, PORTRAIT 180)
 //   OFFSET / SETTLE: press to edit, turn: AUTO or a fixed value, press to save
 //
@@ -27,11 +27,11 @@ Calibration cal;
 Ota ota;
 M5Canvas canvas(&M5.Display);
 
-enum class Screen { MAIN, MENU, EDIT, CAL, OTA, VERSION };
+enum class Screen { MAIN, MENU, EDIT, CAL, OTA, VERSION, SENSOR };
 Screen screen = Screen::MAIN;
 int menuPos = 0;
-enum MenuItem { M_CAL, M_UNITS, M_OFFSET, M_SETTLE, M_SCREEN, M_RESET, M_UPDATE, M_VERSION, M_EXIT };
-const char* MENU[] = {"CALIBRATE", "UNITS", "OFFSET", "SETTLE", "SCREEN", "RESET LEARNING", "UPDATE", "VERSION", "EXIT"};
+enum MenuItem { M_CAL, M_SENSOR, M_UNITS, M_OFFSET, M_SETTLE, M_SCREEN, M_RESET, M_UPDATE, M_VERSION, M_EXIT };
+const char* MENU[] = {"CALIBRATE", "SENSOR", "UNITS", "OFFSET", "SETTLE", "SCREEN", "RESET LEARNING", "UPDATE", "VERSION", "EXIT"};
 constexpr int MENU_N = sizeof(MENU) / sizeof(MENU[0]);
 
 // ---------- helpers ----------
@@ -256,6 +256,18 @@ void drawVersion() {
   canvas.pushSprite(0, 0);
 }
 
+// live sensor check for the bench: what the sensor sends, what G1 sees after the divider, and the pressure
+void drawSensor() {
+  canvas.fillSprite(TFT_BLACK);
+  const float vg = sensor.vG1(), vs = vg * DIVIDER;
+  drawLines({ {"SENSOR CHECK", F_TEXT, TFT_CYAN},
+              {"sensor " + String(vs, 2) + " V", F_MID, TFT_WHITE},
+              {"G1 " + String(vg, 2) + " V", F_MID, TFT_GREENYELLOW},
+              {sensor.fault() ? "OUT OF RANGE" : fmt(sensor.bar(settings.calA, settings.calB)) + " " + unitName() + "  (raw " + String(sensor.rawBar(), 2) + ")", F_TEXT, sensor.fault() ? TFT_RED : TFT_WHITE},
+              {"press: back", F_SMALL, TFT_LIGHTGREY} });
+  canvas.pushSprite(0, 0);
+}
+
 void applyRotation() {
   M5.Display.setRotation(settings.rot);
   canvas.deleteSprite();
@@ -322,6 +334,7 @@ void loop() {
       if (b == input::Btn::SHORT) {
         switch (menuPos) {
           case M_CAL:     cal.start(); screen = Screen::CAL; break;
+          case M_SENSOR:  screen = Screen::SENSOR; break;
           case M_UNITS:   settings.psi = !settings.psi; settings.save(); break;
           case M_OFFSET:  editItem = M_OFFSET; editIdx = offIdx(); screen = Screen::EDIT; break;
           case M_SETTLE:  editItem = M_SETTLE; editIdx = setIdx(); screen = Screen::EDIT; break;
@@ -364,6 +377,11 @@ void loop() {
     case Screen::VERSION:
       if (b != input::Btn::NONE) screen = Screen::MENU;
       else drawVersion();
+      break;
+
+    case Screen::SENSOR:
+      if (b != input::Btn::NONE) screen = Screen::MENU;
+      else drawSensor();
       break;
   }
   delay(20);
