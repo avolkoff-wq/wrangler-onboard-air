@@ -7,7 +7,7 @@ import csv, math, subprocess, sys, os
 from PIL import Image, ImageDraw, ImageFont
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-TL = os.path.join(HERE, '..', 'harness', 'timeline.csv')
+TL = os.path.join(HERE, 'timeline.csv')   # make it: g++ -std=gnu++17 -DBENCH_SIM=1 -Istub -I../../firmware/wrangler_air video.cpp -o video && ./video
 W, H, FPS = 1280, 720, 30
 BG, PANEL, INK, MUTED = (21, 25, 31), (31, 36, 44), (232, 236, 240), (150, 160, 172)
 ORANGE, CYAN, GREEN, GREY, YEL = (255, 140, 40), (64, 214, 232), (182, 243, 74), (170, 170, 170), (255, 200, 60)
