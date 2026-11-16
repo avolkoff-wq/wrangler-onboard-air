@@ -1,0 +1,1025 @@
+<title>Wrangler Air Control</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Barlow:wght@400;600;700&family=Barlow+Condensed:wght@500;700&display=swap">
+<style>
+/* Layout: field-manual look. Schematic on top, control dashboard, status trace, then parts list with drawn part pictures. Dark-first (olive + blackout), light = tan paper. */
+:root{
+  --bg:#1b1d16; --panel:#232619; --panel2:#2c3021; --line:#3c4230;
+  --fg:#e8e4d4; --muted:#a3a48e;
+  --olive:#5c6b2e; --orange:#f26b1d; --red:#d8432f; --green:#8ec63f; --amber:#f2b01d;
+  --wire:#6b705a; --steel:#8d917c; --dark:#111; --pwr:#ff5a36; --sig:#f2c200; --gndc:#4c9bff;
+  --display:'Black Ops One',Impact,'Arial Black',sans-serif;
+  --body:'Barlow',Arial,sans-serif;
+  --cond:'Barlow Condensed','Arial Narrow',sans-serif;
+  color-scheme:dark;
+}
+@media (prefers-color-scheme: light){ :root:not([data-theme="dark"]){
+  --bg:#d9d2b4; --panel:#e8e2c8; --panel2:#f1ecd8; --line:#b7ae8c;
+  --fg:#1f2116; --muted:#5a5c48;
+  --olive:#4b5a22; --orange:#d9540c; --red:#b8321f; --green:#4f7f12; --amber:#a86f00;
+  --wire:#8a8468; --steel:#6f725f; --pwr:#d0331b; --sig:#a37f00; --gndc:#1f5fbf; color-scheme:light; } }
+:root[data-theme="light"]{
+  --bg:#d9d2b4; --panel:#e8e2c8; --panel2:#f1ecd8; --line:#b7ae8c;
+  --fg:#1f2116; --muted:#5a5c48;
+  --olive:#4b5a22; --orange:#d9540c; --red:#b8321f; --green:#4f7f12; --amber:#a86f00;
+  --wire:#8a8468; --steel:#6f725f; --pwr:#d0331b; --sig:#a37f00; --gndc:#1f5fbf; color-scheme:light; }
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 48px}
+.wrap{max-width:1180px;margin:0 auto}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px 24px;padding-block:28px 18px;border-bottom:4px solid var(--olive)}
+h1{font-family:var(--display);font-size:clamp(28px,5vw,46px);margin:0;letter-spacing:.02em;text-transform:uppercase}
+h1 span{color:var(--orange)}
+.stencil{font-family:var(--cond);font-weight:700;text-transform:uppercase;letter-spacing:.14em;font-size:13px;color:var(--muted)}
+h2{font-family:var(--display);font-size:22px;text-transform:uppercase;letter-spacing:.04em;margin:34px 0 12px;text-wrap:balance}
+h2 small{font-family:var(--cond);font-weight:500;letter-spacing:.08em;font-size:14px;color:var(--muted);margin-left:10px}
+
+.panel{background:var(--panel);border:1px solid var(--line);margin-top:18px}
+.schem{overflow-x:auto;padding:8px}
+.schem svg{display:block;width:100%;min-width:760px;height:auto;font-family:var(--cond)}
+.legend{display:flex;gap:18px;flex-wrap:wrap;font-family:var(--cond);font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:6px 10px 10px}
+.legend i{display:inline-block;width:28px;height:4px;vertical-align:middle;margin-right:6px;background:var(--wire)}
+.legend i.h{background:var(--orange);opacity:.45}
+.legend i.l{background:repeating-linear-gradient(90deg,var(--orange) 0 8px,transparent 8px 14px);height:5px}
+
+.dash{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-top:14px}
+.ctl{background:var(--panel);border:1px solid var(--line);padding:12px 14px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.ctl .lbl{font-family:var(--cond);font-weight:700;text-transform:uppercase;letter-spacing:.1em;font-size:13px;color:var(--muted)}
+.ctl .sub{font-size:13px;color:var(--muted)}
+.tog{appearance:none;border:2px solid var(--line);background:var(--panel2);color:var(--fg);font-family:var(--display);font-size:18px;letter-spacing:.06em;padding:10px 12px;cursor:pointer;text-transform:uppercase}
+.tog[aria-pressed="true"]{background:var(--orange);border-color:var(--orange);color:var(--dark)}
+.tog.dead[aria-pressed="true"]{background:var(--red);border-color:var(--red);color:#fff}
+.tog:focus-visible,.mini:focus-visible,input:focus-visible{outline:3px solid var(--amber);outline-offset:2px}
+input[type=range]{width:100%;accent-color:var(--orange)}
+.big{font-family:var(--display);font-size:34px;line-height:1;font-variant-numeric:tabular-nums}
+.big small{font-family:var(--cond);font-size:16px;color:var(--muted);margin-left:4px}
+.btnrow{display:flex;gap:6px;flex-wrap:wrap}
+.mini{appearance:none;border:1px solid var(--line);background:var(--panel2);color:var(--fg);font-family:var(--cond);font-weight:700;font-size:13px;letter-spacing:.06em;text-transform:uppercase;padding:6px 10px;cursor:pointer}
+.mini[aria-pressed="true"]{background:var(--olive);color:#fff;border-color:var(--olive)}
+
+.status{margin-top:14px;background:var(--panel);border-left:6px solid var(--orange);padding:14px 16px}
+.status .head{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.pill{font-family:var(--display);font-size:20px;letter-spacing:.05em;padding:6px 14px;background:var(--line);text-transform:uppercase}
+.pill.on{background:var(--green);color:var(--dark)}
+.pill.off{background:var(--red);color:#fff}
+ol.trace{margin:10px 0 0;padding-left:22px;font-size:15px}
+ol.trace li{margin:3px 0}
+ol.trace li.iso{color:var(--amber)}
+ol.trace li.cut{color:var(--red)}
+
+.board{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:12px;align-items:start}
+@media (max-width:820px){.board{grid-template-columns:1fr}}
+.pl{fill:#1a1a1a;font-family:var(--cond);font-size:13px;font-weight:700}
+.pt{fill:#1a1a1a;font-family:var(--cond);font-size:14px;font-weight:700;letter-spacing:.04em}
+.why{margin-top:14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.why div{background:var(--panel);border:1px solid var(--line);padding:12px 14px;font-size:15px;min-width:0}
+.why b{font-family:var(--cond);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:4px;color:var(--orange)}
+
+.tbl{overflow-x:auto;background:var(--panel);border:1px solid var(--line)}
+table{width:100%;border-collapse:collapse;font-size:15px}
+th,td{padding:10px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
+th{font-family:var(--cond);font-weight:700;text-transform:uppercase;letter-spacing:.1em;font-size:13px;color:var(--muted);white-space:nowrap}
+td.n{font-family:var(--cond);font-weight:700;color:var(--orange);font-size:16px;white-space:nowrap}
+td.pic{width:104px;padding:6px}
+td.pic svg,td.pic img{display:block;width:92px;height:68px;background:#fff;border:1px solid var(--line)}
+td.pic img{object-fit:contain}
+td.p{white-space:nowrap;font-variant-numeric:tabular-nums}
+td code{font-family:var(--cond);font-size:15px;font-weight:700;background:var(--panel2);padding:1px 6px;letter-spacing:.03em}
+td .grp{font-family:var(--cond);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block}
+tr.sec td{font-family:var(--display);font-size:15px;letter-spacing:.05em;text-transform:uppercase;background:var(--panel2);color:var(--orange)}
+a{color:var(--orange)}
+tr.total td{font-family:var(--display);font-size:18px;border-bottom:0}
+.note{font-size:14px;color:var(--muted);margin-top:10px;max-width:75ch}
+
+/* schematic */
+.w{stroke:var(--wire);stroke-width:3;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.w.hot{stroke:var(--orange);stroke-opacity:.45}
+.w.live{stroke:var(--orange);stroke-opacity:1;stroke-width:4;stroke-dasharray:10 8;animation:flow .6s linear infinite}
+.w.pwr.hot,.w.pwr.live{stroke:var(--pwr)}
+.w.sig.hot,.w.sig.live{stroke:var(--sig)}
+.w.gnd,.w.gnd.hot,.w.gnd.live{stroke:var(--gndc);stroke-opacity:1}
+.w.gnd.live{stroke-dasharray:none;animation:none;stroke-width:3.5}
+@keyframes flow{to{stroke-dashoffset:-18}}
+@media (prefers-reduced-motion:reduce){.w.live{animation:none}}
+.box{fill:var(--panel2);stroke:var(--line);stroke-width:2}
+.box.on{stroke:var(--orange);stroke-width:3}
+.box.dead{stroke:var(--red);stroke-width:3;stroke-dasharray:6 4}
+.encl{fill:none;stroke:var(--steel);stroke-width:2;stroke-dasharray:8 6}
+.frame{fill:none;stroke:var(--steel);stroke-width:1.5}
+.t{fill:var(--fg);font-size:15px;font-weight:700}
+.t.s{font-size:12px;font-weight:500;fill:var(--muted);letter-spacing:.05em}
+.t.d{font-family:var(--display);font-size:16px;letter-spacing:.04em}
+.coil{fill:var(--panel2);stroke:var(--fg);stroke-width:2}
+.coil.on{fill:var(--orange);stroke:var(--orange)}
+.link{stroke:var(--muted);stroke-width:1.5;stroke-dasharray:3 4}
+.sw{stroke:var(--fg);stroke-width:3.5;stroke-linecap:round;transition:all .15s}
+.sw.on{stroke:var(--orange)}
+.term{fill:var(--fg)}
+.gnd{stroke:var(--fg);stroke-width:2}
+.st{font-size:12px;font-weight:700;letter-spacing:.06em}
+.screen{fill:#0d0f0a;stroke:var(--line);stroke-width:2}
+.screen.dead{fill:#2a1512;stroke:var(--red)}
+.scr{fill:#8ec63f;font-family:var(--display);font-size:15px}
+.scr.s{font-size:10px;fill:#a3a48e;font-family:var(--cond);font-weight:500}
+.comp{fill:var(--panel2);stroke:var(--line);stroke-width:2}
+.comp.on{fill:var(--orange);stroke:var(--orange)}
+.fan{transform-origin:center;transform-box:fill-box}
+.fan.on{animation:spin 1.2s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.fan.on{animation:none}}
+.dot{fill:var(--fg)}
+/* part pictures */
+.pp-body{fill:var(--panel)} .pp-dark{fill:#1a1a1a} .pp-or{fill:var(--orange)} .pp-st{stroke:var(--fg);stroke-width:1.5;fill:none}
+.pp-mut{fill:var(--muted)} .pp-cu{fill:#c98a3a} .pp-red{fill:#c0392b} .pp-blk{fill:#222} .pp-gr{fill:#4f7f12} .pp-txt{fill:var(--fg);font-family:var(--cond);font-size:9px;font-weight:700}
+</style>
+
+<div class="wrap">
+<header>
+  <div>
+    <div class="stencil">Onboard air · управление компрессором</div>
+    <h1>Wrangler <span>Air</span> Control</h1>
+  </div>
+  <div class="stencil" style="margin-left:auto">DinMeter · PORT.B + делитель · обход AUX2 через D2</div>
+</header>
+
+<div class="panel">
+  <div class="schem">
+<svg viewBox="0 0 1100 690" xmlns="http://www.w3.org/2000/svg" aria-label="Схема управления компрессором">
+  <rect x="150" y="170" width="560" height="330" class="encl"/>
+  <text x="164" y="192" class="t d" style="font-size:14px">КОРОБКА WISKA COMBI 308 IP66</text>
+
+  <!-- AUX1 -> F1 -> DinMeter DC and K1 COM -->
+  <path id="w-a1in" class="w pwr" d="M120 230 H250"/>
+  <path id="w-f1o" class="w pwr" d="M250 230 H250"/>
+  <path id="w-dialdc" class="w pwr" d="M250 230 V50 H400"/>
+  <path class="w" d="M400 90 H382 V100"/>
+  <path id="w-k1in" class="w pwr" d="M250 230 H300 V385 H645 V360"/>
+
+  <!-- PORT.B -> X2 -->
+  <path id="w-pb-gnd" class="w gnd" d="M450 196 V157"/>
+  <path id="w-pb-5v"  class="w pwr" d="M470 157 V196"/>
+  <path id="w-pb-g2"  class="w sig" d="M490 157 V196"/>
+  <path id="w-pb-g1"  class="w sig" d="M510 196 V157"/>
+  <!-- X2 -> sensor / divider / K1 -->
+  <path id="w-g1"  class="w sig" d="M650 220 H510 V212"/>
+  <path id="w-sig" class="w sig" d="M770 220 H730 M680 220 H650"/>
+  <path id="w-r2"  class="w gnd" d="M650 220 V226 M650 250 V256"/>
+  <path id="w-gnd" class="w gnd" d="M770 256 H498 a8 8 0 0 0 -16 0 H478 a8 8 0 0 0 -16 0 H450 V212"/>
+  <path id="w-5v"  class="w pwr" d="M470 212 V270 H482 a8 8 0 0 1 16 0 H770"/>
+  <path id="w-g2"  class="w sig" d="M490 212 V320 H525 M555 320 H570 V300 H590 V308"/>
+  <path id="w-k1led" class="w gnd" d="M590 322 V334 H614 V280 a7 7 0 0 1 0 -14 V256"/>
+
+  <!-- K1 out, AUX2 via D2, X -> K2 coil -->
+  <path id="w-k1o"  class="w pwr" d="M645 305 V297 H685 V410 H725"/>
+  <path id="w-a2in" class="w pwr" d="M120 410 H135"/>
+  <path id="w-a2d"  class="w pwr" d="M135 410 V522 H560"/>
+  <path id="w-d2x"  class="w pwr" d="M590 522 H725 V410"/>
+  <path id="w-xk2"  class="w pwr" d="M725 410 H790 V394 H850 V400"/>
+  <path id="w-k2gnd" class="w gnd" d="M850 440 V456"/>
+  <path class="w" d="M850 400 V394 H826 V408 M826 432 V446 H850 V440"/>
+  <path id="w-main1" class="w pwr" d="M70 556 V578 H760"/>
+  <path id="w-main2" class="w pwr" d="M820 578 H940 V450"/>
+  <path id="w-comp"  class="w pwr" d="M940 390 V340 H980"/>
+  <path class="w" d="M1035 367 V378"/>
+
+  <!-- sources -->
+  <rect x="20" y="202" width="100" height="56" class="box" id="b-a1"/>
+  <text x="70" y="227" text-anchor="middle" class="t d">AUX 1</text>
+  <text x="70" y="246" text-anchor="middle" class="t s">DINMETER + K1</text>
+  <rect x="20" y="382" width="100" height="56" class="box" id="b-a2"/>
+  <text x="70" y="407" text-anchor="middle" class="t d">AUX 2</text>
+  <text x="70" y="426" text-anchor="middle" class="t s">ОБХОД</text>
+  <rect x="20" y="500" width="100" height="56" class="box on"/>
+  <text x="70" y="525" text-anchor="middle" class="t d">АКБ +</text>
+  <text x="70" y="544" text-anchor="middle" class="t s">ТОЛЬКО НА K2</text>
+
+      <rect x="760" y="570" width="60" height="16" class="box"/><text x="790" y="565" text-anchor="middle" class="t s">пред ARB</text>
+  <circle cx="250" cy="230" r="4" class="dot"/>
+  <circle cx="650" cy="220" r="4" class="dot"/>
+  <circle cx="650" cy="256" r="4" class="dot"/>
+    
+  <!-- DinMeter + PORT.B -->
+  <rect x="400" y="10" width="160" height="135" rx="10" class="box" id="b-dial"/>
+  <text x="566" y="26" class="t d" style="font-size:13px">DINMETER</text><text x="566" y="42" class="t s" style="font-size:10px">в крышке коробки</text>
+  <rect x="416" y="34" width="96" height="56" rx="4" class="screen" id="scr"/>
+  <circle cx="535" cy="95" r="18" fill="var(--orange)"/><circle cx="535" cy="95" r="11" fill="#c9531a"/><text x="535" y="125" text-anchor="middle" class="t s" style="font-size:9px">ЭНКОДЕР</text>
+  <text x="464" y="62" text-anchor="middle" class="scr" id="scr-bar">0.0 bar</text>
+  <text x="464" y="80" text-anchor="middle" class="scr s" id="scr-st">IDLE</text>
+  <rect x="402" y="40" width="14" height="22" fill="#4f7f12"/>
+  <text x="378" y="44" text-anchor="end" class="t s">DC +</text>
+  <text x="378" y="122" text-anchor="end" class="t s">DC − на массу</text>
+  <path class="gnd" d="M370 100 H394 M374 106 H390 M378 112 H386"/>
+  <rect x="440" y="143" width="80" height="14" rx="2" fill="#151515" stroke="var(--fg)" stroke-width="1"/>
+  <circle cx="450" cy="150" r="3" fill="#888"/><circle cx="470" cy="150" r="3" fill="#888"/><circle cx="490" cy="150" r="3" fill="#888"/><circle cx="510" cy="150" r="3" fill="#888"/>
+  <text x="450" y="135" text-anchor="middle" class="t s" style="font-size:10px">GND</text>
+  <text x="470" y="135" text-anchor="middle" class="t s" style="font-size:10px">5V</text>
+  <text x="490" y="135" text-anchor="middle" class="t s" style="font-size:10px">G2</text>
+  <text x="510" y="135" text-anchor="middle" class="t s" style="font-size:10px">G1</text>
+  <text x="528" y="155" class="t s">PORT.B</text>
+
+  <g fill="var(--panel2)" stroke="var(--fg)" stroke-width="1.5">
+    <rect x="443" y="196" width="14" height="16"/><rect x="463" y="196" width="14" height="16"/>
+    <rect x="483" y="196" width="14" height="16"/><rect x="503" y="196" width="14" height="16"/>
+  </g>
+  <text x="524" y="208" class="t s">J2 · PORT.B · J2b · питание</text>
+
+  <!-- divider R1 series, R2 to GND -->
+  <rect x="628" y="200" width="122" height="64" fill="none" stroke="var(--sig)" stroke-width="2" stroke-dasharray="5 4"/>
+  <text x="632" y="195" class="t" style="font-size:12px;fill:var(--sig)">ДЕЛИТЕЛЬ 4.5V → 3.0V</text>
+  <rect x="680" y="212" width="50" height="16" class="box" style="stroke:var(--sig);stroke-width:2"/>
+  <text x="705" y="224" text-anchor="middle" class="t s" style="font-size:10px">R1 10k</text>
+  <rect x="642" y="226" width="16" height="24" class="box" style="stroke:var(--sig);stroke-width:2"/>
+  <text x="664" y="244" class="t s" style="font-size:10px">R2 20k → масса</text>
+  <text x="596" y="214" class="t s" style="font-size:10px">3.0V</text>
+
+  <!-- sensor -->
+  <rect x="770" y="200" width="130" height="86" class="box" id="b-sen"/>
+  <text x="778" y="224" class="t s">SIG</text><text x="778" y="260" class="t s">GND</text><text x="778" y="274" class="t s">+5V</text>
+  <text x="866" y="226" text-anchor="middle" class="t">ДАТЧИК</text>
+  <text x="866" y="244" text-anchor="middle" class="t s">0.5-4.5V</text>
+  <text x="866" y="258" text-anchor="middle" class="t s">0-10 BAR</text>
+
+  <!-- K1 PhotoMOS on the board -->
+  <rect x="525" y="313" width="30" height="14" class="box" style="stroke:var(--sig);stroke-width:2"/>
+  <text x="540" y="308" text-anchor="middle" class="t s" style="font-size:10px">R3 330</text>
+  <rect x="565" y="290" width="105" height="80" class="frame"/>
+  <text x="569" y="384" class="t s" style="font-size:10px">K1 · PhotoMOS AQV252G</text>
+  <polygon points="582,308 598,308 590,322" class="coil" id="k1coil"/>
+  <line x1="582" y1="322" x2="598" y2="322" stroke="var(--fg)" stroke-width="2"/>
+  <text x="572" y="300" class="t s" style="font-size:9px">LED</text>
+  <circle cx="614" cy="256" r="4" class="dot"/>
+  <text x="578" y="314" class="t s" style="font-size:9px">1</text><text x="578" y="332" class="t s" style="font-size:9px">2</text>
+  <text x="568" y="362" class="t s" style="font-size:10px;font-weight:700;fill:var(--gndc)">ножка 2 → GND</text>
+  <line x1="604" y1="318" x2="638" y2="330" class="link"/>
+  <circle cx="645" cy="360" r="4" class="term"/><circle cx="645" cy="305" r="4" class="term"/>
+  <line id="k1sw" class="sw" x1="645" y1="360" x2="665" y2="312"/>
+  <text x="652" y="374" class="t s" style="font-size:9px">4</text><text x="652" y="300" class="t s" style="font-size:9px">6</text>
+  <text x="460" y="380" class="t s" style="font-size:10px;fill:var(--pwr)">+12V AUX1 → K1</text>
+  <text id="k1st" x="568" y="285" text-anchor="middle" class="st" style="font-size:10px">РАЗОМКНУТ</text>
+
+  <!-- D2 -->
+  <polygon points="562,512 562,532 586,522" class="coil" id="d2p"/>
+  <line x1="588" y1="512" x2="588" y2="532" stroke="var(--fg)" stroke-width="3" id="d2b"/>
+  <text x="575" y="548" text-anchor="middle" class="t s">D2 · диод-вставка в держателе, у реле K2</text>
+  <text x="300" y="516" class="t s" style="fill:var(--pwr)">AUX2: отдельный провод мимо коробки</text>
+  <text id="d2st" x="610" y="510" text-anchor="middle" class="st"></text>
+
+  <circle cx="725" cy="410" r="6" class="dot" id="nx"/>
+  <text x="716" y="434" class="t">X</text>
+  <text x="690" y="402" class="t s" style="font-size:10px">J1</text>
+
+  <!-- K2 -->
+  <rect x="815" y="370" width="150" height="100" class="frame"/>
+  <text x="821" y="486" class="t s">K2 · СИЛОВОЕ ARB (ДО 50A)</text>
+  <rect x="840" y="400" width="20" height="40" class="coil" id="k2coil"/>
+  <g transform="translate(826,420)"><polygon points="-7,6 7,6 0,-6" fill="var(--panel2)" stroke="var(--fg)" stroke-width="1.5"/><line x1="-7" y1="-6" x2="7" y2="-6" stroke="var(--fg)" stroke-width="1.5"/></g>
+  <text x="808" y="425" text-anchor="end" class="t s">D3</text>
+  <line x1="860" y1="420" x2="932" y2="420" class="link"/>
+  <circle cx="940" cy="450" r="4" class="term"/><circle cx="940" cy="390" r="4" class="term"/>
+  <line id="k2sw" class="sw" x1="940" y1="450" x2="963" y2="398"/>
+  <text x="948" y="464" class="t s" style="font-size:9px">30</text><text x="948" y="388" class="t s" style="font-size:9px">87</text>
+  <text id="k2st" x="890" y="504" text-anchor="middle" class="st">РАЗОМКНУТ</text>
+  <path class="gnd" d="M838 456 H862 M842 462 H858 M846 468 H854"/>
+
+  <rect x="980" y="313" width="110" height="54" rx="8" class="comp" id="b-comp"/>
+  <text x="1035" y="336" text-anchor="middle" class="t d" id="t-comp" style="font-size:14px">КОМПРЕССОР</text>
+  <g class="fan" id="fan">
+    <circle cx="1035" cy="352" r="7" fill="none" stroke="var(--fg)" stroke-width="2"/>
+    <line x1="1035" y1="345" x2="1035" y2="359" stroke="var(--fg)" stroke-width="2"/>
+    <line x1="1028" y1="352" x2="1042" y2="352" stroke="var(--fg)" stroke-width="2"/>
+  </g>
+  <path class="gnd" d="M1023 378 H1047 M1027 384 H1043 M1031 390 H1039"/>
+
+  <!-- K4 channel: built now, used at stage 3 -->
+  <rect x="404" y="143" width="30" height="14" rx="2" fill="#151515" stroke="var(--fg)" stroke-width="1"/>
+  <circle cx="413" cy="150" r="3" fill="#888"/><circle cx="425" cy="150" r="3" fill="#888"/>
+  <text x="398" y="168" text-anchor="end" class="t s" style="font-size:10px">PORT.A G13</text>
+  <rect x="418" y="196" width="14" height="16" fill="var(--panel2)" stroke="var(--fg)" stroke-width="1.5"/>
+  <path id="w-g13" class="w sig" d="M425 157 V196 M425 212 V440 H525 M555 440 H570 V425 H590 V433"/>
+  <rect x="525" y="433" width="30" height="14" class="box" style="stroke:var(--sig);stroke-width:2"/>
+  <text x="540" y="428" text-anchor="middle" class="t s" style="font-size:10px">R4 330</text>
+  <rect x="565" y="415" width="105" height="72" class="frame"/>
+  <text x="569" y="499" class="t s" style="font-size:10px">K4 · AQV252G · ждёт этапа 3</text>
+  <polygon points="582,433 598,433 590,447" class="coil" id="k4coil"/>
+  <line x1="582" y1="447" x2="598" y2="447" stroke="var(--fg)" stroke-width="2"/>
+  <path id="w-k4led" class="w gnd" d="M590 447 V459"/>
+  <path class="gnd" d="M580 459 H600 M584 464 H596 M588 469 H592"/>
+  <line x1="604" y1="440" x2="638" y2="452" class="link"/>
+  <circle cx="645" cy="475" r="4" class="term"/><circle cx="645" cy="430" r="4" class="term"/>
+  <line class="sw" x1="645" y1="475" x2="665" y2="437"/>
+  <path id="w-k4in" class="w pwr" d="M300 385 V478 H641"/>
+  <circle cx="300" cy="385" r="4" class="dot"/>
+  <path id="w-k4o" class="w pwr" d="M645 430 V424 H690 V616" style="stroke-dasharray:6 5"/>
+  <text x="694" y="472" class="t s" style="font-size:10px">J1 →K4</text>
+  <!-- future stages -->
+  <rect x="600" y="596" width="495" height="86" rx="6" fill="none" stroke="#d9a400" stroke-width="2" stroke-dasharray="9 6"/>
+  <text x="608" y="614" class="t d" style="font-size:13px;fill:#b38600">БУДУЩИЕ ЭТАПЫ · в коробке уже всё есть</text>
+  <path class="w" d="M725 522 V606 H770 V622" style="stroke:#d9a400;stroke-dasharray:6 5"/>
+  <rect x="680" y="622" width="20" height="34" class="coil" style="stroke-dasharray:4 3"/>
+  <path class="w" d="M690 616 V622"/>
+  <path class="gnd" d="M680 664 H700 M684 669 H696 M688 674 H692"/><path class="w" d="M690 656 V664"/>
+  <text x="706" y="636" class="t s" style="font-size:10px;fill:var(--fg)">КЛ2 спуск</text><text x="706" y="650" class="t s" style="font-size:10px">этап 3</text>
+  <rect x="760" y="622" width="20" height="34" class="coil" style="stroke-dasharray:4 3"/>
+  <path class="gnd" d="M760 664 H780 M764 669 H776 M768 674 H772"/><path class="w" d="M770 656 V664"/>
+  <text x="786" y="636" class="t s" style="font-size:10px;fill:var(--fg)">КЛ1 подкачка</text><text x="786" y="650" class="t s" style="font-size:10px">этап 2</text>
+  <text x="900" y="632" class="t s" style="font-size:10px;fill:var(--fg)">Этап 2: катушка K2 от AUX1</text>
+  <text x="900" y="646" class="t s" style="font-size:10px;fill:var(--fg)">через D4 и от AUX2 через D5,</text>
+  <text x="900" y="660" class="t s" style="font-size:10px;fill:var(--fg)">D3 переезжает на КЛ1.</text>
+  <text x="900" y="674" class="t s" style="font-size:10px;fill:var(--fg)">Этап 3: КЛ2 на J1 →K4.</text>
+</svg>
+  </div>
+  <div class="legend"><span><i></i>нет напряжения</span><span><i style="background:var(--pwr)"></i>питание +12V / +5V</span><span><i style="background:var(--sig)"></i>сигнал</span><span><i style="background:var(--gndc)"></i>масса (обратный провод, без анимации)</span><span><i class="h"></i>бледный: есть напряжение, тока нет</span><span><i class="l"></i>пунктир бежит: течёт ток</span></div>
+</div>
+
+<div class="dash">
+  <div class="ctl"><div class="lbl">AUX 1</div><button class="tog" id="t-a1" aria-pressed="true">ON</button><div class="sub">Питает DinMeter и датчик</div></div>
+  <div class="ctl"><div class="lbl">AUX 2</div><button class="tog" id="t-a2" aria-pressed="false">OFF</button><div class="sub">Свой провод мимо коробки, через D2 на катушку K2</div></div>
+  <div class="ctl"><div class="lbl">DinMeter</div><button class="tog dead" id="t-dead" aria-pressed="false">ЖИВОЙ</button><div class="sub">Нажми, чтобы «убить» DinMeter</div></div>
+  <div class="ctl"><div class="lbl">Давление в колесе</div><div class="big" id="pv">0.4<small>bar</small></div>
+    <input type="range" id="pr" min="0" max="4" step="0.1" value="0.4" aria-label="Давление, bar">
+    <div class="btnrow"><button class="mini" id="t-auto" aria-pressed="true">Авто-симуляция</button><button class="mini" id="b-leak">Новое колесо (0 bar)</button></div>
+    <div class="sub">Может быть и 0: пустое колесо</div></div>
+  <div class="ctl"><div class="lbl">Энкодер DinMeter: цель</div>
+    <div class="big" id="v-tg">2.2<small>bar</small></div>
+    <input type="range" id="tg" min="0.5" max="3" step="0.1" value="2.2" aria-label="Целевое давление, bar">
+    <button class="tog" id="b-go" aria-pressed="false">НАЖАТЬ: КАЧАТЬ</button>
+    <div class="sub">Крутишь энкодер до цели (макс. 3.0 bar), нажимаешь: качает до цели и сам выключается</div></div>
+</div>
+
+<div class="status">
+  <div class="head"><span class="pill" id="pill">-</span><span id="headline"></span></div>
+  <ol class="trace" id="trace"></ol>
+</div>
+
+<div class="why">
+  <div><b>Как программа качает</b>Все 4 колеса через тройники, мотор заведён. На ходу датчик показывает больше, чем в колёсах, на величину «поправки». Программа качает без пауз и считает колёса = датчик − поправка. За 0.1 bar до цели стоп, 2 с замер без потока, при недоборе одна короткая добивка. Поправка уточняется после каждой подкачки и хранится в памяти. Самая первая подкачка: калибровочный импульс 15 с. Итого 1-2 пуска компрессора.</div>
+  <div><b>Один диод, без отдельного плюса</b>Плюс на X идёт либо с AUX1 через K1, либо с AUX2 через D2. D2 не пускает плюс от K1 в выключенный AUX2. Диод на стороне AUX1 не нужен: K1 замкнут только когда AUX1 включён, а без AUX1 DinMeter не работает и K1 разомкнут.</div>
+  <div><b>Если DinMeter умер</b>K1 отпускается сам: его катушка питается от DinMeter. Включаешь AUX2, и 12V через D2 идёт прямо на катушку K2, компрессор качает без датчика. Предел давления держит механический клапан на ресивере.</div>
+  <div><b>Стоп без тумблера</b>Отдельного выключателя нет. Программа: нажатие энкодера или выключение AUX1. Обход: выключение AUX2. Аварийно: предохранитель ARB у АКБ.</div>
+</div>
+
+
+<h2>Плата: Adafruit Perma-Proto Quarter, универсальная <small>собирается сразу целиком, оба PhotoMOS стоят с первого дня</small></h2>
+<div class="board"><div class="panel schem" style="margin-top:0"><svg viewBox="-95 0 630 420" xmlns="http://www.w3.org/2000/svg" aria-label="Perma-Proto раскладка" style="min-width:360px;font-family:var(--cond)">
+<defs>
+<linearGradient id="pcb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1f6b3a"/><stop offset="1" stop-color="#17532d"/></linearGradient>
+<radialGradient id="pad" cx=".4" cy=".35" r=".7"><stop offset="0" stop-color="#ffe9a8"/><stop offset=".55" stop-color="#d9a640"/><stop offset="1" stop-color="#9c6e1c"/></radialGradient>
+<linearGradient id="tb" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#1e7a35"/><stop offset=".5" stop-color="#2fa14a"/><stop offset="1" stop-color="#1e7a35"/></linearGradient>
+<linearGradient id="ic" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a3a3a"/><stop offset="1" stop-color="#151515"/></linearGradient>
+<linearGradient id="resv" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#b99a5e"/><stop offset=".45" stop-color="#f0dcae"/><stop offset="1" stop-color="#a8884c"/></linearGradient>
+<linearGradient id="resh" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b99a5e"/><stop offset=".45" stop-color="#f0dcae"/><stop offset="1" stop-color="#a8884c"/></linearGradient>
+<filter id="sh" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="1.5" dy="2" stdDeviation="1.6" flood-opacity=".45"/></filter>
+</defs>
+<rect x="38" y="40" width="364" height="340" rx="10" fill="url(#pcb)" stroke="#0f3b1f" stroke-width="2"/>
+<rect x="105" y="64.5" width="94" height="11" rx="5.5" fill="#2f8a4c" opacity=".9"/>
+<rect x="241" y="64.5" width="94" height="11" rx="5.5" fill="#2f8a4c" opacity=".9"/>
+<rect x="105" y="84.5" width="94" height="11" rx="5.5" fill="#2f8a4c" opacity=".9"/>
+<rect x="241" y="84.5" width="94" height="11" rx="5.5" fill="#2f8a4c" opacity=".9"/>
+<rect x="105" y="104.5" width="94" height="11" rx="5.5" fill="#2f8a4c" opacity=".9"/>
+<rect x="241" y="104.5" width="94" height="11" rx="5.5" fill="#2f8a4c" opacity=".9"/>
+<rect x="105" y="124.5" width="94" height="11" rx="5.5" fill="#2f8a4c" opacity=".9"/>
+<rect x="241" y="124.5" width="94" height="11" rx="5.5" fill="#2f8a4c" opacity=".9"/>
+<rect x="105" y="144.5" width="94" height="11" rx="5.5" fill="#2f8a4c" opacity=".9"/>
+<rect x="241" y="144.5" width="94" height="11" rx="5.5" fill="#2f8a4c" opacity=".9"/>
+<rect x="105" y="164.5" width="94" height="11" rx="5.5" fill="#2f8a4c" opacity=".9"/>
+<rect x="241" y="164.5" width="94" height="11" rx="5.5" fill="#2f8a4c" opacity=".9"/>
+<rect x="105" y="184.5" width="94" height="11" rx="5.5" fill="#2f8a4c" opacity=".9"/>
+<rect x="241" y="184.5" width="94" height="11" rx="5.5" fill="#2f8a4c" opacity=".9"/>
+<rect x="105" y="204.5" width="94" height="11" rx="5.5" fill="#2f8a4c" opacity=".9"/>
+<rect x="241" y="204.5" width="94" height="11" rx="5.5" fill="#2f8a4c" opacity=".9"/>
+<rect x="105" y="224.5" width="94" height="11" rx="5.5" fill="#2f8a4c" opacity=".9"/>
+<rect x="241" y="224.5" width="94" height="11" rx="5.5" fill="#2f8a4c" opacity=".9"/>
+<rect x="105" y="244.5" width="94" height="11" rx="5.5" fill="#2f8a4c" opacity=".9"/>
+<rect x="241" y="244.5" width="94" height="11" rx="5.5" fill="#2f8a4c" opacity=".9"/>
+<rect x="105" y="264.5" width="94" height="11" rx="5.5" fill="#2f8a4c" opacity=".9"/>
+<rect x="241" y="264.5" width="94" height="11" rx="5.5" fill="#2f8a4c" opacity=".9"/>
+<rect x="105" y="284.5" width="94" height="11" rx="5.5" fill="#2f8a4c" opacity=".9"/>
+<rect x="241" y="284.5" width="94" height="11" rx="5.5" fill="#2f8a4c" opacity=".9"/>
+<rect x="105" y="304.5" width="94" height="11" rx="5.5" fill="#2f8a4c" opacity=".9"/>
+<rect x="241" y="304.5" width="94" height="11" rx="5.5" fill="#2f8a4c" opacity=".9"/>
+<rect x="105" y="324.5" width="94" height="11" rx="5.5" fill="#2f8a4c" opacity=".9"/>
+<rect x="241" y="324.5" width="94" height="11" rx="5.5" fill="#2f8a4c" opacity=".9"/>
+<rect x="105" y="344.5" width="94" height="11" rx="5.5" fill="#2f8a4c" opacity=".9"/>
+<rect x="241" y="344.5" width="94" height="11" rx="5.5" fill="#2f8a4c" opacity=".9"/>
+<rect x="56.5" y="63" width="11" height="294" rx="5.5" fill="#2f8a4c" opacity=".9"/>
+<line x1="53" y1="62" x2="53" y2="358" stroke="#5fa8ff" stroke-width="1.6" opacity="0.9"/>
+<rect x="78.5" y="63" width="11" height="294" rx="5.5" fill="#2f8a4c" opacity=".9"/>
+
+<rect x="350.5" y="63" width="11" height="294" rx="5.5" fill="#2f8a4c" opacity=".9"/>
+
+<rect x="372.5" y="63" width="11" height="294" rx="5.5" fill="#2f8a4c" opacity=".9"/>
+<line x1="387" y1="62" x2="387" y2="358" stroke="#5fa8ff" stroke-width="1.6" opacity="0.9"/>
+<circle cx="62" cy="70" r="3.6" fill="url(#pad)"/><circle cx="62" cy="70" r="1.4" fill="#123"/>
+<circle cx="62" cy="90" r="3.6" fill="url(#pad)"/><circle cx="62" cy="90" r="1.4" fill="#123"/>
+<circle cx="62" cy="110" r="3.6" fill="url(#pad)"/><circle cx="62" cy="110" r="1.4" fill="#123"/>
+<circle cx="62" cy="130" r="3.6" fill="url(#pad)"/><circle cx="62" cy="130" r="1.4" fill="#123"/>
+<circle cx="62" cy="150" r="3.6" fill="url(#pad)"/><circle cx="62" cy="150" r="1.4" fill="#123"/>
+<circle cx="62" cy="170" r="3.6" fill="url(#pad)"/><circle cx="62" cy="170" r="1.4" fill="#123"/>
+<circle cx="62" cy="190" r="3.6" fill="url(#pad)"/><circle cx="62" cy="190" r="1.4" fill="#123"/>
+<circle cx="62" cy="210" r="3.6" fill="url(#pad)"/><circle cx="62" cy="210" r="1.4" fill="#123"/>
+<circle cx="62" cy="230" r="3.6" fill="url(#pad)"/><circle cx="62" cy="230" r="1.4" fill="#123"/>
+<circle cx="62" cy="250" r="3.6" fill="url(#pad)"/><circle cx="62" cy="250" r="1.4" fill="#123"/>
+<circle cx="62" cy="270" r="3.6" fill="url(#pad)"/><circle cx="62" cy="270" r="1.4" fill="#123"/>
+<circle cx="62" cy="290" r="3.6" fill="url(#pad)"/><circle cx="62" cy="290" r="1.4" fill="#123"/>
+<circle cx="62" cy="310" r="3.6" fill="url(#pad)"/><circle cx="62" cy="310" r="1.4" fill="#123"/>
+<circle cx="62" cy="330" r="3.6" fill="url(#pad)"/><circle cx="62" cy="330" r="1.4" fill="#123"/>
+<circle cx="62" cy="350" r="3.6" fill="url(#pad)"/><circle cx="62" cy="350" r="1.4" fill="#123"/>
+<circle cx="84" cy="70" r="3.6" fill="url(#pad)"/><circle cx="84" cy="70" r="1.4" fill="#123"/>
+<circle cx="84" cy="90" r="3.6" fill="url(#pad)"/><circle cx="84" cy="90" r="1.4" fill="#123"/>
+<circle cx="84" cy="110" r="3.6" fill="url(#pad)"/><circle cx="84" cy="110" r="1.4" fill="#123"/>
+<circle cx="84" cy="130" r="3.6" fill="url(#pad)"/><circle cx="84" cy="130" r="1.4" fill="#123"/>
+<circle cx="84" cy="150" r="3.6" fill="url(#pad)"/><circle cx="84" cy="150" r="1.4" fill="#123"/>
+<circle cx="84" cy="170" r="3.6" fill="url(#pad)"/><circle cx="84" cy="170" r="1.4" fill="#123"/>
+<circle cx="84" cy="190" r="3.6" fill="url(#pad)"/><circle cx="84" cy="190" r="1.4" fill="#123"/>
+<circle cx="84" cy="210" r="3.6" fill="url(#pad)"/><circle cx="84" cy="210" r="1.4" fill="#123"/>
+<circle cx="84" cy="230" r="3.6" fill="url(#pad)"/><circle cx="84" cy="230" r="1.4" fill="#123"/>
+<circle cx="84" cy="250" r="3.6" fill="url(#pad)"/><circle cx="84" cy="250" r="1.4" fill="#123"/>
+<circle cx="84" cy="270" r="3.6" fill="url(#pad)"/><circle cx="84" cy="270" r="1.4" fill="#123"/>
+<circle cx="84" cy="290" r="3.6" fill="url(#pad)"/><circle cx="84" cy="290" r="1.4" fill="#123"/>
+<circle cx="84" cy="310" r="3.6" fill="url(#pad)"/><circle cx="84" cy="310" r="1.4" fill="#123"/>
+<circle cx="84" cy="330" r="3.6" fill="url(#pad)"/><circle cx="84" cy="330" r="1.4" fill="#123"/>
+<circle cx="84" cy="350" r="3.6" fill="url(#pad)"/><circle cx="84" cy="350" r="1.4" fill="#123"/>
+<circle cx="112" cy="70" r="3.6" fill="url(#pad)"/><circle cx="112" cy="70" r="1.4" fill="#123"/>
+<circle cx="112" cy="90" r="3.6" fill="url(#pad)"/><circle cx="112" cy="90" r="1.4" fill="#123"/>
+<circle cx="112" cy="110" r="3.6" fill="url(#pad)"/><circle cx="112" cy="110" r="1.4" fill="#123"/>
+<circle cx="112" cy="130" r="3.6" fill="url(#pad)"/><circle cx="112" cy="130" r="1.4" fill="#123"/>
+<circle cx="112" cy="150" r="3.6" fill="url(#pad)"/><circle cx="112" cy="150" r="1.4" fill="#123"/>
+<circle cx="112" cy="170" r="3.6" fill="url(#pad)"/><circle cx="112" cy="170" r="1.4" fill="#123"/>
+<circle cx="112" cy="190" r="3.6" fill="url(#pad)"/><circle cx="112" cy="190" r="1.4" fill="#123"/>
+<circle cx="112" cy="210" r="3.6" fill="url(#pad)"/><circle cx="112" cy="210" r="1.4" fill="#123"/>
+<circle cx="112" cy="230" r="3.6" fill="url(#pad)"/><circle cx="112" cy="230" r="1.4" fill="#123"/>
+<circle cx="112" cy="250" r="3.6" fill="url(#pad)"/><circle cx="112" cy="250" r="1.4" fill="#123"/>
+<circle cx="112" cy="270" r="3.6" fill="url(#pad)"/><circle cx="112" cy="270" r="1.4" fill="#123"/>
+<circle cx="112" cy="290" r="3.6" fill="url(#pad)"/><circle cx="112" cy="290" r="1.4" fill="#123"/>
+<circle cx="112" cy="310" r="3.6" fill="url(#pad)"/><circle cx="112" cy="310" r="1.4" fill="#123"/>
+<circle cx="112" cy="330" r="3.6" fill="url(#pad)"/><circle cx="112" cy="330" r="1.4" fill="#123"/>
+<circle cx="112" cy="350" r="3.6" fill="url(#pad)"/><circle cx="112" cy="350" r="1.4" fill="#123"/>
+<circle cx="132" cy="70" r="3.6" fill="url(#pad)"/><circle cx="132" cy="70" r="1.4" fill="#123"/>
+<circle cx="132" cy="90" r="3.6" fill="url(#pad)"/><circle cx="132" cy="90" r="1.4" fill="#123"/>
+<circle cx="132" cy="110" r="3.6" fill="url(#pad)"/><circle cx="132" cy="110" r="1.4" fill="#123"/>
+<circle cx="132" cy="130" r="3.6" fill="url(#pad)"/><circle cx="132" cy="130" r="1.4" fill="#123"/>
+<circle cx="132" cy="150" r="3.6" fill="url(#pad)"/><circle cx="132" cy="150" r="1.4" fill="#123"/>
+<circle cx="132" cy="170" r="3.6" fill="url(#pad)"/><circle cx="132" cy="170" r="1.4" fill="#123"/>
+<circle cx="132" cy="190" r="3.6" fill="url(#pad)"/><circle cx="132" cy="190" r="1.4" fill="#123"/>
+<circle cx="132" cy="210" r="3.6" fill="url(#pad)"/><circle cx="132" cy="210" r="1.4" fill="#123"/>
+<circle cx="132" cy="230" r="3.6" fill="url(#pad)"/><circle cx="132" cy="230" r="1.4" fill="#123"/>
+<circle cx="132" cy="250" r="3.6" fill="url(#pad)"/><circle cx="132" cy="250" r="1.4" fill="#123"/>
+<circle cx="132" cy="270" r="3.6" fill="url(#pad)"/><circle cx="132" cy="270" r="1.4" fill="#123"/>
+<circle cx="132" cy="290" r="3.6" fill="url(#pad)"/><circle cx="132" cy="290" r="1.4" fill="#123"/>
+<circle cx="132" cy="310" r="3.6" fill="url(#pad)"/><circle cx="132" cy="310" r="1.4" fill="#123"/>
+<circle cx="132" cy="330" r="3.6" fill="url(#pad)"/><circle cx="132" cy="330" r="1.4" fill="#123"/>
+<circle cx="132" cy="350" r="3.6" fill="url(#pad)"/><circle cx="132" cy="350" r="1.4" fill="#123"/>
+<circle cx="152" cy="70" r="3.6" fill="url(#pad)"/><circle cx="152" cy="70" r="1.4" fill="#123"/>
+<circle cx="152" cy="90" r="3.6" fill="url(#pad)"/><circle cx="152" cy="90" r="1.4" fill="#123"/>
+<circle cx="152" cy="110" r="3.6" fill="url(#pad)"/><circle cx="152" cy="110" r="1.4" fill="#123"/>
+<circle cx="152" cy="130" r="3.6" fill="url(#pad)"/><circle cx="152" cy="130" r="1.4" fill="#123"/>
+<circle cx="152" cy="150" r="3.6" fill="url(#pad)"/><circle cx="152" cy="150" r="1.4" fill="#123"/>
+<circle cx="152" cy="170" r="3.6" fill="url(#pad)"/><circle cx="152" cy="170" r="1.4" fill="#123"/>
+<circle cx="152" cy="190" r="3.6" fill="url(#pad)"/><circle cx="152" cy="190" r="1.4" fill="#123"/>
+<circle cx="152" cy="210" r="3.6" fill="url(#pad)"/><circle cx="152" cy="210" r="1.4" fill="#123"/>
+<circle cx="152" cy="230" r="3.6" fill="url(#pad)"/><circle cx="152" cy="230" r="1.4" fill="#123"/>
+<circle cx="152" cy="250" r="3.6" fill="url(#pad)"/><circle cx="152" cy="250" r="1.4" fill="#123"/>
+<circle cx="152" cy="270" r="3.6" fill="url(#pad)"/><circle cx="152" cy="270" r="1.4" fill="#123"/>
+<circle cx="152" cy="290" r="3.6" fill="url(#pad)"/><circle cx="152" cy="290" r="1.4" fill="#123"/>
+<circle cx="152" cy="310" r="3.6" fill="url(#pad)"/><circle cx="152" cy="310" r="1.4" fill="#123"/>
+<circle cx="152" cy="330" r="3.6" fill="url(#pad)"/><circle cx="152" cy="330" r="1.4" fill="#123"/>
+<circle cx="152" cy="350" r="3.6" fill="url(#pad)"/><circle cx="152" cy="350" r="1.4" fill="#123"/>
+<circle cx="172" cy="70" r="3.6" fill="url(#pad)"/><circle cx="172" cy="70" r="1.4" fill="#123"/>
+<circle cx="172" cy="90" r="3.6" fill="url(#pad)"/><circle cx="172" cy="90" r="1.4" fill="#123"/>
+<circle cx="172" cy="110" r="3.6" fill="url(#pad)"/><circle cx="172" cy="110" r="1.4" fill="#123"/>
+<circle cx="172" cy="130" r="3.6" fill="url(#pad)"/><circle cx="172" cy="130" r="1.4" fill="#123"/>
+<circle cx="172" cy="150" r="3.6" fill="url(#pad)"/><circle cx="172" cy="150" r="1.4" fill="#123"/>
+<circle cx="172" cy="170" r="3.6" fill="url(#pad)"/><circle cx="172" cy="170" r="1.4" fill="#123"/>
+<circle cx="172" cy="190" r="3.6" fill="url(#pad)"/><circle cx="172" cy="190" r="1.4" fill="#123"/>
+<circle cx="172" cy="210" r="3.6" fill="url(#pad)"/><circle cx="172" cy="210" r="1.4" fill="#123"/>
+<circle cx="172" cy="230" r="3.6" fill="url(#pad)"/><circle cx="172" cy="230" r="1.4" fill="#123"/>
+<circle cx="172" cy="250" r="3.6" fill="url(#pad)"/><circle cx="172" cy="250" r="1.4" fill="#123"/>
+<circle cx="172" cy="270" r="3.6" fill="url(#pad)"/><circle cx="172" cy="270" r="1.4" fill="#123"/>
+<circle cx="172" cy="290" r="3.6" fill="url(#pad)"/><circle cx="172" cy="290" r="1.4" fill="#123"/>
+<circle cx="172" cy="310" r="3.6" fill="url(#pad)"/><circle cx="172" cy="310" r="1.4" fill="#123"/>
+<circle cx="172" cy="330" r="3.6" fill="url(#pad)"/><circle cx="172" cy="330" r="1.4" fill="#123"/>
+<circle cx="172" cy="350" r="3.6" fill="url(#pad)"/><circle cx="172" cy="350" r="1.4" fill="#123"/>
+<circle cx="192" cy="70" r="3.6" fill="url(#pad)"/><circle cx="192" cy="70" r="1.4" fill="#123"/>
+<circle cx="192" cy="90" r="3.6" fill="url(#pad)"/><circle cx="192" cy="90" r="1.4" fill="#123"/>
+<circle cx="192" cy="110" r="3.6" fill="url(#pad)"/><circle cx="192" cy="110" r="1.4" fill="#123"/>
+<circle cx="192" cy="130" r="3.6" fill="url(#pad)"/><circle cx="192" cy="130" r="1.4" fill="#123"/>
+<circle cx="192" cy="150" r="3.6" fill="url(#pad)"/><circle cx="192" cy="150" r="1.4" fill="#123"/>
+<circle cx="192" cy="170" r="3.6" fill="url(#pad)"/><circle cx="192" cy="170" r="1.4" fill="#123"/>
+<circle cx="192" cy="190" r="3.6" fill="url(#pad)"/><circle cx="192" cy="190" r="1.4" fill="#123"/>
+<circle cx="192" cy="210" r="3.6" fill="url(#pad)"/><circle cx="192" cy="210" r="1.4" fill="#123"/>
+<circle cx="192" cy="230" r="3.6" fill="url(#pad)"/><circle cx="192" cy="230" r="1.4" fill="#123"/>
+<circle cx="192" cy="250" r="3.6" fill="url(#pad)"/><circle cx="192" cy="250" r="1.4" fill="#123"/>
+<circle cx="192" cy="270" r="3.6" fill="url(#pad)"/><circle cx="192" cy="270" r="1.4" fill="#123"/>
+<circle cx="192" cy="290" r="3.6" fill="url(#pad)"/><circle cx="192" cy="290" r="1.4" fill="#123"/>
+<circle cx="192" cy="310" r="3.6" fill="url(#pad)"/><circle cx="192" cy="310" r="1.4" fill="#123"/>
+<circle cx="192" cy="330" r="3.6" fill="url(#pad)"/><circle cx="192" cy="330" r="1.4" fill="#123"/>
+<circle cx="192" cy="350" r="3.6" fill="url(#pad)"/><circle cx="192" cy="350" r="1.4" fill="#123"/>
+<circle cx="248" cy="70" r="3.6" fill="url(#pad)"/><circle cx="248" cy="70" r="1.4" fill="#123"/>
+<circle cx="248" cy="90" r="3.6" fill="url(#pad)"/><circle cx="248" cy="90" r="1.4" fill="#123"/>
+<circle cx="248" cy="110" r="3.6" fill="url(#pad)"/><circle cx="248" cy="110" r="1.4" fill="#123"/>
+<circle cx="248" cy="130" r="3.6" fill="url(#pad)"/><circle cx="248" cy="130" r="1.4" fill="#123"/>
+<circle cx="248" cy="150" r="3.6" fill="url(#pad)"/><circle cx="248" cy="150" r="1.4" fill="#123"/>
+<circle cx="248" cy="170" r="3.6" fill="url(#pad)"/><circle cx="248" cy="170" r="1.4" fill="#123"/>
+<circle cx="248" cy="190" r="3.6" fill="url(#pad)"/><circle cx="248" cy="190" r="1.4" fill="#123"/>
+<circle cx="248" cy="210" r="3.6" fill="url(#pad)"/><circle cx="248" cy="210" r="1.4" fill="#123"/>
+<circle cx="248" cy="230" r="3.6" fill="url(#pad)"/><circle cx="248" cy="230" r="1.4" fill="#123"/>
+<circle cx="248" cy="250" r="3.6" fill="url(#pad)"/><circle cx="248" cy="250" r="1.4" fill="#123"/>
+<circle cx="248" cy="270" r="3.6" fill="url(#pad)"/><circle cx="248" cy="270" r="1.4" fill="#123"/>
+<circle cx="248" cy="290" r="3.6" fill="url(#pad)"/><circle cx="248" cy="290" r="1.4" fill="#123"/>
+<circle cx="248" cy="310" r="3.6" fill="url(#pad)"/><circle cx="248" cy="310" r="1.4" fill="#123"/>
+<circle cx="248" cy="330" r="3.6" fill="url(#pad)"/><circle cx="248" cy="330" r="1.4" fill="#123"/>
+<circle cx="248" cy="350" r="3.6" fill="url(#pad)"/><circle cx="248" cy="350" r="1.4" fill="#123"/>
+<circle cx="268" cy="70" r="3.6" fill="url(#pad)"/><circle cx="268" cy="70" r="1.4" fill="#123"/>
+<circle cx="268" cy="90" r="3.6" fill="url(#pad)"/><circle cx="268" cy="90" r="1.4" fill="#123"/>
+<circle cx="268" cy="110" r="3.6" fill="url(#pad)"/><circle cx="268" cy="110" r="1.4" fill="#123"/>
+<circle cx="268" cy="130" r="3.6" fill="url(#pad)"/><circle cx="268" cy="130" r="1.4" fill="#123"/>
+<circle cx="268" cy="150" r="3.6" fill="url(#pad)"/><circle cx="268" cy="150" r="1.4" fill="#123"/>
+<circle cx="268" cy="170" r="3.6" fill="url(#pad)"/><circle cx="268" cy="170" r="1.4" fill="#123"/>
+<circle cx="268" cy="190" r="3.6" fill="url(#pad)"/><circle cx="268" cy="190" r="1.4" fill="#123"/>
+<circle cx="268" cy="210" r="3.6" fill="url(#pad)"/><circle cx="268" cy="210" r="1.4" fill="#123"/>
+<circle cx="268" cy="230" r="3.6" fill="url(#pad)"/><circle cx="268" cy="230" r="1.4" fill="#123"/>
+<circle cx="268" cy="250" r="3.6" fill="url(#pad)"/><circle cx="268" cy="250" r="1.4" fill="#123"/>
+<circle cx="268" cy="270" r="3.6" fill="url(#pad)"/><circle cx="268" cy="270" r="1.4" fill="#123"/>
+<circle cx="268" cy="290" r="3.6" fill="url(#pad)"/><circle cx="268" cy="290" r="1.4" fill="#123"/>
+<circle cx="268" cy="310" r="3.6" fill="url(#pad)"/><circle cx="268" cy="310" r="1.4" fill="#123"/>
+<circle cx="268" cy="330" r="3.6" fill="url(#pad)"/><circle cx="268" cy="330" r="1.4" fill="#123"/>
+<circle cx="268" cy="350" r="3.6" fill="url(#pad)"/><circle cx="268" cy="350" r="1.4" fill="#123"/>
+<circle cx="288" cy="70" r="3.6" fill="url(#pad)"/><circle cx="288" cy="70" r="1.4" fill="#123"/>
+<circle cx="288" cy="90" r="3.6" fill="url(#pad)"/><circle cx="288" cy="90" r="1.4" fill="#123"/>
+<circle cx="288" cy="110" r="3.6" fill="url(#pad)"/><circle cx="288" cy="110" r="1.4" fill="#123"/>
+<circle cx="288" cy="130" r="3.6" fill="url(#pad)"/><circle cx="288" cy="130" r="1.4" fill="#123"/>
+<circle cx="288" cy="150" r="3.6" fill="url(#pad)"/><circle cx="288" cy="150" r="1.4" fill="#123"/>
+<circle cx="288" cy="170" r="3.6" fill="url(#pad)"/><circle cx="288" cy="170" r="1.4" fill="#123"/>
+<circle cx="288" cy="190" r="3.6" fill="url(#pad)"/><circle cx="288" cy="190" r="1.4" fill="#123"/>
+<circle cx="288" cy="210" r="3.6" fill="url(#pad)"/><circle cx="288" cy="210" r="1.4" fill="#123"/>
+<circle cx="288" cy="230" r="3.6" fill="url(#pad)"/><circle cx="288" cy="230" r="1.4" fill="#123"/>
+<circle cx="288" cy="250" r="3.6" fill="url(#pad)"/><circle cx="288" cy="250" r="1.4" fill="#123"/>
+<circle cx="288" cy="270" r="3.6" fill="url(#pad)"/><circle cx="288" cy="270" r="1.4" fill="#123"/>
+<circle cx="288" cy="290" r="3.6" fill="url(#pad)"/><circle cx="288" cy="290" r="1.4" fill="#123"/>
+<circle cx="288" cy="310" r="3.6" fill="url(#pad)"/><circle cx="288" cy="310" r="1.4" fill="#123"/>
+<circle cx="288" cy="330" r="3.6" fill="url(#pad)"/><circle cx="288" cy="330" r="1.4" fill="#123"/>
+<circle cx="288" cy="350" r="3.6" fill="url(#pad)"/><circle cx="288" cy="350" r="1.4" fill="#123"/>
+<circle cx="308" cy="70" r="3.6" fill="url(#pad)"/><circle cx="308" cy="70" r="1.4" fill="#123"/>
+<circle cx="308" cy="90" r="3.6" fill="url(#pad)"/><circle cx="308" cy="90" r="1.4" fill="#123"/>
+<circle cx="308" cy="110" r="3.6" fill="url(#pad)"/><circle cx="308" cy="110" r="1.4" fill="#123"/>
+<circle cx="308" cy="130" r="3.6" fill="url(#pad)"/><circle cx="308" cy="130" r="1.4" fill="#123"/>
+<circle cx="308" cy="150" r="3.6" fill="url(#pad)"/><circle cx="308" cy="150" r="1.4" fill="#123"/>
+<circle cx="308" cy="170" r="3.6" fill="url(#pad)"/><circle cx="308" cy="170" r="1.4" fill="#123"/>
+<circle cx="308" cy="190" r="3.6" fill="url(#pad)"/><circle cx="308" cy="190" r="1.4" fill="#123"/>
+<circle cx="308" cy="210" r="3.6" fill="url(#pad)"/><circle cx="308" cy="210" r="1.4" fill="#123"/>
+<circle cx="308" cy="230" r="3.6" fill="url(#pad)"/><circle cx="308" cy="230" r="1.4" fill="#123"/>
+<circle cx="308" cy="250" r="3.6" fill="url(#pad)"/><circle cx="308" cy="250" r="1.4" fill="#123"/>
+<circle cx="308" cy="270" r="3.6" fill="url(#pad)"/><circle cx="308" cy="270" r="1.4" fill="#123"/>
+<circle cx="308" cy="290" r="3.6" fill="url(#pad)"/><circle cx="308" cy="290" r="1.4" fill="#123"/>
+<circle cx="308" cy="310" r="3.6" fill="url(#pad)"/><circle cx="308" cy="310" r="1.4" fill="#123"/>
+<circle cx="308" cy="330" r="3.6" fill="url(#pad)"/><circle cx="308" cy="330" r="1.4" fill="#123"/>
+<circle cx="308" cy="350" r="3.6" fill="url(#pad)"/><circle cx="308" cy="350" r="1.4" fill="#123"/>
+<circle cx="328" cy="70" r="3.6" fill="url(#pad)"/><circle cx="328" cy="70" r="1.4" fill="#123"/>
+<circle cx="328" cy="90" r="3.6" fill="url(#pad)"/><circle cx="328" cy="90" r="1.4" fill="#123"/>
+<circle cx="328" cy="110" r="3.6" fill="url(#pad)"/><circle cx="328" cy="110" r="1.4" fill="#123"/>
+<circle cx="328" cy="130" r="3.6" fill="url(#pad)"/><circle cx="328" cy="130" r="1.4" fill="#123"/>
+<circle cx="328" cy="150" r="3.6" fill="url(#pad)"/><circle cx="328" cy="150" r="1.4" fill="#123"/>
+<circle cx="328" cy="170" r="3.6" fill="url(#pad)"/><circle cx="328" cy="170" r="1.4" fill="#123"/>
+<circle cx="328" cy="190" r="3.6" fill="url(#pad)"/><circle cx="328" cy="190" r="1.4" fill="#123"/>
+<circle cx="328" cy="210" r="3.6" fill="url(#pad)"/><circle cx="328" cy="210" r="1.4" fill="#123"/>
+<circle cx="328" cy="230" r="3.6" fill="url(#pad)"/><circle cx="328" cy="230" r="1.4" fill="#123"/>
+<circle cx="328" cy="250" r="3.6" fill="url(#pad)"/><circle cx="328" cy="250" r="1.4" fill="#123"/>
+<circle cx="328" cy="270" r="3.6" fill="url(#pad)"/><circle cx="328" cy="270" r="1.4" fill="#123"/>
+<circle cx="328" cy="290" r="3.6" fill="url(#pad)"/><circle cx="328" cy="290" r="1.4" fill="#123"/>
+<circle cx="328" cy="310" r="3.6" fill="url(#pad)"/><circle cx="328" cy="310" r="1.4" fill="#123"/>
+<circle cx="328" cy="330" r="3.6" fill="url(#pad)"/><circle cx="328" cy="330" r="1.4" fill="#123"/>
+<circle cx="328" cy="350" r="3.6" fill="url(#pad)"/><circle cx="328" cy="350" r="1.4" fill="#123"/>
+<circle cx="356" cy="70" r="3.6" fill="url(#pad)"/><circle cx="356" cy="70" r="1.4" fill="#123"/>
+<circle cx="356" cy="90" r="3.6" fill="url(#pad)"/><circle cx="356" cy="90" r="1.4" fill="#123"/>
+<circle cx="356" cy="110" r="3.6" fill="url(#pad)"/><circle cx="356" cy="110" r="1.4" fill="#123"/>
+<circle cx="356" cy="130" r="3.6" fill="url(#pad)"/><circle cx="356" cy="130" r="1.4" fill="#123"/>
+<circle cx="356" cy="150" r="3.6" fill="url(#pad)"/><circle cx="356" cy="150" r="1.4" fill="#123"/>
+<circle cx="356" cy="170" r="3.6" fill="url(#pad)"/><circle cx="356" cy="170" r="1.4" fill="#123"/>
+<circle cx="356" cy="190" r="3.6" fill="url(#pad)"/><circle cx="356" cy="190" r="1.4" fill="#123"/>
+<circle cx="356" cy="210" r="3.6" fill="url(#pad)"/><circle cx="356" cy="210" r="1.4" fill="#123"/>
+<circle cx="356" cy="230" r="3.6" fill="url(#pad)"/><circle cx="356" cy="230" r="1.4" fill="#123"/>
+<circle cx="356" cy="250" r="3.6" fill="url(#pad)"/><circle cx="356" cy="250" r="1.4" fill="#123"/>
+<circle cx="356" cy="270" r="3.6" fill="url(#pad)"/><circle cx="356" cy="270" r="1.4" fill="#123"/>
+<circle cx="356" cy="290" r="3.6" fill="url(#pad)"/><circle cx="356" cy="290" r="1.4" fill="#123"/>
+<circle cx="356" cy="310" r="3.6" fill="url(#pad)"/><circle cx="356" cy="310" r="1.4" fill="#123"/>
+<circle cx="356" cy="330" r="3.6" fill="url(#pad)"/><circle cx="356" cy="330" r="1.4" fill="#123"/>
+<circle cx="356" cy="350" r="3.6" fill="url(#pad)"/><circle cx="356" cy="350" r="1.4" fill="#123"/>
+<circle cx="378" cy="70" r="3.6" fill="url(#pad)"/><circle cx="378" cy="70" r="1.4" fill="#123"/>
+<circle cx="378" cy="90" r="3.6" fill="url(#pad)"/><circle cx="378" cy="90" r="1.4" fill="#123"/>
+<circle cx="378" cy="110" r="3.6" fill="url(#pad)"/><circle cx="378" cy="110" r="1.4" fill="#123"/>
+<circle cx="378" cy="130" r="3.6" fill="url(#pad)"/><circle cx="378" cy="130" r="1.4" fill="#123"/>
+<circle cx="378" cy="150" r="3.6" fill="url(#pad)"/><circle cx="378" cy="150" r="1.4" fill="#123"/>
+<circle cx="378" cy="170" r="3.6" fill="url(#pad)"/><circle cx="378" cy="170" r="1.4" fill="#123"/>
+<circle cx="378" cy="190" r="3.6" fill="url(#pad)"/><circle cx="378" cy="190" r="1.4" fill="#123"/>
+<circle cx="378" cy="210" r="3.6" fill="url(#pad)"/><circle cx="378" cy="210" r="1.4" fill="#123"/>
+<circle cx="378" cy="230" r="3.6" fill="url(#pad)"/><circle cx="378" cy="230" r="1.4" fill="#123"/>
+<circle cx="378" cy="250" r="3.6" fill="url(#pad)"/><circle cx="378" cy="250" r="1.4" fill="#123"/>
+<circle cx="378" cy="270" r="3.6" fill="url(#pad)"/><circle cx="378" cy="270" r="1.4" fill="#123"/>
+<circle cx="378" cy="290" r="3.6" fill="url(#pad)"/><circle cx="378" cy="290" r="1.4" fill="#123"/>
+<circle cx="378" cy="310" r="3.6" fill="url(#pad)"/><circle cx="378" cy="310" r="1.4" fill="#123"/>
+<circle cx="378" cy="330" r="3.6" fill="url(#pad)"/><circle cx="378" cy="330" r="1.4" fill="#123"/>
+<circle cx="378" cy="350" r="3.6" fill="url(#pad)"/><circle cx="378" cy="350" r="1.4" fill="#123"/>
+<text x="112" y="57" text-anchor="middle" style="fill:#e9f3ea;font-size:10px;font-weight:600">a</text>
+<text x="132" y="57" text-anchor="middle" style="fill:#e9f3ea;font-size:10px;font-weight:600">b</text>
+<text x="152" y="57" text-anchor="middle" style="fill:#e9f3ea;font-size:10px;font-weight:600">c</text>
+<text x="172" y="57" text-anchor="middle" style="fill:#e9f3ea;font-size:10px;font-weight:600">d</text>
+<text x="192" y="57" text-anchor="middle" style="fill:#e9f3ea;font-size:10px;font-weight:600">e</text>
+<text x="248" y="57" text-anchor="middle" style="fill:#e9f3ea;font-size:10px;font-weight:600">f</text>
+<text x="268" y="57" text-anchor="middle" style="fill:#e9f3ea;font-size:10px;font-weight:600">g</text>
+<text x="288" y="57" text-anchor="middle" style="fill:#e9f3ea;font-size:10px;font-weight:600">h</text>
+<text x="308" y="57" text-anchor="middle" style="fill:#e9f3ea;font-size:10px;font-weight:600">i</text>
+<text x="328" y="57" text-anchor="middle" style="fill:#e9f3ea;font-size:10px;font-weight:600">j</text>
+<text x="220" y="73.5" text-anchor="middle" style="fill:#cfe6d4;font-size:9px">1</text>
+<text x="220" y="93.5" text-anchor="middle" style="fill:#cfe6d4;font-size:9px">2</text>
+<text x="220" y="113.5" text-anchor="middle" style="fill:#cfe6d4;font-size:9px">3</text>
+<text x="220" y="133.5" text-anchor="middle" style="fill:#cfe6d4;font-size:9px">4</text>
+<text x="220" y="153.5" text-anchor="middle" style="fill:#cfe6d4;font-size:9px">5</text>
+<text x="220" y="173.5" text-anchor="middle" style="fill:#cfe6d4;font-size:9px">6</text>
+<text x="220" y="193.5" text-anchor="middle" style="fill:#cfe6d4;font-size:9px">7</text>
+<text x="220" y="213.5" text-anchor="middle" style="fill:#cfe6d4;font-size:9px">8</text>
+<text x="220" y="233.5" text-anchor="middle" style="fill:#cfe6d4;font-size:9px">9</text>
+<text x="220" y="253.5" text-anchor="middle" style="fill:#cfe6d4;font-size:9px">10</text>
+<text x="220" y="273.5" text-anchor="middle" style="fill:#cfe6d4;font-size:9px">11</text>
+<text x="220" y="293.5" text-anchor="middle" style="fill:#cfe6d4;font-size:9px">12</text>
+<text x="220" y="313.5" text-anchor="middle" style="fill:#cfe6d4;font-size:9px">13</text>
+<text x="220" y="333.5" text-anchor="middle" style="fill:#cfe6d4;font-size:9px">14</text>
+<text x="220" y="353.5" text-anchor="middle" style="fill:#cfe6d4;font-size:9px">15</text>
+<text x="62" y="57" text-anchor="middle" style="fill:#e9f3ea;font-size:12px;font-weight:700">−</text>
+<text x="84" y="57" text-anchor="middle" style="fill:#e9f3ea;font-size:12px;font-weight:700">+</text>
+<text x="356" y="57" text-anchor="middle" style="fill:#e9f3ea;font-size:12px;font-weight:700">+</text>
+<text x="378" y="57" text-anchor="middle" style="fill:#e9f3ea;font-size:12px;font-weight:700">−</text>
+<text x="220" y="372" text-anchor="middle" style="fill:#cfe6d4;font-size:9px;letter-spacing:.12em">WRANGLER AIR · PERMA-PROTO 1/4</text>
+<rect x="186" y="221" width="68" height="58" rx="2" fill="#2b2b2b" stroke="#555" stroke-width="1"/>
+<rect x="188.5" y="227.5" width="7" height="5" fill="#cfd3d8"/>
+<rect x="244.5" y="227.5" width="7" height="5" fill="#cfd3d8"/>
+<rect x="188.5" y="247.5" width="7" height="5" fill="#cfd3d8"/>
+<rect x="244.5" y="247.5" width="7" height="5" fill="#cfd3d8"/>
+<rect x="188.5" y="267.5" width="7" height="5" fill="#cfd3d8"/>
+<rect x="244.5" y="267.5" width="7" height="5" fill="#cfd3d8"/>
+<rect x="197" y="223" width="46" height="54" rx="2" fill="url(#ic)" filter="url(#sh)"/>
+<circle cx="236" cy="271" r="2.6" fill="#555"/>
+<text x="220" y="248" text-anchor="middle" style="fill:#ddd;font-size:9px;font-weight:700">K1</text><text x="220" y="258" text-anchor="middle" style="fill:#999;font-size:6.5px">AQV252G</text>
+<text x="183" y="233" text-anchor="end" style="fill:#fff;font-size:8px;font-weight:700">4</text>
+<text x="183" y="253" text-anchor="end" style="fill:#fff;font-size:8px;font-weight:700">5</text>
+<text x="183" y="273" text-anchor="end" style="fill:#fff;font-size:8px;font-weight:700">6</text>
+<text x="257" y="233" style="fill:#fff;font-size:8px;font-weight:700">3</text>
+<text x="257" y="253" style="fill:#fff;font-size:8px;font-weight:700">2</text>
+<text x="257" y="273" style="fill:#fff;font-size:8px;font-weight:700">1</text>
+<rect x="186" y="301" width="68" height="58" rx="2" fill="#2b2b2b" stroke="#555" stroke-width="1"/>
+<rect x="188.5" y="307.5" width="7" height="5" fill="#cfd3d8"/>
+<rect x="244.5" y="307.5" width="7" height="5" fill="#cfd3d8"/>
+<rect x="188.5" y="327.5" width="7" height="5" fill="#cfd3d8"/>
+<rect x="244.5" y="327.5" width="7" height="5" fill="#cfd3d8"/>
+<rect x="188.5" y="347.5" width="7" height="5" fill="#cfd3d8"/>
+<rect x="244.5" y="347.5" width="7" height="5" fill="#cfd3d8"/>
+<rect x="197" y="303" width="46" height="54" rx="2" fill="url(#ic)" filter="url(#sh)"/>
+<circle cx="236" cy="351" r="2.6" fill="#555"/>
+<text x="220" y="328" text-anchor="middle" style="fill:#ddd;font-size:9px;font-weight:700">K4</text><text x="220" y="338" text-anchor="middle" style="fill:#999;font-size:6.5px">AQV252G</text>
+<text x="183" y="313" text-anchor="end" style="fill:#fff;font-size:8px;font-weight:700">4</text>
+<text x="183" y="333" text-anchor="end" style="fill:#fff;font-size:8px;font-weight:700">5</text>
+<text x="183" y="353" text-anchor="end" style="fill:#fff;font-size:8px;font-weight:700">6</text>
+<text x="257" y="313" style="fill:#fff;font-size:8px;font-weight:700">3</text>
+<text x="257" y="333" style="fill:#fff;font-size:8px;font-weight:700">2</text>
+<text x="257" y="353" style="fill:#fff;font-size:8px;font-weight:700">1</text>
+<line x1="172" y1="110" x2="268" y2="130" stroke="#c9ccd1" stroke-width="2.2" stroke-linecap="round"/>
+<circle cx="172" cy="110" r="2.4" fill="#e6e8eb" stroke="#888" stroke-width=".6"/>
+<circle cx="268" cy="130" r="2.4" fill="#e6e8eb" stroke="#888" stroke-width=".6"/>
+<g transform="translate(220.0,120.0) rotate(11.768288932020644)" filter="url(#sh)"><rect x="-16" y="-6.5" width="32" height="13" rx="6.5" fill="url(#resh)" stroke="#7a5a20" stroke-width=".8"/><rect x="-10" y="-6.3" width="3" height="12.6" fill="#7a4a1e"/><rect x="-4" y="-6.3" width="3" height="12.6" fill="#111"/><rect x="2" y="-6.3" width="3" height="12.6" fill="#e07a1f"/><rect x="11" y="-6.3" width="3" height="12.6" fill="#c9a33a"/></g>
+<text x="220" y="98" text-anchor="middle" style="fill:#fff;font-size:10px;font-weight:700;paint-order:stroke;stroke:#0f3b1f;stroke-width:3px">R1 10k</text>
+<line x1="308" y1="130" x2="308" y2="250" stroke="#c9ccd1" stroke-width="2.2" stroke-linecap="round"/>
+<circle cx="308" cy="130" r="2.4" fill="#e6e8eb" stroke="#888" stroke-width=".6"/>
+<circle cx="308" cy="250" r="2.4" fill="#e6e8eb" stroke="#888" stroke-width=".6"/>
+<g transform="translate(308.0,190.0) rotate(90.0)" filter="url(#sh)"><rect x="-16" y="-6.5" width="32" height="13" rx="6.5" fill="url(#resh)" stroke="#7a5a20" stroke-width=".8"/><rect x="-10" y="-6.3" width="3" height="12.6" fill="#c0392b"/><rect x="-4" y="-6.3" width="3" height="12.6" fill="#111"/><rect x="2" y="-6.3" width="3" height="12.6" fill="#e07a1f"/><rect x="11" y="-6.3" width="3" height="12.6" fill="#c9a33a"/></g>
+<text x="299" y="154" text-anchor="end" style="fill:#fff;font-size:10px;font-weight:700;paint-order:stroke;stroke:#0f3b1f;stroke-width:3px">R2 20k</text>
+<line x1="288" y1="170" x2="288" y2="270" stroke="#c9ccd1" stroke-width="2.2" stroke-linecap="round"/>
+<circle cx="288" cy="170" r="2.4" fill="#e6e8eb" stroke="#888" stroke-width=".6"/>
+<circle cx="288" cy="270" r="2.4" fill="#e6e8eb" stroke="#888" stroke-width=".6"/>
+<g transform="translate(288.0,220.0) rotate(90.0)" filter="url(#sh)"><rect x="-16" y="-6.5" width="32" height="13" rx="6.5" fill="url(#resh)" stroke="#7a5a20" stroke-width=".8"/><rect x="-10" y="-6.3" width="3" height="12.6" fill="#e07a1f"/><rect x="-4" y="-6.3" width="3" height="12.6" fill="#e07a1f"/><rect x="2" y="-6.3" width="3" height="12.6" fill="#7a4a1e"/><rect x="11" y="-6.3" width="3" height="12.6" fill="#c9a33a"/></g>
+<text x="279" y="194" text-anchor="end" style="fill:#fff;font-size:10px;font-weight:700;paint-order:stroke;stroke:#0f3b1f;stroke-width:3px">R3 330</text>
+<line x1="268" y1="210" x2="268" y2="350" stroke="#c9ccd1" stroke-width="2.2" stroke-linecap="round"/>
+<circle cx="268" cy="210" r="2.4" fill="#e6e8eb" stroke="#888" stroke-width=".6"/>
+<circle cx="268" cy="350" r="2.4" fill="#e6e8eb" stroke="#888" stroke-width=".6"/>
+<g transform="translate(268.0,280.0) rotate(90.0)" filter="url(#sh)"><rect x="-16" y="-6.5" width="32" height="13" rx="6.5" fill="url(#resh)" stroke="#7a5a20" stroke-width=".8"/><rect x="-10" y="-6.3" width="3" height="12.6" fill="#e07a1f"/><rect x="-4" y="-6.3" width="3" height="12.6" fill="#e07a1f"/><rect x="2" y="-6.3" width="3" height="12.6" fill="#7a4a1e"/><rect x="11" y="-6.3" width="3" height="12.6" fill="#c9a33a"/></g>
+<text x="259" y="306" text-anchor="end" style="fill:#fff;font-size:10px;font-weight:700;paint-order:stroke;stroke:#0f3b1f;stroke-width:3px">R4 330</text>
+<path d="M192 70 L220 70 L220 90 L248 90" fill="none" stroke="#000" stroke-opacity=".35" stroke-width="7" stroke-linejoin="round" stroke-linecap="round" transform="translate(1.2,1.8)"/>
+<path d="M192 70 L220 70 L220 90 L248 90" fill="none" stroke="#d9412e" stroke-width="5.2" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M192 70 L220 70 L220 90 L248 90" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round" transform="translate(-.9,-1.2)"/>
+<circle cx="192" cy="70" r="3.4" fill="#e6e8eb" stroke="#777" stroke-width=".8"/>
+<circle cx="248" cy="90" r="3.4" fill="#e6e8eb" stroke="#777" stroke-width=".8"/>
+<path d="M152 270 L162 270 L162 350 L152 350" fill="none" stroke="#000" stroke-opacity=".35" stroke-width="7" stroke-linejoin="round" stroke-linecap="round" transform="translate(1.2,1.8)"/>
+<path d="M152 270 L162 270 L162 350 L152 350" fill="none" stroke="#d9412e" stroke-width="5.2" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M152 270 L162 270 L162 350 L152 350" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round" transform="translate(-.9,-1.2)"/>
+<circle cx="152" cy="270" r="3.4" fill="#e6e8eb" stroke="#777" stroke-width=".8"/>
+<circle cx="152" cy="350" r="3.4" fill="#e6e8eb" stroke="#777" stroke-width=".8"/>
+<path d="M172 270 L172 290" fill="none" stroke="#000" stroke-opacity=".35" stroke-width="7" stroke-linejoin="round" stroke-linecap="round" transform="translate(1.2,1.8)"/>
+<path d="M172 270 L172 290" fill="none" stroke="#d9412e" stroke-width="5.2" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M172 270 L172 290" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round" transform="translate(-.9,-1.2)"/>
+<circle cx="172" cy="270" r="3.4" fill="#e6e8eb" stroke="#777" stroke-width=".8"/>
+<circle cx="172" cy="290" r="3.4" fill="#e6e8eb" stroke="#777" stroke-width=".8"/>
+<path d="M192 290 L248 290" fill="none" stroke="#000" stroke-opacity=".35" stroke-width="7" stroke-linejoin="round" stroke-linecap="round" transform="translate(1.2,1.8)"/>
+<path d="M192 290 L248 290" fill="none" stroke="#d9412e" stroke-width="5.2" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M192 290 L248 290" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round" transform="translate(-.9,-1.2)"/>
+<circle cx="192" cy="290" r="3.4" fill="#e6e8eb" stroke="#777" stroke-width=".8"/>
+<circle cx="248" cy="290" r="3.4" fill="#e6e8eb" stroke="#777" stroke-width=".8"/>
+<path d="M172 150 L172 190" fill="none" stroke="#000" stroke-opacity=".35" stroke-width="7" stroke-linejoin="round" stroke-linecap="round" transform="translate(1.2,1.8)"/>
+<path d="M172 150 L172 190" fill="none" stroke="#2d6fd6" stroke-width="5.2" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M172 150 L172 190" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round" transform="translate(-.9,-1.2)"/>
+<circle cx="172" cy="150" r="3.4" fill="#e6e8eb" stroke="#777" stroke-width=".8"/>
+<circle cx="172" cy="190" r="3.4" fill="#e6e8eb" stroke="#777" stroke-width=".8"/>
+<path d="M152 190 L142 190 L142 300 L298 300 L298 250 L288 250" fill="none" stroke="#2d6fd6" stroke-width="3" stroke-dasharray="2 5" stroke-linecap="round" stroke-linejoin="round" opacity=".95"/>
+<circle cx="152" cy="190" r="5.2" fill="none" stroke="#2d6fd6" stroke-width="1.8"/>
+<circle cx="288" cy="250" r="5.2" fill="none" stroke="#2d6fd6" stroke-width="1.8"/>
+<path d="M268 250 L278 250 L278 330 L268 330" fill="none" stroke="#2d6fd6" stroke-width="3" stroke-dasharray="2 5" stroke-linecap="round" stroke-linejoin="round" opacity=".95"/>
+<circle cx="268" cy="250" r="5.2" fill="none" stroke="#2d6fd6" stroke-width="1.8"/>
+<circle cx="268" cy="330" r="5.2" fill="none" stroke="#2d6fd6" stroke-width="1.8"/>
+<g filter="url(#sh)"><rect x="72" y="51" width="46" height="118" rx="3" fill="url(#tb)" stroke="#145a26"/>
+<line x1="72" y1="90.0" x2="118" y2="90.0" stroke="#145a26" stroke-width="1"/>
+<line x1="72" y1="130.0" x2="118" y2="130.0" stroke="#145a26" stroke-width="1"/>
+</g>
+<circle cx="96" cy="70" r="6.5" fill="#b8bec4" stroke="#6b7177"/><line x1="91.5" y1="70" x2="100.5" y2="70" stroke="#4a4f54" stroke-width="1.8"/>
+<rect x="72" y="66" width="8" height="8" rx="1.5" fill="#0d3d18"/>
+<circle cx="112" cy="70" r="4.6" fill="url(#pad)" stroke="#6b4a10" stroke-width=".8"/><circle cx="112" cy="70" r="1.6" fill="#5a3a08"/>
+<line x1="32" y1="70" x2="72" y2="70" stroke="#d9412e" stroke-width="1" stroke-dasharray="2 2" opacity=".7"/>
+<text x="30" y="74" text-anchor="end" style="fill:#d9412e;font-size:12px;font-weight:700">+5V</text>
+<circle cx="96" cy="110" r="6.5" fill="#b8bec4" stroke="#6b7177"/><line x1="91.5" y1="110" x2="100.5" y2="110" stroke="#4a4f54" stroke-width="1.8"/>
+<rect x="72" y="106" width="8" height="8" rx="1.5" fill="#0d3d18"/>
+<circle cx="112" cy="110" r="4.6" fill="url(#pad)" stroke="#6b4a10" stroke-width=".8"/><circle cx="112" cy="110" r="1.6" fill="#5a3a08"/>
+<line x1="32" y1="110" x2="72" y2="110" stroke="#c9a227" stroke-width="1" stroke-dasharray="2 2" opacity=".7"/>
+<text x="30" y="114" text-anchor="end" style="fill:#c9a227;font-size:12px;font-weight:700">SIG</text>
+<circle cx="96" cy="150" r="6.5" fill="#b8bec4" stroke="#6b7177"/><line x1="91.5" y1="150" x2="100.5" y2="150" stroke="#4a4f54" stroke-width="1.8"/>
+<rect x="72" y="146" width="8" height="8" rx="1.5" fill="#0d3d18"/>
+<circle cx="112" cy="150" r="4.6" fill="url(#pad)" stroke="#6b4a10" stroke-width=".8"/><circle cx="112" cy="150" r="1.6" fill="#5a3a08"/>
+<line x1="32" y1="150" x2="72" y2="150" stroke="#2d6fd6" stroke-width="1" stroke-dasharray="2 2" opacity=".7"/>
+<text x="30" y="154" text-anchor="end" style="fill:#2d6fd6;font-size:12px;font-weight:700">GND</text>
+<text x="30" y="57" text-anchor="end" style="fill:var(--fg);font-size:11px;font-weight:700;letter-spacing:.04em">J3 · датчик</text>
+<g filter="url(#sh)"><rect x="72" y="171" width="46" height="158" rx="3" fill="url(#tb)" stroke="#145a26"/>
+<line x1="72" y1="210.0" x2="118" y2="210.0" stroke="#145a26" stroke-width="1"/>
+<line x1="72" y1="250.0" x2="118" y2="250.0" stroke="#145a26" stroke-width="1"/>
+<line x1="72" y1="290.0" x2="118" y2="290.0" stroke="#145a26" stroke-width="1"/>
+</g>
+<circle cx="96" cy="190" r="6.5" fill="#b8bec4" stroke="#6b7177"/><line x1="91.5" y1="190" x2="100.5" y2="190" stroke="#4a4f54" stroke-width="1.8"/>
+<rect x="72" y="186" width="8" height="8" rx="1.5" fill="#0d3d18"/>
+<circle cx="112" cy="190" r="4.6" fill="url(#pad)" stroke="#6b4a10" stroke-width=".8"/><circle cx="112" cy="190" r="1.6" fill="#5a3a08"/>
+<line x1="32" y1="190" x2="72" y2="190" stroke="#2d6fd6" stroke-width="1" stroke-dasharray="2 2" opacity=".7"/>
+<text x="30" y="194" text-anchor="end" style="fill:#2d6fd6;font-size:12px;font-weight:700">GND</text>
+<circle cx="96" cy="230" r="6.5" fill="#b8bec4" stroke="#6b7177"/><line x1="91.5" y1="230" x2="100.5" y2="230" stroke="#4a4f54" stroke-width="1.8"/>
+<rect x="72" y="226" width="8" height="8" rx="1.5" fill="#0d3d18"/>
+<circle cx="112" cy="230" r="4.6" fill="url(#pad)" stroke="#6b4a10" stroke-width=".8"/><circle cx="112" cy="230" r="1.6" fill="#5a3a08"/>
+<line x1="32" y1="230" x2="72" y2="230" stroke="#d9412e" stroke-width="1" stroke-dasharray="2 2" opacity=".7"/>
+<text x="30" y="234" text-anchor="end" style="fill:#d9412e;font-size:12px;font-weight:700">→K2</text>
+<circle cx="96" cy="270" r="6.5" fill="#b8bec4" stroke="#6b7177"/><line x1="91.5" y1="270" x2="100.5" y2="270" stroke="#4a4f54" stroke-width="1.8"/>
+<rect x="72" y="266" width="8" height="8" rx="1.5" fill="#0d3d18"/>
+<circle cx="112" cy="270" r="4.6" fill="url(#pad)" stroke="#6b4a10" stroke-width=".8"/><circle cx="112" cy="270" r="1.6" fill="#5a3a08"/>
+<line x1="32" y1="270" x2="72" y2="270" stroke="#d9412e" stroke-width="1" stroke-dasharray="2 2" opacity=".7"/>
+<text x="30" y="274" text-anchor="end" style="fill:#d9412e;font-size:12px;font-weight:700">AUX1</text>
+<circle cx="96" cy="310" r="6.5" fill="#b8bec4" stroke="#6b7177"/><line x1="91.5" y1="310" x2="100.5" y2="310" stroke="#4a4f54" stroke-width="1.8"/>
+<rect x="72" y="306" width="8" height="8" rx="1.5" fill="#0d3d18"/>
+<circle cx="112" cy="310" r="4.6" fill="url(#pad)" stroke="#6b4a10" stroke-width=".8"/><circle cx="112" cy="310" r="1.6" fill="#5a3a08"/>
+<line x1="32" y1="310" x2="72" y2="310" stroke="#d9412e" stroke-width="1" stroke-dasharray="2 2" opacity=".7"/>
+<text x="30" y="314" text-anchor="end" style="fill:#d9412e;font-size:12px;font-weight:700">→K4</text>
+<text x="30" y="177" text-anchor="end" style="fill:var(--fg);font-size:11px;font-weight:700;letter-spacing:.04em">J1 · машина</text>
+<g filter="url(#sh)"><rect x="322" y="71" width="46" height="158" rx="3" fill="url(#tb)" stroke="#145a26"/>
+<line x1="322" y1="110.0" x2="368" y2="110.0" stroke="#145a26" stroke-width="1"/>
+<line x1="322" y1="150.0" x2="368" y2="150.0" stroke="#145a26" stroke-width="1"/>
+<line x1="322" y1="190.0" x2="368" y2="190.0" stroke="#145a26" stroke-width="1"/>
+</g>
+<circle cx="344" cy="90" r="6.5" fill="#b8bec4" stroke="#6b7177"/><line x1="339.5" y1="90" x2="348.5" y2="90" stroke="#4a4f54" stroke-width="1.8"/>
+<rect x="360" y="86" width="8" height="8" rx="1.5" fill="#0d3d18"/>
+<circle cx="328" cy="90" r="4.6" fill="url(#pad)" stroke="#6b4a10" stroke-width=".8"/><circle cx="328" cy="90" r="1.6" fill="#5a3a08"/>
+<line x1="408" y1="90" x2="368" y2="90" stroke="#d9412e" stroke-width="1" stroke-dasharray="2 2" opacity=".7"/>
+<text x="410" y="94" text-anchor="start" style="fill:#d9412e;font-size:12px;font-weight:700">5V</text>
+<circle cx="344" cy="130" r="6.5" fill="#b8bec4" stroke="#6b7177"/><line x1="339.5" y1="130" x2="348.5" y2="130" stroke="#4a4f54" stroke-width="1.8"/>
+<rect x="360" y="126" width="8" height="8" rx="1.5" fill="#0d3d18"/>
+<circle cx="328" cy="130" r="4.6" fill="url(#pad)" stroke="#6b4a10" stroke-width=".8"/><circle cx="328" cy="130" r="1.6" fill="#5a3a08"/>
+<line x1="408" y1="130" x2="368" y2="130" stroke="#c9a227" stroke-width="1" stroke-dasharray="2 2" opacity=".7"/>
+<text x="410" y="134" text-anchor="start" style="fill:#c9a227;font-size:12px;font-weight:700">G1</text>
+<circle cx="344" cy="170" r="6.5" fill="#b8bec4" stroke="#6b7177"/><line x1="339.5" y1="170" x2="348.5" y2="170" stroke="#4a4f54" stroke-width="1.8"/>
+<rect x="360" y="166" width="8" height="8" rx="1.5" fill="#0d3d18"/>
+<circle cx="328" cy="170" r="4.6" fill="url(#pad)" stroke="#6b4a10" stroke-width=".8"/><circle cx="328" cy="170" r="1.6" fill="#5a3a08"/>
+<line x1="408" y1="170" x2="368" y2="170" stroke="#c9a227" stroke-width="1" stroke-dasharray="2 2" opacity=".7"/>
+<text x="410" y="174" text-anchor="start" style="fill:#c9a227;font-size:12px;font-weight:700">G2</text>
+<circle cx="344" cy="210" r="6.5" fill="#b8bec4" stroke="#6b7177"/><line x1="339.5" y1="210" x2="348.5" y2="210" stroke="#4a4f54" stroke-width="1.8"/>
+<rect x="360" y="206" width="8" height="8" rx="1.5" fill="#0d3d18"/>
+<circle cx="328" cy="210" r="4.6" fill="url(#pad)" stroke="#6b4a10" stroke-width=".8"/><circle cx="328" cy="210" r="1.6" fill="#5a3a08"/>
+<line x1="408" y1="210" x2="368" y2="210" stroke="#c9a227" stroke-width="1" stroke-dasharray="2 2" opacity=".7"/>
+<text x="410" y="214" text-anchor="start" style="fill:#c9a227;font-size:12px;font-weight:700">G13</text>
+<text x="410" y="77" text-anchor="start" style="fill:var(--fg);font-size:11px;font-weight:700;letter-spacing:.04em">J2 · DinMeter</text>
+<g filter="url(#sh)"><rect x="322" y="231" width="46" height="118" rx="3" fill="url(#tb)" stroke="#145a26"/>
+<line x1="322" y1="270.0" x2="368" y2="270.0" stroke="#145a26" stroke-width="1"/>
+<line x1="322" y1="310.0" x2="368" y2="310.0" stroke="#145a26" stroke-width="1"/>
+</g>
+<circle cx="344" cy="250" r="6.5" fill="#b8bec4" stroke="#6b7177"/><line x1="339.5" y1="250" x2="348.5" y2="250" stroke="#4a4f54" stroke-width="1.8"/>
+<rect x="360" y="246" width="8" height="8" rx="1.5" fill="#0d3d18"/>
+<circle cx="328" cy="250" r="4.6" fill="url(#pad)" stroke="#6b4a10" stroke-width=".8"/><circle cx="328" cy="250" r="1.6" fill="#5a3a08"/>
+<line x1="408" y1="250" x2="368" y2="250" stroke="#2d6fd6" stroke-width="1" stroke-dasharray="2 2" opacity=".7"/>
+<text x="410" y="254" text-anchor="start" style="fill:#2d6fd6;font-size:12px;font-weight:700">GND</text>
+<circle cx="344" cy="290" r="6.5" fill="#b8bec4" stroke="#6b7177"/><line x1="339.5" y1="290" x2="348.5" y2="290" stroke="#4a4f54" stroke-width="1.8"/>
+<rect x="360" y="286" width="8" height="8" rx="1.5" fill="#0d3d18"/>
+<circle cx="328" cy="290" r="4.6" fill="url(#pad)" stroke="#6b4a10" stroke-width=".8"/><circle cx="328" cy="290" r="1.6" fill="#5a3a08"/>
+<line x1="408" y1="290" x2="368" y2="290" stroke="#d9412e" stroke-width="1" stroke-dasharray="2 2" opacity=".7"/>
+<text x="410" y="294" text-anchor="start" style="fill:#d9412e;font-size:12px;font-weight:700">+12V</text>
+<circle cx="344" cy="330" r="6.5" fill="#b8bec4" stroke="#6b7177"/><line x1="339.5" y1="330" x2="348.5" y2="330" stroke="#4a4f54" stroke-width="1.8"/>
+<rect x="360" y="326" width="8" height="8" rx="1.5" fill="#0d3d18"/>
+<circle cx="328" cy="330" r="4.6" fill="url(#pad)" stroke="#6b4a10" stroke-width=".8"/><circle cx="328" cy="330" r="1.6" fill="#5a3a08"/>
+<line x1="408" y1="330" x2="368" y2="330" stroke="#2d6fd6" stroke-width="1" stroke-dasharray="2 2" opacity=".7"/>
+<text x="410" y="334" text-anchor="start" style="fill:#2d6fd6;font-size:12px;font-weight:700">DC−</text>
+<text x="410" y="237" text-anchor="start" style="fill:var(--fg);font-size:11px;font-weight:700;letter-spacing:.04em">J2b · питание</text>
+<g style="font-size:10px;fill:var(--fg)"><line x1="-50" y1="400" x2="-30" y2="400" stroke="#d9412e" stroke-width="5" stroke-linecap="round"/><text x="-25" y="403.5">перемычка сверху</text><line x1="80" y1="400" x2="100" y2="400" stroke="#2d6fd6" stroke-width="3" stroke-dasharray="2 5" stroke-linecap="round"/><text x="105" y="403.5">масса проводом снизу платы</text><circle cx="262" cy="400" r="4.6" fill="url(#pad)"/><text x="271" y="403.5">ножка клеммника (паять)</text><circle cx="400" cy="400" r="6" fill="#b8bec4" stroke="#6b7177"/><text x="410" y="403.5">винт</text></g>
+</svg></div>
+<div class="tbl"><table><thead><tr><th>Шаг</th><th>Что паять</th></tr></thead><tbody>
+<tr><td>Как устроена</td><td>5 отверстий в ряду (a-e слева, f-j справа) соединены дорожкой. Шины по краям не используем: над ними висят корпуса клеммников</td></tr>
+<tr><td>1. Клеммы</td><td>слева в колонку a: J3 датчик (ряды 1-3-5: +5V, SIG, GND) и J1 машина (ряды 7-9-11-13: GND, →K2, AUX1, →K4). Справа в колонку j: J2 DinMeter (ряды 2-4-6-8: 5V, G1, G2, G13) и J2b питание (ряды 10-12-14: GND, +12V, DC−)</td></tr>
+<tr><td>2. K1, K4</td><td>две панельки DIP-6 поперёк канавки: K1 ряды 9-11, K4 ряды 13-15, точкой (ножка 1) вниз вправо. K1 и K4 вставляются сразу. K4 до этапа 3 просто не включается: на →K4 ничего не подключено</td></tr>
+<tr><td>3. Резисторы</td><td>R1 10k: d3 → g4 через канавку. R2 20k: i4 → i10. R3 330: h6 → h11. R4 330: g8 → g15</td></tr>
+<tr><td style="color:var(--pwr);font-weight:700">+5V</td><td>e1 → f2</td></tr>
+<tr><td style="color:var(--pwr);font-weight:700">AUX1</td><td>c11 → c15 (на ножку 6 K4); d11 → d12 и e12 → f12 (на J2b +12V для DinMeter)</td></tr>
+<tr><td style="color:var(--gndc);font-weight:700">GND сверху</td><td>d5 → d7: масса датчика и машины</td></tr>
+<tr><td style="color:var(--gndc);font-weight:700">GND снизу</td><td>c7 → h10 и g10 → g14 проводом по нижней стороне платы: h10, g10 и g14 сверху закрыты корпусами R3 и R4, снизу их пятаки свободны</td></tr>
+</tbody></table></div></div>
+<p class="note">Ряды сами соединяют: SIG и R1 (ряд 3 слева); G1, R1, R2 (ряд 4 справа); G2 и R3 (ряд 6); G13 и R4 (ряд 8); масса, R2, ножка 2 K1 и GND DinMeter (ряд 10); +12V DinMeter (ряд 12); масса, ножка 2 K4 и DC− (ряд 14); ножки 1 K1 и K4 с R3 и R4 (ряды 11 и 15). Свободные ряды 9 и 13 справа, 10 и 14 слева: там ножки 3 и 5, они ни к чему не подключаются. Я проверил разводку программой по списку соединений: замыканий и обрывов нет.</p>
+<h2>DinMeter в крышке коробки <small>плата на дне, прибор в крышке, друг над другом не стоят</small></h2>
+<div class="panel" style="padding:12px"><svg viewBox="-40 -30 420 410" xmlns="http://www.w3.org/2000/svg" aria-label="Расстановка в коробке" style="max-width:520px;display:block;margin:auto">
+<rect x="0" y="0" width="340" height="340" rx="24" fill="var(--panel2)" stroke="var(--line)" stroke-width="3"/>
+<rect x="20" y="20" width="300" height="300" rx="12" fill="none" stroke="var(--muted)" stroke-dasharray="6 5"/>
+<rect x="60" y="124" width="220" height="176" rx="6" fill="#2a6b3c" stroke="#1d4a29" stroke-width="2"/>
+<text x="170.0" y="220" text-anchor="middle" class="t" style="fill:#dfeee2">Perma-Proto 55×44</text>
+<text x="170.0" y="244" text-anchor="middle" class="t s" style="fill:#cfe3d3">на дне, на 2 стойках</text>
+<rect x="64" y="16" width="212" height="120" rx="6" fill="none" stroke="var(--orange)" stroke-width="3" stroke-dasharray="8 5"/>
+<rect x="80" y="31.0" width="180" height="90.0" rx="3" fill="var(--orange)" fill-opacity=".25" stroke="var(--orange)" stroke-width="2"/>
+<text x="170.0" y="72" text-anchor="middle" class="t">DinMeter в крышке</text>
+<text x="170.0" y="96" text-anchor="middle" class="t s">вырез 45×22.5, рамка 53×30</text>
+<circle cx="24" cy="24" r="9" fill="var(--panel)" stroke="var(--muted)"/>
+<circle cx="316" cy="24" r="9" fill="var(--panel)" stroke="var(--muted)"/>
+<circle cx="24" cy="316" r="9" fill="var(--panel)" stroke="var(--muted)"/>
+<circle cx="316" cy="316" r="9" fill="var(--panel)" stroke="var(--muted)"/>
+<circle cx="-12" cy="160" r="12" fill="none" stroke="var(--steel)" stroke-width="2"/>
+<circle cx="352" cy="160" r="12" fill="none" stroke="var(--steel)" stroke-width="2"/>
+<circle cx="170.0" cy="352" r="12" fill="none" stroke="var(--steel)" stroke-width="2"/>
+<text x="-12" y="200" text-anchor="middle" class="t s">M20</text><text x="352" y="200" text-anchor="middle" class="t s">M20</text>
+<text x="170.0" y="376" text-anchor="middle" class="t s">пунктир: внутри ≈75×75, проверить</text>
+</svg></div>
+<div class="tbl"><table><thead><tr><th>Что</th><th>Как</th></tr></thead><tbody>
+<tr><td><b>Раскладка</b></td><td>плату ставишь горизонтально (55 мм вдоль) к нижнему краю коробки, DinMeter в верхнюю полосу крышки. Глубина DinMeter за крышкой около 27 мм, а клеммники и K1 на плате около 25 мм с ножками: если они окажутся друг над другом, крышка не закроется. В раскладке они не пересекаются</td></tr>
+<tr><td><b>Вырез</b></td><td>45×22.5 мм в крышке: сверлом по углам, потом лобзик или бормашина, края напильником. Рамка DinMeter 53×30 закрывает неровности. Под рамку полоска вспененной ленты</td></tr>
+<tr><td><b>Провода</b></td><td>короткий Grove-кабель 10 см с PORT.B на J2 (5V, G1, GND, G2) и пара проводов с клемм питания DinMeter на J2b (DC−, +12V). Длина с запасом, чтобы крышку можно было открыть и положить рядом</td></tr>
+<tr><td><b>Ввод кабелей</b></td><td>мембраны M20 по бокам и снизу: J1 машина и J3 датчик. В крышку провода не идут</td></tr>
+<tr><td><b>Проверить</b></td><td>внутренний размер WISKA штангенциркулем до резки: если полоса над платой меньше 25 мм, ставь DinMeter вертикально и поверни экран программно</td></tr>
+</tbody></table></div>
+<h2>Корзина RS Components CH <small>всё, что есть в RS, одним заказом</small></h2>
+<div class="tbl"><table><thead><tr><th>Что</th><th>RS №</th><th>Фасовка</th><th>Цена</th></tr></thead><tbody><tr><td>K1 PhotoMOS AQV252G (DIP-6)</td><td><a href="https://ch.rs-online.com/web/p/x/6996534" target="_blank"><code>699-6534</code></a></td><td>1 шт.</td><td class="p">CHF 5.14</td></tr><tr><td>Панелька DIP-6 Preci-Dip 110-87-306</td><td><a href="https://ch.rs-online.com/web/p/x/7020657" target="_blank"><code>702-0657</code></a></td><td>упаковка 5 шт.</td><td class="p">CHF 3.03</td></tr><tr><td>R3 330 Ом 1% 0.25W Yageo MFR-25</td><td><a href="https://ch.rs-online.com/web/p/x/1997662" target="_blank"><code>199-7662</code></a></td><td>лента 100 шт.</td><td class="p">CHF 2.20</td></tr><tr><td>R1 10 кОм 1% 0.25W Yageo MFR-25</td><td><a href="https://ch.rs-online.com/web/p/x/1997658" target="_blank"><code>199-7658</code></a></td><td>лента</td><td class="p">CHF 2.20</td></tr><tr><td>R2 20 кОм 1% 0.25W Yageo MFR-25</td><td><a href="https://ch.rs-online.com/web/p/x/1997913" target="_blank"><code>199-7913</code></a></td><td>лента</td><td class="p">CHF 2.30</td></tr><tr><td>Клемма 3-pin MKDS 1.5/3-5.08 (J1, J2a, J3)</td><td><a href="https://ch.rs-online.com/web/p/x/8020541" target="_blank"><code>802-0541</code></a></td><td>× 3</td><td class="p">CHF 4.98</td></tr><tr><td>Клемма 2-pin MKDS 1.5/2-5.08 (J2b)</td><td><a href="https://ch.rs-online.com/web/p/x/8044991" target="_blank"><code>804-4991</code></a></td><td>1 шт.</td><td class="p">CHF 1.10</td></tr><tr><td>Стойки Essentra LCBSB-8-01</td><td><a href="https://ch.rs-online.com/web/p/x/0609297" target="_blank"><code>060-9297</code></a></td><td>упаковка 25 шт.</td><td class="p">CHF 12.88</td></tr><tr><td>Держатель MINI для D2 Littelfuse 0FHM0002ZXJ</td><td><a href="https://ch.rs-online.com/web/p/x/1706112" target="_blank"><code>170-6112</code></a></td><td>1 шт.</td><td class="p">CHF 8.98</td></tr><tr><td>D3 1N4007</td><td><a href="https://ch.rs-online.com/web/p/x/7484975" target="_blank"><code>748-4975</code></a></td><td>упаковка 100 шт.</td><td class="p">CHF 9.30</td></tr>
+<tr class="total"><td>Итого в RS, без НДС и доставки</td><td></td><td></td><td class="p">≈ CHF 53</td></tr></tbody></table></div>
+<p class="note">Вне RS: корпус WISKA COMBI 308 (Bauhaus/Jumbo, ≈ €4), DinMeter и Grove-кабель (shop.m5stack.com), датчик 0.5-4.5V (eBay, €9; промышленный аналог в RS Telemecanique XMLP от CHF 190), диод-вставка D2 (Altec), плата Adafruit Perma-Proto Quarter, провод 0.5 и 1.0 мм² (автомагазин, в RS только бухты по 100 м).</p>
+<h2>Перечень компонентов <small>без K2 и компрессора: они уже есть в комплекте ARB</small></h2>
+<div class="tbl">
+<table>
+<thead><tr><th>#</th><th>Вид</th><th>Что это</th><th>Номер / модель</th><th>Где купить</th><th>Цена</th></tr></thead>
+<tbody>
+<tr class="sec"><td colspan="6">У приборной панели</td></tr>
+<tr><td class="n">1</td><td class="pic"><svg viewBox="0 0 92 68"><rect x="14" y="12" width="64" height="44" rx="4" fill="#ddd" stroke="#999"/><rect x="20" y="18" width="30" height="22" fill="#111"/><text x="35" y="33" text-anchor="middle" style="fill:#8ec63f;font:700 9px sans-serif">6.2</text><circle cx="64" cy="34" r="10" fill="#f26b1d"/><circle cx="64" cy="34" r="6" fill="#c9531a"/></svg></td>
+<td>Контроллер M5Stack DinMeter: круглый энкодер с нажатием, экран 1.14" без тача, ESP32-S3, питание 6-36V прямо с AUX1. PORT.B: GND, 5V (до 220 mA), G2, G1, как у DinMeter. Ставится в вырез 45×22.5 мм. Аккумулятор из комплекта не подключать</td><td><code>M5Stack DinMeter v1.1 (StampS3A)</code></td><td><a href="https://shop.m5stack.com/products/m5stack-din-meter-v1-1-with-m5stamps3a" target="_blank">shop.m5stack.com</a> · <a href="https://docs.m5stack.com/en/core/M5DinMeter" target="_blank">docs</a></td><td class="p">$24.50</td></tr>
+<tr><td class="n">2</td><td class="pic"><svg viewBox="0 0 92 68"><path d="M4 34 H88" stroke="#bbb" stroke-width="2"/><rect x="20" y="28" width="22" height="12" rx="5" fill="#d9c08a"/><rect x="50" y="28" width="22" height="12" rx="5" fill="#d9c08a"/></svg></td>
+<td>Делитель для G1: R1 10k от SIG датчика к G1, R2 20k от G1 на GND (Vвых = Vдатчика × 2/3). 4.5V датчика превращаются в 3.0V, вход ESP32 не сгорит. Резисторы паяются на плату</td><td><code>10 kΩ (R1) + 20 kΩ (R2), 1/4 W, 1%</code></td><td>Conrad / Bürklin</td><td class="p">≈ €0.30</td></tr>
+<tr><td class="n">3</td><td class="pic"><svg viewBox="0 0 92 68"><path d="M8 34 C 30 10, 60 58, 84 34" stroke="#c0392b" stroke-width="3" fill="none"/><path d="M8 38 C 30 14, 60 62, 84 38" stroke="#222" stroke-width="3" fill="none"/><path d="M8 42 C 30 18, 60 66, 84 42" stroke="#e6c200" stroke-width="3" fill="none"/><rect x="2" y="30" width="10" height="16" fill="#fff"/><rect x="80" y="30" width="10" height="16" fill="#fff"/></svg></td>
+<td>Grove-кабель 100 см, 1 шт. (HY2.0-4P, как у DinMeter): один конец в PORT.B, второй отрезать, 4 провода в клемму J4.</td><td><code>M5Stack Grove Cable 100cm</code></td><td>shop.m5stack.com / RobotShop</td><td class="p">≈ $3</td></tr>
+
+<tr class="sec"><td colspan="6">На ресивере</td></tr>
+<tr><td class="n">4</td><td class="pic"><img alt="" src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADb/2wBDAAwICQsJCAwLCgsODQwOEh4UEhEREiUbHBYeLCcuLisnKyoxN0Y7MTRCNCorPVM+QkhKTk9OLztWXFVMW0ZNTkv/2wBDAQ0ODhIQEiQUFCRLMisyS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0v/wAARCABuAG4DASIAAhEBAxEB/8QAGwABAAIDAQEAAAAAAAAAAAAAAAUGAQMHBAL/xAA4EAABBAECBAQEAwUJAAAAAAABAAIDBBEFIQYSMUETUWFxBxQigTKR8CMzUqHBFRZCYnKC0dLx/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAH/xAAaEQEAAQUAAAAAAAAAAAAAAAAAARFBYaHw/9oADAMBAAIRAxEAPwDqqIiAiIgIiICIiAiIgIiICIiAiIgIi027UNOu+xZkbHFGMuc7sg3IoHS+L9H1W18tXsls5OGslaW8/seh9uqnQUBMoUQZREQEREBFgnG3dAgyiL4lkbGwuccAID3hv4iAPUrmXxJ1szXxp0MjXwxAF4aTs/yPrj8lbLNg27Bc88rWZ5WnsPNVO1o44p1SX5GKOKOBp5pyMB7uwPn7oKZX5HSFziWcn1AZ39CF2bhjUJ7eh05befGczcnq4Z2J9xgrmNLhl4sxWbkzHD/FEw5+2RthW6bimhpEAFmUlzRgRxNyR6eQVF7DwRnKjdY4g07RWB12cNc4ZbG0cznewCoc/wATCAPlaBDCdnzSdfsP+VASVtZ16WS42J800x/eHZrR5DKgudv4mQQuPhac4s7GWdsbvywVih8T6Nh/LZo2If8ANG4SD+n9VAUuA9XssDbE8UMZPNyDL8H2Ow+ym63w5rtaPmJpZj6uwPyCCZrcc6TatGvD45OCQ4sABx5DOf5L0O4nY8ltWlameOxiLQfY4VWu8CT0Hi3pk8gfHuBG7le32xsfYqX4V4kfdsnTtRLW3WDLHjYTNHU47Edx+hVil+0ntLfesc81uPwBJgtjyCWeilF8tGyyoTgUdeAsMcwl7S3py7qRKg9avmqMQ4E8rSQ7sxo6uP66oiGvRsjglgfOyRhacnP4B5nH67KAv8QMOlM0rSGOrRb/ADExO5Hv6qUbpjrVWw17nsfODyl/c9Q4+6qlDSZnWJWzHlDXftDzZaMevT7oLFoVZrq7BHs0D6cqlvnNKKeCzVZNZa4hr5DkN3PMQOjjlTk/FMFfT5aunMeJieQSnGAO5HfKrVOQCbwZmGWCTcgHDmn+IHzVHngjkuWW53ycALs/D1QVNOrwfwN3z59SudaXUjoXY7Lz49JrsmSNuXM/1N6hdO0mxXtwCSrNHMzpljs4PkfIoJaIYC2rWw7L7ygHouefEeg7TZ6euUv2cjJhz46c3UH74wV0LquffEbVYtUfW0DT3Cey6YOl5NwwjIA990F902yLlGCw38MrA8Z8iMr0lebTaopUK9YHIhjazPngYXqUBR8mkVDI9/h453c7h2JUgsIIfWI4IqU09lhMUbMkNG5HkFz7iLV4rFWOhpVeaF1ggOdI0NJB6AYzseq6bq1H+0dPmqeJ4XigDn5c43B6KkaxpLuGaXzslr5y2WCtWfJGGCP6SMnfcho2/nlURH9z6TKALLEj5gPqfG4EA+o/891Aw6fJUuuglAfIRlhb0cPRbOH6uoz6qG6cXCZv4h2d6O9F02nwsx9qO3aAEkfNyNHbON/fZBE6Nw7E6u1ssZ8Qjd7Tgj2K0X+ArzJ/mdJ1HwpR05sscP8Ac1X+CuyFuGhblBzGOPj/AE88peZ4x6RyZ/PdeuLVOMn/AEurFp8/kj/2wuhJhBz6XR+KtYBjuXpooXDdoLYW48iG5J+6neG+EKOhHxWAS2SP3hHT2VkwEwgDosoiAiIgLRaqQ24TFYjD2Hse22Nj26reiCN0zQ6WlyPfWY7mdtl7i4geQJ7KSREBERAREQEREBERAWFlEBERAWFlEBERAREQEREBERB//9k="></td>
+<td>Датчик давления 0-150 psi (10 bar), питание 5V, выход 0.5-4.5V, резьба 1/8 NPT. Три провода: +5V и GND с PORT.B, SIG через делитель на G1</td><td><code>150psi · 5V · 0.5-4.5V · NPT1/8</code></td><td><a href="https://www.ebay.de/itm/126371301533" target="_blank">ebay.de 126371301533</a>, вариант 150 psi</td><td class="p">€9.18</td></tr>
+
+<tr class="sec"><td colspan="6">Коробка управления</td></tr>
+<tr><td class="n">5</td><td class="pic"><svg viewBox="0 0 92 68"><rect x="26" y="20" width="40" height="28" rx="2" fill="#222"/><circle cx="32" cy="26" r="2" fill="#666"/><g fill="#c0c0c0"><rect x="30" y="12" width="4" height="8"/><rect x="44" y="12" width="4" height="8"/><rect x="58" y="12" width="4" height="8"/><rect x="30" y="48" width="4" height="8"/><rect x="44" y="48" width="4" height="8"/><rect x="58" y="48" width="4" height="8"/></g><text x="46" y="38" text-anchor="middle" style="fill:#ddd;font:700 8px sans-serif">AQV252G</text></svg></td>
+<td>K1, твердотельное реле PhotoMOS на плату, корпус DIP-6 под пайку. Вход: светодиод от G2 через R3 330 Ом (≈6 mA). Выход: ключ 60V 2.5A между AUX1 и X. Без катушки и контактов, не щёлкает, 5V не нужно. Плюс панелька DIP-6 и резистор R3. Сразу ставится и второй такой же, K4, с резистором R4 330 Ом (вход от G13 с PORT.A): до этапа 3 он просто не включается</td><td><code>Panasonic AQV252G</code> × 2 + <code>панелька DIP-6</code> × 2 + <code>330 Ω 1/4 W</code> × 2</td><td><a href="https://sg.element14.com/panasonic/aqv252g/photomos-relay-60v-2-5a/dp/1899295" target="_blank">Farnell 1899295</a> · Bürklin · TME</td><td class="p">≈ €11</td></tr>
+<tr><td class="n">6</td><td class="pic"><svg viewBox="0 0 92 68"><rect x="4" y="30" width="20" height="6" fill="#c0392b"/><rect x="68" y="30" width="20" height="6" fill="#c0392b"/><rect x="22" y="20" width="48" height="26" rx="12" fill="#222"/><rect x="36" y="12" width="20" height="14" rx="2" fill="#f2f2f2" stroke="#888"/><text x="46" y="23" text-anchor="middle" style="font:700 8px sans-serif;fill:#222">D▶</text></svg></td>
+<td>D2, диод в корпусе мини-предохранителя (1A) в герметичном держателе на проводе AUX2 у реле K2. Сменный, как обычный пред. Вставляется в любую сторону, поэтому после установки проверить мультиметром (режим диода): плюс щупа со стороны AUX2 показывает ≈0.6V, обратно OL. Держатель пометить «D2 → K2». В коробку и на плату не заходит</td><td><code>Plug-in diode 1A, MINI blade (Altec 0-372-00AA)</code> + <code>Littelfuse 0FHM0002ZXJ</code> (держатель MINI)</td><td><a href="https://www.altecautomotive.co.uk/1-amp-diode-plug-in-mini-blade-size-suitable-for-car-alarm-systemsetc--pack-of-1----0-372-00aa-18242-p.asp" target="_blank">altecautomotive.co.uk</a> · <a href="https://de.rs-online.com/web/p/sicherungshalter/1706112" target="_blank">RS 170-6112</a></td><td class="p">£3.59 + €9.60 за 5 держателей</td></tr>
+<tr><td class="n">7</td><td class="pic"><svg viewBox="0 0 92 68"><rect x="20" y="10" width="52" height="48" rx="6" fill="#c8ccc4" stroke="#8a8f86"/><rect x="26" y="16" width="40" height="36" rx="4" fill="#d8dcd4"/><g fill="#8a8f86"><circle cx="28" cy="18" r="2"/><circle cx="64" cy="18" r="2"/><circle cx="28" cy="50" r="2"/><circle cx="64" cy="50" r="2"/></g><g fill="#6f746b"><rect x="14" y="22" width="6" height="9" rx="2"/><rect x="14" y="37" width="6" height="9" rx="2"/><rect x="72" y="22" width="6" height="9" rx="2"/><rect x="72" y="37" width="6" height="9" rx="2"/></g></svg></td>
+<td><b>Корпус коробки управления.</b> Распаечная коробка WISKA COMBI 308, 85×85×51 мм, полипропилен, IP66, UV-стойкая, рабочая температура −30…+100°C. По бокам 8 вводов M20 с мембранами на кабель 3-12 мм: кабель протыкается сквозь мембрану, она обжимает его сама, неиспользованные остаются закрытыми. Сальники и заглушки не нужны. Внутри на 2 самоклеящихся стойках плата Perma-Proto Quarter 44×55, в крышке вырез 45×22.5 под DinMeter. Крышка на 4 винтах, непрозрачная</td><td><code>WISKA COMBI 308 LG (lichtgrau)</code></td><td><a href="https://www.bauhaus.info/abzweigdosen/wiska-feuchtraum-abzweigdose-combi-308-lg/p/22079873" target="_blank">bauhaus.info</a> · Bauhaus CH / Jumbo / Hornbach</td><td class="p">€3.95</td></tr>
+<tr><td class="n">8</td><td class="pic"><svg viewBox="0 0 92 68"><rect x="22" y="48" width="48" height="8" fill="#f2f2f2" stroke="#999"/><rect x="40" y="18" width="12" height="30" fill="#f2f2f2" stroke="#999"/><polygon points="38,18 54,18 49,8 43,8" fill="#f2f2f2" stroke="#999"/><rect x="16" y="26" width="60" height="4" fill="#c9a86a"/></svg></td>
+<td><b>Стойки для платы</b>, нейлон, на самоклеящейся подошве 17.8×17.8 мм. Защёлка проходит сквозь отверстие Ø4 мм в плате и держит её без винтов. Два штатных отверстия Perma-Proto (3.2 мм) рассверлить сверлом 4 мм. Подошва клеится на дно корпуса, корпус не сверлится. Нужно 2 шт., в упаковке 25</td><td><code>Essentra LCBSB-8-01</code></td><td><a href="https://de.rs-online.com/web/p/leiterplattenhalterungen/0609297" target="_blank">rs-online.com, 060-9297</a></td><td class="p">€15.05 за 25</td></tr>
+<tr><td class="n">9</td><td class="pic"><svg viewBox="0 0 92 68"><g fill="#2f8f3a"><rect x="10" y="22" width="22" height="26" rx="2"/><rect x="34" y="22" width="22" height="26" rx="2"/><rect x="58" y="22" width="22" height="26" rx="2"/></g><g fill="#ccc"><circle cx="21" cy="30" r="5"/><circle cx="45" cy="30" r="5"/><circle cx="69" cy="30" r="5"/></g><g fill="#c98a3a"><rect x="19" y="48" width="3" height="10"/><rect x="43" y="48" width="3" height="10"/><rect x="67" y="48" width="3" height="10"/></g></svg></td>
+<td>Винтовые клеммы на плату, шаг 5.08, J1 машина 4 контакта (GND, →K2, AUX1, →K4), J3 датчик 3 (+5V, SIG, GND), J2 DinMeter 4 (5V, G1, G2, G13), J2b питание 3 (GND, +12V, DC−). Четырёхконтактные собираются из двух двухконтактных, сцепленных боками</td><td><code>Phoenix MKDS 1,5/3-5,08 (1715734)</code> × 2 + <code>MKDS 1,5/2-5,08 (1715721)</code> × 4</td><td><a href="https://uk.farnell.com/phoenix-contact/1715734/terminal-block-wire-to-brd-3pos/dp/3041530" target="_blank">farnell.com</a> · Conrad · Distrelec</td><td class="p">≈ CHF 14</td></tr>
+<tr><td class="n">10</td><td class="pic"><svg viewBox="0 0 92 68"><rect x="10" y="8" width="72" height="52" fill="#2f6b3a"/><g fill="#d8a24a"><circle cx="16" cy="14" r="1.8"/><circle cx="16" cy="20" r="1.8"/><circle cx="16" cy="26" r="1.8"/><circle cx="16" cy="32" r="1.8"/><circle cx="16" cy="38" r="1.8"/><circle cx="16" cy="44" r="1.8"/><circle cx="16" cy="50" r="1.8"/><circle cx="16" cy="56" r="1.8"/><circle cx="22" cy="14" r="1.8"/><circle cx="22" cy="20" r="1.8"/><circle cx="22" cy="26" r="1.8"/><circle cx="22" cy="32" r="1.8"/><circle cx="22" cy="38" r="1.8"/><circle cx="22" cy="44" r="1.8"/><circle cx="22" cy="50" r="1.8"/><circle cx="22" cy="56" r="1.8"/><circle cx="28" cy="14" r="1.8"/><circle cx="28" cy="20" r="1.8"/><circle cx="28" cy="26" r="1.8"/><circle cx="28" cy="32" r="1.8"/><circle cx="28" cy="38" r="1.8"/><circle cx="28" cy="44" r="1.8"/><circle cx="28" cy="50" r="1.8"/><circle cx="28" cy="56" r="1.8"/><circle cx="34" cy="14" r="1.8"/><circle cx="34" cy="20" r="1.8"/><circle cx="34" cy="26" r="1.8"/><circle cx="34" cy="32" r="1.8"/><circle cx="34" cy="38" r="1.8"/><circle cx="34" cy="44" r="1.8"/><circle cx="34" cy="50" r="1.8"/><circle cx="34" cy="56" r="1.8"/><circle cx="40" cy="14" r="1.8"/><circle cx="40" cy="20" r="1.8"/><circle cx="40" cy="26" r="1.8"/><circle cx="40" cy="32" r="1.8"/><circle cx="40" cy="38" r="1.8"/><circle cx="40" cy="44" r="1.8"/><circle cx="40" cy="50" r="1.8"/><circle cx="40" cy="56" r="1.8"/><circle cx="46" cy="14" r="1.8"/><circle cx="46" cy="20" r="1.8"/><circle cx="46" cy="26" r="1.8"/><circle cx="46" cy="32" r="1.8"/><circle cx="46" cy="38" r="1.8"/><circle cx="46" cy="44" r="1.8"/><circle cx="46" cy="50" r="1.8"/><circle cx="46" cy="56" r="1.8"/><circle cx="52" cy="14" r="1.8"/><circle cx="52" cy="20" r="1.8"/><circle cx="52" cy="26" r="1.8"/><circle cx="52" cy="32" r="1.8"/><circle cx="52" cy="38" r="1.8"/><circle cx="52" cy="44" r="1.8"/><circle cx="52" cy="50" r="1.8"/><circle cx="52" cy="56" r="1.8"/><circle cx="58" cy="14" r="1.8"/><circle cx="58" cy="20" r="1.8"/><circle cx="58" cy="26" r="1.8"/><circle cx="58" cy="32" r="1.8"/><circle cx="58" cy="38" r="1.8"/><circle cx="58" cy="44" r="1.8"/><circle cx="58" cy="50" r="1.8"/><circle cx="58" cy="56" r="1.8"/><circle cx="64" cy="14" r="1.8"/><circle cx="64" cy="20" r="1.8"/><circle cx="64" cy="26" r="1.8"/><circle cx="64" cy="32" r="1.8"/><circle cx="64" cy="38" r="1.8"/><circle cx="64" cy="44" r="1.8"/><circle cx="64" cy="50" r="1.8"/><circle cx="64" cy="56" r="1.8"/><circle cx="70" cy="14" r="1.8"/><circle cx="70" cy="20" r="1.8"/><circle cx="70" cy="26" r="1.8"/><circle cx="70" cy="32" r="1.8"/><circle cx="70" cy="38" r="1.8"/><circle cx="70" cy="44" r="1.8"/><circle cx="70" cy="50" r="1.8"/><circle cx="70" cy="56" r="1.8"/><circle cx="76" cy="14" r="1.8"/><circle cx="76" cy="20" r="1.8"/><circle cx="76" cy="26" r="1.8"/><circle cx="76" cy="32" r="1.8"/><circle cx="76" cy="38" r="1.8"/><circle cx="76" cy="44" r="1.8"/><circle cx="76" cy="50" r="1.8"/><circle cx="76" cy="56" r="1.8"/><circle cx="82" cy="14" r="1.8"/><circle cx="82" cy="20" r="1.8"/><circle cx="82" cy="26" r="1.8"/><circle cx="82" cy="32" r="1.8"/><circle cx="82" cy="38" r="1.8"/><circle cx="82" cy="44" r="1.8"/><circle cx="82" cy="50" r="1.8"/><circle cx="82" cy="56" r="1.8"/></g></svg></td>
+<td><b>Монтажная плата для компонентов</b>: Adafruit Perma-Proto Quarter, 44×55 мм. Ряды по 5 отверстий уже соединены дорожкой, как в беспаечной макетке, по краям 4 шины питания и массы. Масса идёт по шине, отдельную шину из провода паять не нужно. На ней клеммы, реле K1 в панельке, резисторы R1, R2, R3. Два крепёжных отверстия</td><td><code>Adafruit 589 (Perma-Proto Quarter, 3 шт.)</code></td><td><a href="https://www.adafruit.com/product/589" target="_blank">adafruit.com</a> · bitsandparts.nl · Pimoroni · Pololu</td><td class="p">$8.50 за 3</td></tr>
+<tr><td class="n">11</td><td class="pic"><svg viewBox="0 0 92 68"><path d="M10 50 L40 18" stroke="#888" stroke-width="3"/><polygon points="40,14 52,26 44,30 36,22" fill="#222"/><path d="M60 48 H82" stroke="#555" stroke-width="6"/><rect x="50" y="44" width="10" height="8" fill="#e6c200"/></svg></td>
+<td>Провод FLRY 1.0 мм² красный и чёрный, 0.5 мм² для датчика, наконечники, термоусадка с клеем</td><td><code>FLRY-B 1.0 / 0.5</code></td><td>Conrad / Reichelt</td><td class="p">≈ CHF 20</td></tr>
+
+<tr class="sec"><td colspan="6">У реле K2</td></tr>
+<tr><td class="n">12</td><td class="pic"><svg viewBox="0 0 92 68"><path d="M6 34 H32 M60 34 H86" stroke="#bbb" stroke-width="2"/><rect x="32" y="26" width="28" height="16" rx="2" class="pp-blk"/><rect x="52" y="26" width="4" height="16" fill="#ccc"/></svg></td>
+<td>D3, обратный диод на катушку K2, обязателен: гасит выброс катушки и бережёт K1. Ставится в колодку K2 между 85 и 86, полоской к плюсу</td><td><code>1N4007</code></td><td>Conrad / Bürklin</td><td class="p">€0.10</td></tr>
+
+<tr class="total"><td></td><td></td><td>Итого этап 1, без доставки</td><td></td><td></td><td class="p">≈ CHF 120</td></tr>
+<tr class="sec"><td colspan="6">Этап 2: подкачка клапаном (плата и коробка без изменений)</td></tr>
+<tr><td class="n">13</td><td class="pic"><svg viewBox="0 0 92 68"><rect x="10" y="38" width="72" height="18" rx="3" fill="#c9a24a" stroke="#8a6a20"/><rect x="30" y="8" width="32" height="32" rx="4" fill="#222"/></svg></td>
+<td><b>КЛ1, клапан подкачки</b>: 2/2 нормально закрытый, 12V DC, сервоуправляемый, G3/8, проход 13 мм, 0.3-16 bar, длина 67 мм. Между компрессором и тройником с датчиком. Провод →K2 с J1 переключается с катушки K2 на КЛ1, D3 переезжает на катушку КЛ1. Тот же клапан, что КЛ2: одна модель, стоят рядом, один запасной на оба</td><td><code>Landefeld M 238 12V=</code> + переходники G3/8 → 1/4" NPT</td><td><a href="https://landefeld.com/artikel/en/22-way-solenoid-valve-g-38-closed-nc-without-powerfkm/M%20238%2012V=" target="_blank">landefeld.com, M 238 12V=</a></td><td class="p">цена на сайте</td></tr>
+<tr><td class="n">14</td><td class="pic"><svg viewBox="0 0 92 68"><rect x="32" y="20" width="28" height="26" rx="12" fill="#222"/><rect x="36" y="12" width="20" height="14" rx="2" fill="#f2f2f2" stroke="#888"/></svg></td>
+<td><b>D4, D5</b>: ещё 2 диода-вставки 1A с держателями, как D2. Катушка K2 питается от AUX1 через D4 и от AUX2 через D5, компрессор держит линию своим реле давления</td><td><code>Altec 0-372-00AA</code> × 2 + <code>Littelfuse 0FHM0002ZXJ</code> × 2</td><td>как D2</td><td class="p">≈ €10</td></tr>
+<tr class="sec"><td colspan="6">Этап 3: спуск клапаном (в коробке ничего не добавляется)</td></tr>
+<tr><td class="n">15</td><td class="pic"><svg viewBox="0 0 92 68"><rect x="10" y="38" width="72" height="18" rx="3" fill="#c9a24a" stroke="#8a6a20"/><rect x="30" y="8" width="32" height="32" rx="4" fill="#222"/><rect x="82" y="40" width="8" height="14" fill="#666"/></svg></td>
+<td><b>КЛ2, клапан спуска</b>: такой же, как КЛ1. Проход 13 мм, спуск упирается только в золотники колёс. Работает, пока в колёсах больше 0.3 bar. На тройнике после датчика, выход через глушитель G3/8 в атмосферу. Обратный диод на катушку, как D3</td><td><code>Landefeld M 238 12V=</code> + глушитель G3/8</td><td><a href="https://landefeld.com/artikel/en/22-way-solenoid-valve-g-38-closed-nc-without-powerfkm/M%20238%2012V=" target="_blank">landefeld.com, M 238 12V=</a></td><td class="p">цена на сайте</td></tr>
+</tbody>
+</table>
+</div>
+<p class="note">Фото товаров встроены в страницу; у позиций без фото пока рисунок, фото добавляются. Цены на момент проверки; у позиций с «≈» цену проверь в магазине. Из прошлых версий ушли TVS SMBJ33A, Omron G5LE, транзистор, ADC Unit, реле обхода K3 и отдельный плюс с АКБ.</p>
+</div>
+
+<script>
+(function(){
+  const $=id=>document.getElementById(id);
+  const st={a1:true,a2:false,dead:false,p:0.4,auto:true,dialOn:false,tg:2.2,MAX:3.0,ph:'pump',t:0,off:0.40,dyn:0,burst:0,done:false,msg:''};
+  const btn=(id,key,on,off)=>{const b=$(id);b.addEventListener('click',()=>{st[key]=!st[key];b.setAttribute('aria-pressed',st[key]);b.textContent=st[key]?on:off;render();});};
+  btn('t-a1','a1','ON','OFF');btn('t-a2','a2','ON','OFF');btn('t-dead','dead','МЁРТВ','ЖИВОЙ');
+  $('t-auto').addEventListener('click',()=>{st.auto=!st.auto;$('t-auto').setAttribute('aria-pressed',st.auto);});
+  $('b-leak').addEventListener('click',()=>{st.p=0;$('pr').value=0;st.dialOn=false;render();});
+  $('pr').addEventListener('input',e=>{st.p=parseFloat(e.target.value);render();});
+  $('tg').addEventListener('input',e=>{st.tg=Math.min(st.MAX,parseFloat(e.target.value));render();});
+  $('b-go').addEventListener('click',()=>{if(st.a1&&!st.dead&&st.p<st.tg){st.dialOn=!st.dialOn;st.ph='pump';st.t=0;st.burst=0;st.done=false;}render();});
+
+  // wire state: 0 = dead, 1 = voltage only, 2 = current flowing
+  function wire(id,s){const el=$(id);el.classList.toggle('hot',s===1);el.classList.toggle('live',s===2);}
+  const lv=(cur,volt)=>cur?2:(volt?1:0);
+  function relay(sw,piv,closed,open,on,lab){
+    const l=$(sw);l.setAttribute('x2',on?closed[0]:open[0]);l.setAttribute('y2',on?closed[1]:open[1]);l.classList.toggle('on',on);
+    const t=$(lab);t.textContent=on?'ЗАМКНУТ':'РАЗОМКНУТ';t.setAttribute('fill',on?'var(--green)':'var(--muted)');
+  }
+
+  function render(){
+    const dialPowered=st.a1&&!st.dead;
+    if(!dialPowered) st.dialOn=false;
+    const DT=0.15, RATE=0.02/DT;                         // bar/s on 4 wheels (sim)
+    const trueOff=Math.max(0.15,0.48-0.06*st.p);        // real dynamic offset, shrinks as tyres fill
+    const dynRead=st.p+trueOff;                          // sensor while air flows
+    if(st.dialOn&&st.auto){
+      st.t+=DT;
+      if(st.ph==='pump'){ st.dyn=dynRead;
+        const est=dynRead-st.off;
+        if((st.burst>0&&st.t>=st.burst)||(st.burst===0&&est>=st.tg-0.1)){st.ph='meas';st.t=0;} }
+      else if(st.ph==='meas'&&st.t>=2){
+        if(st.burst===0) st.off=+(st.dyn-st.p).toFixed(2);   // learn offset at end of main run
+        if(st.p>=st.tg-0.03){st.dialOn=false;st.done=true;}
+        else {st.burst=Math.max(0.6,(st.tg-st.p)/RATE);st.ph='pump';st.t=0;}
+      }
+    }
+    const k1=dialPowered&&st.dialOn&&st.ph==='pump';   // coil fed by DinMeter over Grove
+    const k3=st.a2;                     // AUX2 straight to X through D2
+    const x=k1||k3;                     // node X: battery + via K1, or AUX2 via D2
+    const d2blk=k1&&!st.a2;             // X live from K1, AUX2 off: D2 reverse biased
+    const k2=x;                  // K2 coil current
+    const comp=k2;
+
+    if(st.auto&&comp){ st.p=Math.min(6,st.p+0.02); $('pr').value=st.p.toFixed(1); }
+
+    $('v-tg').innerHTML=st.tg.toFixed(1)+'<small>bar</small>';const g=$('b-go');g.setAttribute('aria-pressed',st.dialOn);g.textContent=st.dialOn?'КАЧАЕТ… НАЖАТЬ: СТОП':'НАЖАТЬ: КАЧАТЬ';
+    $('pv').innerHTML=st.p.toFixed(1)+'<small>bar</small>';
+
+    wire('w-a1in',lv(st.a1,st.a1)); wire('w-f1o',lv(st.a1,st.a1));
+    wire('w-dialdc',lv(dialPowered,st.a1));
+    ['w-pb-gnd','w-pb-5v','w-pb-g1','w-gnd','w-5v','w-g1','w-sig','w-r2'].forEach(i=>wire(i,lv(dialPowered,false)));
+    wire('w-g13',0); wire('w-k4led',0); wire('w-k4in',lv(false,st.a1)); wire('w-k4o',0);
+    wire('w-pb-g2',lv(k1,false)); wire('w-g2',lv(k1,false)); wire('w-k1led',lv(k1,false));
+    wire('w-a2in',lv(st.a2&&k2,st.a2)); wire('w-a2d',lv(st.a2&&k2,st.a2)); wire('w-d2x',lv(st.a2&&k2,x));
+    wire('w-k1in',lv(k1&&k2,st.a1));
+    wire('w-k1o',lv(k1&&k2,k1));
+    $('d2p').classList.toggle('on',k3);
+    $('d2b').setAttribute('stroke',d2blk?'var(--amber)':'var(--fg)');
+    $('d2st').textContent=d2blk?'ЗАПЕРТ':(k3?'ОТКРЫТ':'');
+    $('d2st').setAttribute('fill',d2blk?'var(--amber)':'var(--green)');
+    wire('w-xk2',lv(k2,x)); wire('w-k2gnd',lv(k2,false));
+    wire('w-main1',lv(comp,true)); wire('w-main2',lv(comp,true)); wire('w-comp',lv(comp,false));
+
+    $('b-a1').classList.toggle('on',st.a1);$('b-a2').classList.toggle('on',st.a2);
+    $('b-dial').classList.toggle('on',dialPowered);$('b-dial').classList.toggle('dead',st.dead);
+    $('b-sen').classList.toggle('on',dialPowered);
+    $('scr').classList.toggle('dead',st.dead);
+    $('scr-bar').textContent=dialPowered?st.p.toFixed(1)+' bar':(st.dead?'DEAD':'OFF');
+    $('scr-st').textContent=dialPowered?(st.dialOn?(st.ph==='meas'?'ЗАМЕР…':(st.burst?'ДОБИВКА':'≈'+(dynRead-st.off).toFixed(1)+' → '+st.tg.toFixed(1))):(st.done?'ГОТОВО '+st.tg.toFixed(1):'SET '+st.tg.toFixed(1))):'';
+
+    $('k1coil').classList.toggle('on',k1);$('k2coil').classList.toggle('on',k2);
+    relay('k1sw',null,[645,305],[665,312],k1,'k1st');
+    relay('k2sw',null,[940,390],[963,398],comp,'k2st');
+    $('nx').setAttribute('fill',x?'var(--orange)':'var(--fg)');
+    $('b-comp').classList.toggle('on',comp);$('fan').classList.toggle('on',comp);
+    $('t-comp').setAttribute('fill',comp?'#111':'var(--fg)');
+
+    const pill=$('pill');pill.textContent=comp?'КОМПРЕССОР ON':'КОМПРЕССОР OFF';pill.className='pill '+(comp?'on':'off');
+    const tr=[];let head='';
+    if(st.a1){
+      tr.push('AUX1 питает DinMeter и подаёт плюс на COM реле K1. Датчик и K1 получают 5V и массу с PORT.B.');
+      if(st.dead) tr.push({c:'cut',t:'DinMeter мёртв: экран тёмный, катушка K1 без тока, K1 разомкнут. Путь через DinMeter выключен.'});
+      else tr.push(`Датчик → делитель → G1: ${st.p.toFixed(1)} bar. Цель ${st.tg.toFixed(1)} bar (потолок 3.0). ${st.dialOn?(st.ph==='meas'?'Компрессор стоит 2 с: замер без потока, это давление колёс.':(st.burst?'Добивка коротким импульсом, длина по скорости подкачки.':`Качает без пауз: датчик ${dynRead.toFixed(2)} − поправка ${st.off.toFixed(2)} = колёса ≈ ${(dynRead-st.off).toFixed(2)} bar.`)):st.done?`Готово. Поправка уточнена и сохранена: ${st.off.toFixed(2)} bar.`:'G2 = LOW, K1 разомкнут. Накачка стартует только нажатием энкодера.'}`);
+    } else tr.push('AUX1 выключен: DinMeter и датчик без питания, K1 разомкнут.');
+    tr.push(st.a2?'AUX2 по своему проводу мимо коробки, через D2 подаёт 12V на катушку K2.':'AUX2 выключен.');
+    if(d2blk) tr.push({c:'iso',t:'D2 заперт: на X плюс с AUX1 через K1, но в выключенный AUX2 он не уходит.'});
+    if(st.a1&&st.a2) tr.push({c:'iso',t:'Включены оба AUX. Оба на 12V, поэтому через X между ними ток не течёт.'});
+    if(x){
+      tr.push(`Узел X под 12V: ${k1&&k3?'с AUX1 через K1 и с AUX2 через D2':k1?'с AUX1 через K1':'с AUX2 через D2'}.`);
+      tr.push('Ток идёт через катушку K2 на массу.');tr.push('K2 замыкает 30/87, ток с АКБ через предохранитель из комплекта ARB идёт на компрессор.');
+        head='работает '+(k1&&k3?'по обоим путям':k1?'по программе DinMeter':'в обходе, давление не контролируется');
+    } else head=(st.dialOn&&st.ph==='meas')?'пауза 2 с: замер давления колёс без потока':(dialPowered&&!st.dialOn)?(st.p>=st.tg?'цель достигнута, компрессор выключен':'DinMeter ждёт нажатия энкодера'):'на узле X нет напряжения';
+    if(comp&&st.p>st.MAX&&!k1) tr.push({c:'cut',t:'Обход AUX2: DinMeter не участвует, потолок 3.0 bar не действует. Следи за манометром.'});
+    $('headline').textContent=head;
+    $('trace').innerHTML=tr.map(t=>typeof t==='string'?`<li>${t}</li>`:`<li class="${t.c}">${t.t}</li>`).join('');
+  }
+  render();
+  setInterval(()=>{if(st.auto)render();},150);
+})();
+</script>
