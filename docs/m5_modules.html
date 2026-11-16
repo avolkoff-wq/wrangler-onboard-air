@@ -1,0 +1,201 @@
+<title>Wrangler Air on M5 Modules</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* layout: one column: verdict line, wiring diagram, connection table, parts, what changes vs the board */
+:root{
+  --bg:#f3f4f2; --card:#ffffff; --ink:#1c2126; --muted:#5f6a73; --line:#d6dad8;
+  --v12:#e46f12; --aux2:#7a4fd0; --gnd:#2b6fd6; --v5:#d33a3a; --sig:#7b8794; --grove:#4c5560;
+  --m5:#2a313a; --m5t:#f2f4f6; --din:#e2602a; --hi:#fff3df;
+  --f-ui:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif; --f-mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#15181b; --card:#1d2125; --ink:#e7eaec; --muted:#9aa4ad; --line:#30363c;
+  --v12:#ff8a33; --aux2:#a685ff; --gnd:#5b97ff; --v5:#ff6464; --sig:#aab4bf; --grove:#8e98a3;
+  --m5:#3a424c; --m5t:#f2f4f6; --din:#ff7a45; --hi:#3a2e1c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#15181b; --card:#1d2125; --ink:#e7eaec; --muted:#9aa4ad; --line:#30363c;
+  --v12:#ff8a33; --aux2:#a685ff; --gnd:#5b97ff; --v5:#ff6464; --sig:#aab4bf; --grove:#8e98a3;
+  --m5:#3a424c; --m5t:#f2f4f6; --din:#ff7a45; --hi:#3a2e1c; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font:400 16px/1.55 var(--f-ui);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 48px}
+main{max-width:1120px;margin:0 auto;display:flex;flex-direction:column;gap:22px}
+h1{font:700 28px/1.2 var(--f-ui);margin:0;text-wrap:balance}
+h2{font:600 19px/1.3 var(--f-ui);margin:0 0 10px}
+p{margin:0;max-width:72ch}
+.lead{color:var(--muted)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:18px 20px}
+.diagram{overflow-x:auto}
+svg{display:block;min-width:980px;width:100%;height:auto}
+svg text{font-family:var(--f-ui);fill:var(--ink)}
+.legend{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:14px;color:var(--muted);margin-top:10px}
+.legend i{display:inline-block;width:22px;height:4px;border-radius:2px;margin-right:6px;vertical-align:middle}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:15px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-weight:600;color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:.04em}
+td code,p code{font:500 13.5px var(--f-mono)}
+.sw{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+@media (max-width:760px){.two{grid-template-columns:1fr}}
+ul{margin:0;padding-left:20px}
+li{margin:4px 0}
+.note{background:var(--hi);border-radius:8px;padding:12px 14px;font-size:15px}
+a{color:var(--gnd)}
+</style>
+<main>
+  <header>
+    <h1>Wrangler Air: вариант на модулях M5Stack</h1>
+    <p class="lead">Альтернатива самодельной плате: реле и делитель заменены готовыми модулями. Пайки нет, кроме двух диодов в клеммах WAGO. Компрессор, его штатное реле K2 и предохранитель ARB не меняются.</p>
+  </header>
+
+  <section class="card">
+    <h2>Схема соединений</h2>
+    <div class="diagram">
+<svg viewBox="0 0 1100 640" role="img" aria-label="Wiring diagram of the M5 module version">
+  <rect x="12" y="12" width="250" height="616" rx="10" fill="none" stroke="var(--line)" stroke-dasharray="6 6"/>
+  <text x="26" y="36" font-size="13" style="fill:var(--muted)">ПРИБОРНАЯ ПАНЕЛЬ JL</text>
+  <rect x="278" y="12" width="520" height="616" rx="10" fill="none" stroke="var(--line)" stroke-dasharray="6 6"/>
+  <text x="292" y="36" font-size="13" style="fill:var(--muted)">ТОННЕЛЬ: корпус DinMeter + модули под обшивкой</text>
+  <rect x="814" y="12" width="274" height="616" rx="10" fill="none" stroke="var(--line)" stroke-dasharray="6 6"/>
+  <text x="828" y="36" font-size="13" style="fill:var(--muted)">У КОМПРЕССОРА</text>
+
+  <!-- wires first, boxes on top -->
+  <path d="M235 123 H300" stroke="var(--v12)" stroke-width="3" fill="none"/>
+  <path d="M360 170 V230" stroke="var(--v12)" stroke-width="3" fill="none"/>
+  <path d="M420 120 H600 V140 H640" stroke="var(--v12)" stroke-width="3" fill="none"/>
+  <path d="M780 140 H800 V330 H880" stroke="var(--v12)" stroke-width="3" fill="none"/>
+  <path d="M235 155 H252 V612 H832 V360 H880" stroke="var(--aux2)" stroke-width="3" fill="none"/>
+  <path d="M960 300 V200" stroke="var(--v12)" stroke-width="4" fill="none"/>
+  <path d="M880 160 H848 V585 H230" stroke="var(--gnd)" stroke-width="3" fill="none"/>
+  <path d="M440 230 V205 H270 V560 H230" stroke="var(--gnd)" stroke-width="3" fill="none"/>
+  <path d="M490 262 H540" stroke="var(--grove)" stroke-width="6" fill="none"/>
+  <path d="M620 255 H630 V200 H640" stroke="var(--grove)" stroke-width="6" fill="none"/>
+  <path d="M620 270 H630 V365 H640" stroke="var(--grove)" stroke-width="6" fill="none"/>
+  <path d="M490 338 H520 V430" stroke="var(--grove)" stroke-width="6" fill="none"/>
+  <path d="M520 430 V560 H862 V515 H880" stroke="var(--v5)" stroke-width="3" fill="none"/>
+  <path d="M880 470 H805 V385 H780" stroke="var(--sig)" stroke-width="3" fill="none"/>
+  <path d="M880 495 H795 V405 H780" stroke="var(--gnd)" stroke-width="2.5" fill="none"/>
+
+  <!-- AUX switches -->
+  <rect x="40" y="70" width="190" height="110" rx="8" fill="var(--m5)"/>
+  <text x="56" y="96" font-size="15" font-weight="600" style="fill:var(--m5t)">AUX-кнопки JL</text>
+  <text x="56" y="128" font-size="14" style="fill:var(--m5t)">AUX1: «авто»</text>
+  <text x="56" y="160" font-size="14" style="fill:var(--m5t)">AUX2: «ручной обход»</text>
+  <circle cx="230" cy="123" r="5" fill="var(--v12)"/><circle cx="230" cy="155" r="5" fill="var(--aux2)"/>
+
+  <rect x="40" y="540" width="190" height="60" rx="8" fill="var(--card)" stroke="var(--gnd)" stroke-width="2"/>
+  <text x="56" y="566" font-size="15" font-weight="600">Масса (GND)</text>
+  <text x="56" y="588" font-size="13" style="fill:var(--muted)">болт кузова у тоннеля</text>
+
+  <rect x="300" y="100" width="120" height="70" rx="6" fill="var(--card)" stroke="var(--v12)" stroke-width="2"/>
+  <text x="312" y="126" font-size="14" font-weight="600">WAGO 221</text>
+  <text x="312" y="146" font-size="13" style="fill:var(--muted)">+12 В AUX1</text>
+
+  <rect x="300" y="230" width="190" height="130" rx="10" fill="var(--din)"/>
+  <rect x="314" y="252" width="100" height="60" rx="4" fill="#0b0d0f"/>
+  <text x="364" y="290" font-size="22" text-anchor="middle" style="fill:#b6f34a;font-family:var(--f-mono)">2.3</text>
+  <circle cx="452" cy="282" r="22" fill="#d8d8d8"/>
+  <text x="314" y="340" font-size="14" font-weight="700" style="fill:#fff">DinMeter</text>
+  <text x="372" y="198" font-size="12" style="fill:var(--muted)">+ / − 6-36 В</text>
+  <text x="496" y="254" font-size="12" style="fill:var(--muted)">PORT.A</text>
+  <text x="496" y="330" font-size="12" style="fill:var(--muted)">PORT.B</text>
+  <text x="530" y="458" font-size="12" style="fill:var(--muted)">Grove с PORT.B: только</text>
+  <text x="530" y="474" font-size="12" style="fill:var(--muted)">красный 5 В и чёрный GND</text>
+
+  <rect x="540" y="240" width="80" height="44" rx="6" fill="var(--m5)"/>
+  <text x="580" y="267" font-size="13" text-anchor="middle" font-weight="600" style="fill:var(--m5t)">Grove HUB</text>
+
+  <rect x="640" y="70" width="140" height="210" rx="8" fill="var(--m5)"/>
+  <text x="710" y="96" font-size="14" text-anchor="middle" font-weight="700" style="fill:var(--m5t)">Unit 4-Relay</text>
+  <text x="710" y="114" font-size="12" text-anchor="middle" style="fill:var(--m5t)">I2C 0x26 · 10 А / 28 В</text>
+  <text x="652" y="146" font-size="12" style="fill:var(--m5t)">R1 компрессор</text>
+  <text x="652" y="186" font-size="12" style="fill:var(--m5t)">R2 клапан спуска</text>
+  <text x="652" y="226" font-size="12" style="fill:var(--m5t)">R3 клапан накачки</text>
+  <text x="652" y="262" font-size="12" style="fill:var(--m5t)">R4 запас</text>
+  <text x="596" y="132" font-size="11" style="fill:var(--muted)">COM1</text>
+  <text x="784" y="132" font-size="11" style="fill:var(--muted)">NO1</text>
+
+  <rect x="640" y="330" width="140" height="90" rx="8" fill="var(--m5)"/>
+  <text x="710" y="358" font-size="14" text-anchor="middle" font-weight="700" style="fill:var(--m5t)">Unit ADC v1.1</text>
+  <text x="710" y="378" font-size="12" text-anchor="middle" style="fill:var(--m5t)">вход 0-12 В, 16 бит</text>
+  <text x="710" y="404" font-size="12" text-anchor="middle" style="fill:var(--m5t)">IN+ · GND</text>
+
+  <rect x="880" y="70" width="190" height="130" rx="8" fill="var(--m5)"/>
+  <text x="975" y="96" font-size="14" text-anchor="middle" font-weight="700" style="fill:var(--m5t)">Реле ARB K2</text>
+  <text x="894" y="124" font-size="12" style="fill:var(--m5t)">86: катушка + (снизу)</text>
+  <text x="894" y="146" font-size="12" style="fill:var(--m5t)">85: масса</text>
+  <text x="894" y="168" font-size="12" style="fill:var(--m5t)">D3 1N4007 поперёк 85-86</text>
+  <text x="894" y="190" font-size="12" style="fill:var(--m5t)">30/87: компрессор, штатно</text>
+  <text x="966" y="256" font-size="12" style="fill:var(--muted)">+86</text>
+
+  <rect x="880" y="300" width="190" height="96" rx="6" fill="var(--card)" stroke="var(--ink)" stroke-width="1.5"/>
+  <text x="894" y="322" font-size="13" font-weight="600">WAGO 221 + 2 диода</text>
+  <text x="894" y="342" font-size="12" style="fill:var(--muted)">D1 от реле R1 (NO1)</text>
+  <text x="894" y="362" font-size="12" style="fill:var(--muted)">D2 от AUX2, обход</text>
+  <text x="894" y="384" font-size="12" style="fill:var(--muted)">1N5408, катоды → 86</text>
+
+  <rect x="880" y="440" width="190" height="96" rx="8" fill="var(--card)" stroke="var(--ink)" stroke-width="2"/>
+  <text x="975" y="466" font-size="14" text-anchor="middle" font-weight="700">Датчик давления</text>
+  <text x="975" y="486" font-size="12" text-anchor="middle" style="fill:var(--muted)">0.5-4.5 В, 0-100 psi</text>
+  <text x="894" y="474" font-size="0">.</text>
+  <text x="975" y="508" font-size="12" text-anchor="middle" style="fill:var(--muted)">SIG · GND · +5 В</text>
+</svg>
+    </div>
+    <div class="legend">
+      <span><i style="background:var(--v12)"></i>+12 В AUX1</span>
+      <span><i style="background:var(--aux2)"></i>+12 В AUX2 (обход)</span>
+      <span><i style="background:var(--gnd)"></i>масса</span>
+      <span><i style="background:var(--v5)"></i>+5 В датчика</span>
+      <span><i style="background:var(--sig)"></i>сигнал датчика</span>
+      <span><i style="background:var(--grove)"></i>кабель Grove (I2C)</span>
+    </div>
+  </section>
+
+  <section class="card tbl">
+    <h2>Соединения</h2>
+    <table>
+      <thead><tr><th>Откуда</th><th>Куда</th><th>Провод</th><th>Зачем</th></tr></thead>
+      <tbody>
+        <tr><td>AUX1</td><td>WAGO «+12 В»</td><td><span class="sw" style="background:var(--v12)"></span>FLRY 1.5 красный</td><td>питание всей автоматики</td></tr>
+        <tr><td>WAGO «+12 В»</td><td>DinMeter, зелёная клемма «+»</td><td><span class="sw" style="background:var(--v12)"></span>0.25 оранжевый</td><td>питание DinMeter</td></tr>
+        <tr><td>DinMeter, клемма «−»</td><td>масса</td><td><span class="sw" style="background:var(--gnd)"></span>0.25 синий</td><td></td></tr>
+        <tr><td>WAGO «+12 В»</td><td>4-Relay, COM1</td><td><span class="sw" style="background:var(--v12)"></span>FLRY 1.5 красный</td><td>плюс на контакт реле компрессора</td></tr>
+        <tr><td>4-Relay, NO1</td><td>D1 (анод)</td><td><span class="sw" style="background:var(--v12)"></span>FLRY 1.5 красный</td><td>«компрессор включить» от DinMeter</td></tr>
+        <tr><td>AUX2</td><td>D2 (анод)</td><td><span class="sw" style="background:var(--aux2)"></span>FLRY 1.5 красный, метка «AUX2»</td><td>ручной обход: работает без DinMeter</td></tr>
+        <tr><td>Катоды D1 + D2</td><td>K2, клемма 86</td><td><span class="sw" style="background:var(--v12)"></span>FLRY 1.5 красный</td><td>катушка реле компрессора</td></tr>
+        <tr><td>K2, клемма 85</td><td>масса</td><td><span class="sw" style="background:var(--gnd)"></span>FLRY 1.5 чёрный</td><td></td></tr>
+        <tr><td>D3 поперёк катушки K2</td><td>катод на 86, анод на 85</td><td>диод 1N4007</td><td>гасит выброс катушки, бережёт контакт реле R1</td></tr>
+        <tr><td>DinMeter PORT.A</td><td>Grove HUB → 4-Relay и ADC</td><td><span class="sw" style="background:var(--grove)"></span>кабели Grove из комплектов</td><td>управление реле и чтение датчика (I2C)</td></tr>
+        <tr><td>DinMeter PORT.B, красный / чёрный</td><td>датчик +5 В / GND</td><td><span class="sw" style="background:var(--v5)"></span>Grove 200 см, жёлтый и белый не используются</td><td>питание датчика</td></tr>
+        <tr><td>Датчик SIG</td><td>ADC, IN+</td><td><span class="sw" style="background:var(--sig)"></span>хвост датчика</td><td>давление, 0.5-4.5 В без делителя</td></tr>
+        <tr><td>Датчик GND</td><td>ADC, GND</td><td><span class="sw" style="background:var(--gnd)"></span>хвост датчика</td><td>общая масса измерения</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <div class="two">
+    <section class="card">
+      <h2>Модули M5Stack</h2>
+      <ul>
+        <li><a href="https://docs.m5stack.com/en/unit/4relay" target="_blank">Unit 4-Relay</a>: 4 реле 10 А / 28 В DC, I2C 0x26, клеммы под винт.</li>
+        <li><a href="https://docs.m5stack.com/en/unit/Unit_ADC_v1.1" target="_blank">Unit ADC v1.1</a>: вход 0-12 В, 16 бит, I2C.</li>
+        <li><a href="https://docs.m5stack.com/en/unit/hub" target="_blank">Grove HUB</a>: разветвитель PORT.A на два модуля.</li>
+        <li>Диоды: D1, D2 на 3 А (1N5408), D3 1N4007.</li>
+      </ul>
+    </section>
+    <section class="card">
+      <h2>Что меняется по сравнению с платой</h2>
+      <ul>
+        <li>Платы нет: K1, K4, делитель 10k/20k, резисторы и клеммы J1-J3 заменены модулями.</li>
+        <li>PORT.A теперь шина I2C, G13 больше не выход на K4.</li>
+        <li>PORT.B только отдаёт 5 В датчику.</li>
+        <li>Прошивка: реле и датчик по I2C, при старте все реле выключаются.</li>
+        <li>Этапы 2 и 3: клапаны садятся на R3 и R2, плюс от того же WAGO, поперёк каждой катушки клапана диод 1N4007.</li>
+      </ul>
+    </section>
+  </div>
+
+  <p class="note">Ограничение: 4-Relay и датчик питаются от 5 В порта DinMeter. Одновременно держать включёнными больше двух реле нельзя, иначе порт перегрузится. Для компрессора и одного клапана запаса хватает.</p>
+</main>
