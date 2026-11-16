@@ -1,0 +1,173 @@
+<title>Wrangler Air Test Rig</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Inter:wght@400;500;600&display=swap">
+<style>
+/* Layout: one wiring drawing of the desk rig, then parts and the order of checks */
+:root{
+  --bg:#f1f2ee;--fg:#1c2220;--muted:#5c6662;--line:#cfd4cf;--card:#ffffff;
+  --pwr:#d23b2b;--gnd:#2a63c9;--sig:#b58a12;--box:#e7ece8;--board:#2a6b3c;--orange:#e8613a;--led:#ffb020;
+  --display:"Barlow Condensed",system-ui,sans-serif;--body:"Inter",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#131715;--fg:#e5eae7;--muted:#97a29d;--line:#2d3431;--card:#1b201e;--box:#202724;--pwr:#ff6a55;--gnd:#6b9bff;--sig:#e0b43a;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#131715;--fg:#e5eae7;--muted:#97a29d;--line:#2d3431;--card:#1b201e;--box:#202724;--pwr:#ff6a55;--gnd:#6b9bff;--sig:#e0b43a;color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font:15px/1.55 var(--body)}
+.wrap{max-width:1120px;margin:0 auto;padding-block:28px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1{font:700 clamp(30px,5vw,42px)/1.05 var(--display);margin:0 0 6px}
+h2{font:700 24px/1.1 var(--display);margin:30px 0 10px}
+.lead{color:var(--muted);max-width:70ch;margin:0 0 18px}
+.fig{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px;overflow-x:auto}
+.fig svg{min-width:860px;width:100%;height:auto;display:block}
+svg text{font-family:var(--body);fill:var(--fg)}
+.lbl{font-size:13px;font-weight:600}
+.sm{font-size:11px;fill:var(--muted)}
+.w{fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.p{stroke:var(--pwr)}.g{stroke:var(--gnd)}.s{stroke:var(--sig)}
+.bx{fill:var(--box);stroke:var(--fg);stroke-width:1.5}
+.dot{fill:var(--fg)}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font:600 13px var(--body);color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.tbl{overflow-x:auto}
+a{color:var(--gnd)}
+ol{padding-left:22px;max-width:80ch}
+ol li{margin:6px 0}
+.warn{border-left:4px solid var(--pwr);padding:8px 12px;background:var(--card);max-width:80ch}
+</style>
+
+<div class="wrap">
+  <h1>Тестовый стенд Wrangler Air</h1>
+  <p class="lead">Вся электроника этапа 1 на столе: аккумулятор вместо машины, потенциометр вместо датчика, автомобильное реле со светодиодом вместо компрессора. Плата и DinMeter подключаются так же, как будут стоять в машине.</p>
+
+  <div class="fig">
+  <svg viewBox="0 0 1080 520" role="img" aria-label="Схема тестового стенда">
+    <!-- battery -->
+    <rect x="20" y="200" width="110" height="80" rx="6" class="bx"/>
+    <text x="75" y="232" text-anchor="middle" class="lbl">АКБ 12V</text>
+    <text x="75" y="250" text-anchor="middle" class="sm">или лаб. блок 13.8V, 1 A</text>
+    <text x="40" y="272" class="lbl" style="fill:var(--pwr)">+</text><text x="104" y="272" class="lbl" style="fill:var(--gnd)">−</text>
+    <!-- fuse -->
+    <rect x="150" y="128" width="40" height="16" rx="3" class="bx"/><text x="170" y="122" text-anchor="middle" class="sm">2 A</text>
+    <path class="w p" d="M44 200 V136 H150"/>
+    <path class="w p" d="M190 136 H230"/>
+    <circle cx="230" cy="136" r="4" class="dot"/>
+    <!-- AUX1 switch -->
+    <path class="w p" d="M230 136 V96 H262"/>
+    <circle cx="266" cy="96" r="4" class="dot"/><line x1="268" y1="96" x2="298" y2="82" stroke="var(--fg)" stroke-width="3"/><circle cx="302" cy="96" r="4" class="dot"/>
+    <text x="284" y="70" text-anchor="middle" class="lbl">AUX1</text>
+    <path class="w p" d="M306 96 H400"/>
+    <!-- AUX2 switch -->
+    <path class="w p" d="M230 136 V176 H262"/>
+    <circle cx="266" cy="176" r="4" class="dot"/><line x1="268" y1="176" x2="298" y2="162" stroke="var(--fg)" stroke-width="3"/><circle cx="302" cy="176" r="4" class="dot"/>
+    <text x="284" y="200" text-anchor="middle" class="lbl">AUX2</text>
+    <!-- D2 -->
+    <path class="w p" d="M306 176 H330"/>
+    <polygon points="330,166 330,186 348,176" fill="var(--card)" stroke="var(--fg)" stroke-width="2"/><line x1="349" y1="166" x2="349" y2="186" stroke="var(--fg)" stroke-width="3"/>
+    <text x="340" y="160" text-anchor="middle" class="lbl">D2</text>
+    <path class="w p" d="M352 176 H382"/><circle cx="382" cy="176" r="4" class="dot"/>
+    <!-- ground bus -->
+    <path class="w g" d="M106 280 V500 H900"/>
+    <!-- box with board -->
+    <rect x="400" y="60" width="240" height="250" rx="8" fill="none" stroke="var(--muted)" stroke-width="2" stroke-dasharray="7 5"/>
+    <text x="410" y="52" class="lbl">коробка с платой</text>
+    <rect x="430" y="80" width="180" height="210" rx="6" fill="var(--board)"/>
+    <text x="520" y="190" text-anchor="middle" class="lbl" style="fill:#e7f1ea">Perma-Proto</text>
+    <text x="520" y="208" text-anchor="middle" class="sm" style="fill:#cfe3d4">K1 · K4 · R1-R4</text>
+    <!-- J1 terminals (left) -->
+    <g class="sm"><text x="438" y="100" style="fill:#fff">AUX1</text><text x="438" y="124" style="fill:#fff">→K2</text><text x="438" y="148" style="fill:#fff">GND</text><text x="438" y="172" style="fill:#fff">→K4</text></g>
+    <circle cx="430" cy="96" r="5" fill="#f2c14e"/><circle cx="430" cy="120" r="5" fill="#f2c14e"/><circle cx="430" cy="144" r="5" fill="#f2c14e"/><circle cx="430" cy="168" r="5" fill="#f2c14e"/>
+    <path class="w p" d="M400 96 H425"/>
+        <path class="w g" d="M390 500 V144 H425"/>
+    <!-- J3 sensor terminals (left lower) -->
+    <g class="sm"><text x="438" y="232" style="fill:#fff">+5V</text><text x="438" y="256" style="fill:#fff">SIG</text><text x="438" y="280" style="fill:#fff">GND</text></g>
+    <circle cx="430" cy="228" r="5" fill="#f2c14e"/><circle cx="430" cy="252" r="5" fill="#f2c14e"/><circle cx="430" cy="276" r="5" fill="#f2c14e"/>
+    <!-- potentiometer + voltmeter -->
+    <rect x="180" y="300" width="130" height="120" rx="6" class="bx"/>
+    <text x="245" y="322" text-anchor="middle" class="lbl">датчик-имитатор</text>
+    <rect x="232" y="336" width="26" height="60" rx="3" fill="var(--card)" stroke="var(--fg)" stroke-width="2"/>
+    <text x="245" y="412" text-anchor="middle" class="sm">10k, 10 оборотов</text>
+    <path d="M272 366 L258 366" stroke="var(--fg)" stroke-width="2"/><polygon points="258,366 266,361 266,371" fill="var(--fg)"/>
+    <path class="w p" d="M245 336 V290 H330 V228 H425"/>
+    <path class="w g" d="M245 396 V430 H345 V276 H425"/>
+    <path class="w s" d="M272 366 H360 V252 H425"/>
+    <!-- voltmeter -->
+    <rect x="40" y="330" width="110" height="56" rx="5" fill="#121212"/>
+    <text x="95" y="366" text-anchor="middle" style="font:700 22px 'Barlow Condensed';fill:#ff3b30">1.66</text>
+    <text x="95" y="404" text-anchor="middle" class="sm">вольтметр 3 провода</text>
+    <path class="w s" d="M150 358 H180" style="stroke-dasharray:5 4"/>
+    <text x="165" y="350" text-anchor="middle" class="sm">SIG</text>
+    <!-- DinMeter -->
+    <rect x="690" y="60" width="200" height="110" rx="10" fill="var(--orange)"/>
+    <rect x="705" y="78" width="110" height="74" rx="4" fill="#050605"/>
+    <text x="760" y="124" text-anchor="middle" style="font:700 30px 'Barlow Condensed';fill:#b8f03a">2.2</text>
+    <circle cx="852" cy="115" r="22" fill="#c84a20"/>
+    <text x="790" y="52" text-anchor="middle" class="lbl">DinMeter</text>
+    <!-- J2 / J2b -->
+    <g class="sm"><text x="560" y="100" style="fill:#fff">5V</text><text x="560" y="124" style="fill:#fff">G1</text><text x="560" y="148" style="fill:#fff">G2</text><text x="556" y="172" style="fill:#fff">G13</text>
+    <text x="556" y="228" style="fill:#fff">GND</text><text x="556" y="252" style="fill:#fff">+12V</text><text x="556" y="276" style="fill:#fff">DC−</text></g>
+    <circle cx="610" cy="96" r="5" fill="#f2c14e"/><circle cx="610" cy="120" r="5" fill="#f2c14e"/><circle cx="610" cy="144" r="5" fill="#f2c14e"/><circle cx="610" cy="168" r="5" fill="#f2c14e"/>
+    <circle cx="610" cy="228" r="5" fill="#f2c14e"/><circle cx="610" cy="252" r="5" fill="#f2c14e"/><circle cx="610" cy="276" r="5" fill="#f2c14e"/>
+    <path class="w s" d="M615 96 H690" style="stroke:var(--pwr)"/>
+    <path class="w s" d="M615 120 H690"/>
+    <path class="w s" d="M615 144 H690"/>
+    <path class="w s" d="M615 168 H690" style="stroke-dasharray:5 4"/>
+    <text x="652" y="196" text-anchor="middle" class="sm">Grove + провод G13</text>
+    <path class="w g" d="M615 228 H700 V170"/>
+    <path class="w p" d="M615 252 H720 V170"/>
+    <path class="w g" d="M615 276 H740 V170"/>
+    <!-- K2 relay -->
+    <rect x="740" y="330" width="120" height="82" rx="6" class="bx"/>
+    <text x="800" y="322" text-anchor="middle" class="lbl">реле 12V вместо K2</text>
+    <rect x="770" y="350" width="20" height="44" fill="var(--card)" stroke="var(--fg)" stroke-width="2"/>
+    <text x="760" y="356" text-anchor="end" class="sm">86</text><text x="760" y="404" text-anchor="end" class="sm">85</text>
+    <path class="w p" d="M425 120 H382 V330 H780 V350"/>
+    <path class="w g" d="M780 394 V420 H900 V500"/>
+    <!-- D3 across coil -->
+    <polygon points="800,384 812,384 806,372" fill="var(--card)" stroke="var(--fg)" stroke-width="1.5"/><line x1="800" y1="371" x2="812" y2="371" stroke="var(--fg)" stroke-width="2"/>
+    <path d="M806 371 V346 H780 M806 384 V398 H780" fill="none" stroke="var(--fg)" stroke-width="1.5"/>
+    <text x="818" y="382" class="sm">D3</text>
+    <!-- contacts + LED -->
+    <line x1="836" y1="350" x2="848" y2="372" stroke="var(--fg)" stroke-width="3"/>
+    <circle cx="836" cy="350" r="3.5" class="dot"/><circle cx="836" cy="394" r="3.5" class="dot"/>
+    <text x="826" y="346" text-anchor="end" class="sm">30</text><text x="826" y="404" text-anchor="end" class="sm">87</text>
+            <path class="w p" d="M836 394 V450 H930"/>
+    <circle cx="930" cy="450" r="14" fill="var(--led)" stroke="var(--fg)" stroke-width="2"/>
+    <text x="950" y="446" class="lbl">«компрессор»</text>
+    <text x="950" y="464" class="sm">светодиод 12V</text>
+    <path class="w g" d="M930 464 V500"/>
+            <path class="w p" d="M230 136 V40 H960 V300 H836 V350"/><text x="600" y="34" text-anchor="middle" class="sm">+12V после предохранителя на контакт 30</text>
+    <!-- legend -->
+    <g transform="translate(20,470)">
+      <line x1="0" y1="0" x2="26" y2="0" class="w p"/><text x="32" y="4" class="sm">+12V / +5V</text>
+      <line x1="120" y1="0" x2="146" y2="0" class="w g"/><text x="152" y="4" class="sm">масса</text>
+      <line x1="220" y1="0" x2="246" y2="0" class="w s"/><text x="252" y="4" class="sm">сигнал</text>
+    </g>
+  </svg>
+  </div>
+
+  <h2>Что купить</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>Деталь</th><th>Роль на стенде</th><th>Где</th></tr></thead>
+    <tbody>
+      <tr><td>Потенциометр 10k, 10 оборотов, 3590S-2-103L</td><td>датчик давления: 0.5-4.5V на SIG</td><td><a href="https://www.amazon.de/dp/B07VWQJSC3" target="_blank">Taiss 3590S-2-103L</a></td></tr>
+      <tr><td>Мини-вольтметр 0.28", 3 провода</td><td>цифровая индикация «датчика»</td><td><a href="https://www.amazon.de/dp/B0BWLWLRN8" target="_blank">GTIWUNG, 6 шт.</a></td></tr>
+      <tr><td>Реле 12V 4-pin с колодкой</td><td>вместо силового реле ARB K2</td><td><a href="https://www.amazon.de/dp/B0778DYRLR" target="_blank">Gebildet JD1912, 2 шт.</a></td></tr>
+      <tr><td>2 тумблера, держатель предохранителя 2 A, светодиод 12V, 2 × 1N4007</td><td>AUX1, AUX2, защита, «компрессор», D2 и D3</td><td>любой магазин электроники</td></tr>
+      <tr><td>Аккумулятор 12V или лабораторный блок</td><td>питание как в машине</td><td>есть</td></tr>
+    </tbody>
+  </table></div>
+
+  <p class="warn">Лабораторный блок на сам SIG не подключать: при 26V на выходе вход G1 сгорит. Потенциометр запитан от +5V платы и выше 5V не даст. Блок нужен только как замена аккумулятору: 13.8V, ограничение тока 1 A.</p>
+
+  <h2>Порядок проверки</h2>
+  <ol>
+    <li>Сначала без платы: AUX2 включён, реле щёлкает, светодиод горит. Так проверен обход через D2.</li>
+    <li>Плата и DinMeter на месте, AUX1 включён: DinMeter загрузился, реле не щёлкнуло.</li>
+    <li>Потенциометр 0.50V → на экране 0.0 bar; 1.08V → 1.0; 1.66V → 2.0; 2.24V → 3.0.</li>
+    <li>Вынуть провод SIG: ERR SENSOR, реле не включается.</li>
+    <li>Цель 2.0, потенциометр на 1.08V, нажать: реле включилось, на экране «~ bar». Поднимать потенциометр: реле отпустит, когда «~» дойдёт до 1.9.</li>
+    <li>Не трогать потенциометр 60 с во время подкачки: ERR NO RISE.</li>
+    <li>AUX1 и AUX2 вместе: всё работает, плюс от K1 не уходит в AUX2.</li>
+    <li>Меню UPDATE: телефон подключается к WranglerAir, файл .bin заливается.</li>
+  </ol>
+  <p class="lead">Подробная таблица и прошивка без датчика: <code>docs/bench.md</code> и <code>firmware/bin/wrangler_air_stage1_SIM.bin</code> в репозитории.</p>
+</div>
