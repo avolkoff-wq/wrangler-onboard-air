@@ -57,13 +57,13 @@ const back=new THREE.Mesh(L.parse(buf(BACK)),matBack);
 back.rotation.y=Math.PI;back.position.set(0,0,45+3);root.add(back);
 const edges=(m,c)=>{const e=new THREE.LineSegments(new THREE.EdgesGeometry(m.geometry,25),new THREE.LineBasicMaterial({color:c,transparent:true,opacity:.35}));m.add(e)};
 edges(body,0x0b0e12);edges(back,0x1d2633);
-// DinMeter mock-up (approx: front 53 x 30 x 5, body 45 x 22.5 x 27, knob on the right)
+// DinMeter mock-up (seen from -z: screen on the driver's left, knob on the right) (approx: front 53 x 30 x 5, body 45 x 22.5 x 27, knob on the right)
 const din=new THREE.Group();root.add(din);
 const mOr=new THREE.MeshStandardMaterial({color:0xe2602a,roughness:.55});
 const fr=new THREE.Mesh(new THREE.BoxGeometry(53,30,5),mOr);fr.position.z=-2.5;din.add(fr);
 const bd=new THREE.Mesh(new THREE.BoxGeometry(44.5,22,27),new THREE.MeshStandardMaterial({color:0xf2a37f,roughness:.8}));bd.position.z=13.5;din.add(bd);
-const scr=new THREE.Mesh(new THREE.PlaneGeometry(26,15),new THREE.MeshStandardMaterial({color:0x0c0f12,roughness:.3}));scr.position.set(-9,1,-5.05);scr.rotation.y=Math.PI;din.add(scr);
-const knob=new THREE.Mesh(new THREE.CylinderGeometry(7,7,7,40),new THREE.MeshStandardMaterial({color:0xd8d8d8,roughness:.35,metalness:.4}));knob.rotation.x=Math.PI/2;knob.position.set(15,0,-8.5);din.add(knob);
+const scr=new THREE.Mesh(new THREE.PlaneGeometry(26,15),new THREE.MeshStandardMaterial({color:0x0c0f12,roughness:.3}));scr.position.set(9,1,-5.05);scr.rotation.y=Math.PI;din.add(scr);
+const knob=new THREE.Mesh(new THREE.CylinderGeometry(7,7,7,40),new THREE.MeshStandardMaterial({color:0xd8d8d8,roughness:.35,metalness:.4}));knob.rotation.x=Math.PI/2;knob.position.set(-15,0,-8.5);din.add(knob);
 // screen digits as a tiny canvas texture
 (function(){const c=document.createElement('canvas');c.width=260;c.height=150;const g=c.getContext('2d');g.fillStyle='#0c0f12';g.fillRect(0,0,260,150);g.fillStyle='#b6f34a';g.font='bold 84px monospace';g.textAlign='center';g.fillText('2.3',130,98);g.fillStyle='#9aa';g.font='22px sans-serif';g.fillText('bar',130,132);
  const t=new THREE.CanvasTexture(c);scr.material=new THREE.MeshBasicMaterial({map:t});})();
