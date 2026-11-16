@@ -1,0 +1,169 @@
+<title>DinMeter Screen Storyboard</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@400;500;600&family=Share+Tech+Mono&display=swap">
+<style>
+/* Layout: two scenario strips of device frames, each frame = screen + what the driver does */
+:root{
+  --bg:#eef0ec; --fg:#1d2321; --muted:#5d6763; --line:#cfd5d1; --card:#ffffff;
+  --bezel:#e8613a; --bezel-dk:#b9431f; --screen:#050605;
+  --seg:#b8f03a; --orange:#ff9a3c; --cyan:#4fd6e6; --green:#3bd16f; --red:#ff4d4d; --grey:#c9cfcc; --white:#f2f4f3;
+  --sel:#1f5d33;
+  --display:"Barlow Condensed",system-ui,sans-serif; --body:"Inter",system-ui,sans-serif; --lcd:"Share Tech Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#141816;--fg:#e6ebe8;--muted:#98a39e;--line:#2c3330;--card:#1c211f;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#141816;--fg:#e6ebe8;--muted:#98a39e;--line:#2c3330;--card:#1c211f;color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font:15px/1.5 var(--body)}
+.wrap{max-width:1180px;margin:0 auto;padding-block:28px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1{font:700 clamp(30px,5vw,44px)/1.05 var(--display);letter-spacing:.01em;margin:0 0 6px;text-wrap:balance}
+.lead{color:var(--muted);max-width:68ch;margin:0 0 28px}
+h2{font:700 26px/1.1 var(--display);margin:36px 0 4px;text-wrap:balance}
+.sub{color:var(--muted);margin:0 0 16px;max-width:72ch}
+.strip{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:18px}
+.frame{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.head{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.step{font:700 18px var(--display);letter-spacing:.04em}
+.t{font:500 12px var(--lcd);color:var(--muted);font-variant-numeric:tabular-nums}
+.dev{background:linear-gradient(180deg,var(--bezel),var(--bezel-dk));border-radius:9px;padding:10px 10px 10px 10px;display:flex;align-items:center;gap:10px}
+.scr{flex:1;aspect-ratio:240/135;background:var(--screen);border-radius:4px;position:relative;overflow:hidden;container-type:inline-size;min-width:0}
+.knob{width:34px;height:34px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ffb08a,#c84a20 70%);box-shadow:inset 0 0 0 3px rgba(0,0,0,.18);flex:none;position:relative}
+.knob.turn::after,.knob.press::after,.knob.long::after{position:absolute;inset:-6px;border-radius:50%;content:"";border:2px dashed var(--fg);opacity:.55}
+.knob.press::after{border-style:solid}
+.knob.long::after{border-width:3px;border-style:solid}
+/* screen content, sized in container units so it scales with the frame (240 px wide original) */
+.big{position:absolute;left:0;right:0;top:12cqw;text-align:center;font:400 27cqw/1 var(--lcd);color:var(--seg);letter-spacing:.02em}
+.unit{position:absolute;left:0;right:0;top:36cqw;text-align:center;font:600 7.2cqw var(--display);color:var(--grey)}
+.line{position:absolute;left:0;right:0;bottom:3.6cqw;text-align:center;font:600 7.2cqw var(--display);letter-spacing:.02em;white-space:nowrap}
+.dot{position:absolute;right:3.5cqw;top:2.5cqw;width:5cqw;height:5cqw;border-radius:50%;background:var(--orange)}
+.mid{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:6cqw;font:600 7.2cqw var(--display);color:var(--white);text-align:center;padding:0 4cqw}
+.mid .num{font:400 24cqw/1 var(--lcd);color:var(--seg)}
+.menu{position:absolute;inset:2cqw 2cqw;display:flex;flex-direction:column;gap:1.6cqw}
+.menu div{font:600 7.2cqw/1 var(--display);color:var(--white);padding:2.2cqw 3cqw;border-radius:2cqw}
+.menu .on{background:var(--sel)}
+.c-white{color:var(--white)}.c-cyan{color:var(--cyan)}.c-orange{color:var(--orange)}.c-green{color:var(--green)}.c-red{color:var(--red)}
+.do{font-size:14px}
+.do b{font-weight:600}
+.why{font-size:13px;color:var(--muted)}
+.key{display:flex;flex-wrap:wrap;gap:14px 22px;margin:4px 0 0;color:var(--muted);font-size:13px}
+.key span{display:inline-flex;align-items:center;gap:8px}
+.mk{width:18px;height:18px;border-radius:50%;border:2px dashed var(--fg);opacity:.6;display:inline-block}
+.mk.p{border-style:solid}.mk.l{border-width:3px;border-style:solid}
+.od{width:10px;height:10px;border-radius:50%;background:var(--orange);display:inline-block}
+.note{margin-top:14px;border-top:1px solid var(--line);padding-top:12px;color:var(--muted);font-size:13px;max-width:80ch}
+</style>
+
+<div class="wrap">
+  <h1>DinMeter: экраны по шагам</h1>
+  <p class="lead">Прошивка 0.1.0, этап 1: компрессор включается реле K1, паузы на замер делаются остановкой компрессора. Тексты и порядок экранов точно как в коде. Время показано с момента нажатия на старт.</p>
+  <div class="key">
+    <span><i class="mk"></i>повернуть энкодер</span>
+    <span><i class="mk p"></i>нажать</span>
+    <span><i class="mk l"></i>держать 1 с</span>
+    <span><i class="od"></i>компрессор работает</span>
+    <span>~ перед bar: давление колёс оценено на ходу (датчик минус поправка)</span>
+  </div>
+
+  <h2>1. Первая калибровка</h2>
+  <p class="sub">Один раз после установки. Нужен стрелочный манометр на тройнике и подключённые колёса. Точка 0 снимается с открытым в воздух шлангом, точки 1-3 программа накачивает сама, а значение вводишь ты по манометру.</p>
+  <div class="strip">
+
+    <div class="frame"><div class="head"><span class="step">C1 · Главный</span></div>
+      <div class="dev"><div class="scr"><div class="big">0.0</div><div class="unit">bar</div><div class="line c-white">SET 2.2&nbsp; press: start</div></div><div class="knob long"></div></div>
+      <div class="do"><b>Держишь кнопку 1 с.</b> Открывается меню.</div></div>
+
+    <div class="frame"><div class="head"><span class="step">C2 · Меню</span></div>
+      <div class="dev"><div class="scr"><div class="menu"><div class="on">CALIBRATE</div><div>UNITS: bar</div><div>RESET LEARNING</div><div>UPDATE</div><div>VERSION</div></div></div><div class="knob press"></div></div>
+      <div class="do"><b>CALIBRATE уже выбран, нажимаешь.</b></div></div>
+
+    <div class="frame"><div class="head"><span class="step">C3 · Точка 0</span></div>
+      <div class="dev"><div class="scr"><div class="mid"><span>CAL 1/4: hose open to air</span><span>press when ready</span></div></div><div class="knob press"></div></div>
+      <div class="do"><b>Снимаешь штуцер с колеса или открываешь спускной клапан, манометр на нуле. Нажимаешь.</b></div>
+      <div class="why">Программа запоминает показание датчика как 0 bar.</div></div>
+
+    <div class="frame"><div class="head"><span class="step">C4 · Качает к 1</span><span class="t">≈ 15-20 с</span></div>
+      <div class="dev"><div class="scr"><div class="mid"><span>CAL 2/4: pumping to ~1</span><span>press: abort</span></div></div><div class="knob"></div></div>
+      <div class="do"><b>Штуцеры на колёсах, спускной закрыт.</b> Компрессор работает сам.</div>
+      <div class="why">Останавливается чуть раньше 1 bar, нажатие прерывает калибровку.</div></div>
+
+    <div class="frame"><div class="head"><span class="step">C5 · Пауза</span><span class="t">3 с</span></div>
+      <div class="dev"><div class="scr"><div class="mid"><span>CAL 2/4: settling...</span></div></div><div class="knob"></div></div>
+      <div class="do">Компрессор стоит, давление в линии выравнивается с колёсами.</div></div>
+
+    <div class="frame"><div class="head"><span class="step">C6 · Ввод 1</span></div>
+      <div class="dev"><div class="scr"><div class="mid"><span>Gauge shows? turn + press</span><span class="num">0.98</span></div></div><div class="knob turn"></div></div>
+      <div class="do"><b>Смотришь на манометр, энкодером ставишь его значение (шаг 0.05), нажимаешь.</b></div>
+      <div class="why">Число стартует с показания датчика, обычно крутить нужно на 1-3 щелчка.</div></div>
+
+    <div class="frame"><div class="head"><span class="step">C7 · Точки 2 и 3</span><span class="t">≈ 40 с</span></div>
+      <div class="dev"><div class="scr"><div class="mid"><span>CAL 4/4: pumping to ~3</span><span>press: abort</span></div></div><div class="knob"></div></div>
+      <div class="do">То же самое: качает к 2, пауза, ввод, потом к 3, пауза, ввод.</div></div>
+
+    <div class="frame"><div class="head"><span class="step">C8 · Ввод 3</span></div>
+      <div class="dev"><div class="scr"><div class="mid"><span>Gauge shows? turn + press</span><span class="num">2.95</span></div></div><div class="knob press"></div></div>
+      <div class="do"><b>Последнее значение с манометра, нажимаешь.</b></div></div>
+
+    <div class="frame"><div class="head"><span class="step">C9 · Сохранено</span></div>
+      <div class="dev"><div class="scr"><div class="mid c-green"><span>CALIBRATION SAVED</span><span>a=1.012 b=-0.018</span></div></div><div class="knob press"></div></div>
+      <div class="do"><b>Нажимаешь, возврат на главный экран.</b></div>
+      <div class="why">Прямая по 4 точкам методом наименьших квадратов. Если a вне 0.7-1.3 или |b| больше 0.5, будет CALIBRATION FAILED и старая калибровка останется.</div></div>
+  </div>
+  <p class="note">После калибровки в колёсах около 3 bar: страви до рабочего давления спускным клапаном. Поправка на ходу при калибровке не трогается, её программа выучит на первой настоящей подкачке.</p>
+
+  <h2>2. Подкачка с 0.2 до 2.3 bar</h2>
+  <p class="sub">Все 4 колеса через тройники, мотор заведён. Это первая подкачка после калибровки, поэтому в ней есть обучающий импульс 15 с. Во всех следующих подкачках шагов S4-S5 нет: программа сразу качает по сохранённой поправке. Скорость условная, 0.05 bar/с на 4 колеса.</p>
+  <div class="strip">
+
+    <div class="frame"><div class="head"><span class="step">S1 · Цель</span></div>
+      <div class="dev"><div class="scr"><div class="big">0.2</div><div class="unit">bar</div><div class="line c-white">SET 2.3&nbsp; press: start</div></div><div class="knob turn"></div></div>
+      <div class="do"><b>Один щелчок вправо: 2.2 → 2.3.</b> Большая цифра показывает датчик прямо сейчас.</div>
+      <div class="why">Цель сохраняется в памяти через 2 с после поворота.</div></div>
+
+    <div class="frame"><div class="head"><span class="step">S2 · Старт</span><span class="t">0:00</span></div>
+      <div class="dev"><div class="scr"><div class="big">0.2</div><div class="unit">bar</div><div class="line c-cyan">MEASURING -&gt; 2.3</div></div><div class="knob press"></div></div>
+      <div class="do"><b>Нажимаешь.</b> Компрессор стоит, 2.8 с замер без потока.</div></div>
+
+    <div class="frame"><div class="head"><span class="step">S3 · Обучение</span><span class="t">0:03-0:18</span></div>
+      <div class="dev"><div class="scr"><div class="dot"></div><div class="big">0.6</div><div class="unit">~ bar</div><div class="line c-orange">LEARNING PULSE -&gt; 2.3</div></div><div class="knob"></div></div>
+      <div class="do">Компрессор работает 15 с без остановки.</div>
+      <div class="why">Только в первый раз: замеряет, на сколько датчик на ходу врёт вверх.</div></div>
+
+    <div class="frame"><div class="head"><span class="step">S4 · Замер</span><span class="t">0:18-0:21</span></div>
+      <div class="dev"><div class="scr"><div class="big">0.9</div><div class="unit">bar</div><div class="line c-cyan">MEASURING -&gt; 2.3</div></div><div class="knob"></div></div>
+      <div class="do">Компрессор стоит. Поправка и скорость записаны в память.</div></div>
+
+    <div class="frame"><div class="head"><span class="step">S5 · Подкачка</span><span class="t">0:21-0:47</span></div>
+      <div class="dev"><div class="scr"><div class="dot"></div><div class="big">1.6</div><div class="unit">~ bar</div><div class="line c-orange">PUMPING -&gt; 2.3</div></div><div class="knob"></div></div>
+      <div class="do">Качает без пауз. Цифра растёт, это колёса: датчик минус поправка.</div>
+      <div class="why">Стоп, когда оценка дойдёт до 2.2 (цель минус 0.1). Нажатие в любой момент останавливает.</div></div>
+
+    <div class="frame"><div class="head"><span class="step">S6 · Контроль</span><span class="t">0:47-0:50</span></div>
+      <div class="dev"><div class="scr"><div class="big">2.2</div><div class="unit">bar</div><div class="line c-cyan">MEASURING -&gt; 2.3</div></div><div class="knob"></div></div>
+      <div class="do">Компрессор стоит. Реально в колёсах 2.21, до цели не хватает 0.09.</div>
+      <div class="why">Поправка уточняется: 70% старой плюс 30% новой.</div></div>
+
+    <div class="frame"><div class="head"><span class="step">S7 · Добивка</span><span class="t">0:50-0:52</span></div>
+      <div class="dev"><div class="scr"><div class="dot"></div><div class="big">2.3</div><div class="unit">~ bar</div><div class="line c-orange">TOP-UP -&gt; 2.3</div></div><div class="knob"></div></div>
+      <div class="do">Короткий импульс: 0.09 / 0.05 = 1.8 с.</div></div>
+
+    <div class="frame"><div class="head"><span class="step">S8 · Замер</span><span class="t">0:52-0:55</span></div>
+      <div class="dev"><div class="scr"><div class="big">2.3</div><div class="unit">bar</div><div class="line c-cyan">MEASURING -&gt; 2.3</div></div><div class="knob"></div></div>
+      <div class="do">2.29: в допуске 0.03 от цели.</div></div>
+
+    <div class="frame"><div class="head"><span class="step">S9 · Готово</span><span class="t">0:55</span></div>
+      <div class="dev"><div class="scr"><div class="big">2.3</div><div class="unit">bar</div><div class="line c-green">DONE 2.3&nbsp; press: ok</div></div><div class="knob press"></div></div>
+      <div class="do"><b>Два писка.</b> Нажимаешь, возврат на главный экран, снимаешь штуцеры.</div></div>
+  </div>
+
+  <h2>Если что-то пошло не так</h2>
+  <div class="strip">
+    <div class="frame"><div class="head"><span class="step">E1 · Датчик</span></div>
+      <div class="dev"><div class="scr"><div class="big">--.-</div><div class="unit">bar</div><div class="line c-red">ERR SENSOR</div></div><div class="knob"></div></div>
+      <div class="do">Обрыв провода или датчик вне диапазона. Компрессор выключен, 4 писка.</div></div>
+    <div class="frame"><div class="head"><span class="step">E2 · Утечка</span></div>
+      <div class="dev"><div class="scr"><div class="big">1.1</div><div class="unit">bar</div><div class="line c-red">ERR NO RISE: LEAK?</div></div><div class="knob"></div></div>
+      <div class="do">За 60 с подкачки давление не выросло на 0.1: слетел штуцер или шланг не на колесе.</div></div>
+    <div class="frame"><div class="head"><span class="step">E3 · Потолок</span></div>
+      <div class="dev"><div class="scr"><div class="big">3.1</div><div class="unit">bar</div><div class="line c-red">ERR OVER 3.0 BAR</div></div><div class="knob"></div></div>
+      <div class="do">Давление выше 3.0 bar. Компрессор выключен. Нажатие сбрасывает ошибку.</div></div>
+  </div>
+</div>
