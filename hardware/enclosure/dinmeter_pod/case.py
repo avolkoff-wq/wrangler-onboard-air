@@ -17,9 +17,11 @@ for sx in(-1,1):
     boss=cyl(3.4,12).translate((sx*bx,sy*by,D-12))
     pilot=cyl(1.25,11).translate((sx*bx,sy*by,D-11+0.01))
     body=(body+boss)-pilot
-# cable hole in bottom wall near the back
-hole=cyl(4.2,T+2).rotate((90,0,0)).translate((0,-H/2+T+1,D-9))
-body=body-hole
+# connector slot: a Grove plug (10 x 5) or the green power plug (8 x 10) passes through
+SW,SH=15.0,11.0
+def slot(depth): return rr(SW,SH,3).extrude(depth)
+# spare slot in the bottom wall near the back (15 along the width, 11 along the depth)
+body=body-slot(T+4).rotate((90,0,0)).translate((0,-H/2+T+2,D-11))
 # BACK COVER: plate + locating lip + side ears with mounting holes
 P=3
 cover=box(W,H,P,4)                              # flat back for double-sided tape (no ears)
@@ -30,8 +32,8 @@ for sx in(-1,1):
     cover=cover-cyl(1.7,P+3).translate((sx*bx,sy*by,-1))-cyl(3.2,1.6).translate((sx*bx,sy*by,-0.01))
     # lip relief around bosses
     cover=cover-cyl(4.0,3).translate((sx*bx,sy*by,P))
-# cable exit straight through the cover into the tunnel trim (drill the trim at the same spot)
-cover=cover-cyl(4.5,P+4).translate((0,0,-1))
+# cable exit straight through the cover into the tunnel trim (cut a 15 x 11 slot in the trim at the same spot)
+cover=cover-slot(P+4).translate((0,0,-1))   # main slot, cable goes into the tunnel trim
 def save(m,n):
   me=m.to_mesh(); tm=trimesh.Trimesh(me.vert_properties[:,:3],me.tri_verts); tm.export(n); return tm
 b=save(body,'dinmeter_body.stl'); c=save(cover,'dinmeter_back.stl')

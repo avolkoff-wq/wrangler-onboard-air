@@ -1,36 +1,33 @@
 # DinMeter harness: colours
 
 DinMeter sits in its pod on the tunnel side wall, the board box sits by the compressor.
-Between them run two cables, both about 2 m, together in one braided sleeve (10 mm):
+Everything is ordered in one place, BerryBase.ch:
 
-1. **Grove cable 2 m** (M5Stack A034-E) from PORT.B. The plug goes into the DinMeter, the other end is cut off and goes into the board terminals.
-2. **Power pair 2 × 0.5 mm², red and black** (silicone) from the DinMeter power terminal to J2b.
-
-PORT.A (G13, K4, deflate valve) is not used yet: no deflate valve for now. Leave a draw string in the sleeve for a second Grove cable later.
-
-## Grove cable, PORT.B
-
-| Grove wire | Signal | Board end |
+| Part | BerryBase no. | Price |
 |---|---|---|
-| red | +5V from the DinMeter to the board (sensor supply) | J2 row 2 (5V) |
-| white | G1, sensor signal (analogue) | J2 row 4 (G1) |
-| yellow | G2, K1 control (compressor relay, later the inflate valve) | J2 row 6 (G2) |
-| black | GND, signal ground | J2b row 10 (GND) |
+| M5Stack DinMeter v1.1 | M5-K134-V11 | CHF 29.50 |
+| seeed Grove cable, latching ("fixierend"), 20 cm, 5 pcs | SE-110990027 | CHF 1.65 |
+| Donau stranded wire 0.14 mm², 10 colours × 10 m | E-118-MIX | CHF 15.45 |
+| Heat-shrink set, coloured | Schrumpfschlauch-Set bunt | ≈ CHF 3 |
 
-## Power pair
+How it is built: one latching Grove cable is cut in the middle; the plug end (10 cm) goes into PORT.B inside the pod and is soldered to 0.14 mm² wires of the same colours. Those wires, plus the power pair, run about 2 m to the board box, twisted together and held by cable ties every 15 cm.
 
-| Wire | Signal | DinMeter end | Board end |
+PORT.A (G13, K4, deflate valve) is not used yet. The green wire for it is laid now and left coiled at both ends.
+
+## Harness colours
+
+| Wire 0.14 mm² | Signal | Pod end | Board end |
 |---|---|---|---|
-| red | +12V AUX1 | green power terminal, "+" (upper) | J2b row 12 (+12V) |
-| black | DinMeter supply return | green power terminal, "−" (lower) | J2b row 14 (DC−) |
+| red | +5V from the DinMeter to the board (sensor supply) | Grove PORT.B, red | J2 row 2 (5V) |
+| white | G1, sensor signal (analogue) | Grove PORT.B, white | J2 row 4 (G1) |
+| yellow | G2, K1 control (compressor relay, later the inflate valve) | Grove PORT.B, yellow | J2 row 6 (G2) |
+| black | GND, signal ground | Grove PORT.B, black | J2b row 10 (GND) |
+| **orange** | +12V AUX1, DinMeter supply | green power terminal "+" (upper) | J2b row 12 (+12V) |
+| **blue** | DinMeter supply return | green power terminal "−" (lower) | J2b row 14 (DC−) |
+| green | G13, K4 (deflate valve), for later | coiled, not connected | coiled, not connected |
 
-The green terminal is the 2-pin pluggable screw plug (2.54 mm) that comes in the DinMeter box. It takes wires up to 0.5 mm².
-
-## Two reds, two blacks
-
-The red Grove wire is +5V, the red power wire is +12V. They end up next to each other in the board box.
-Put a small label "5V" on the Grove red and "12V" on the power red before stripping them, and land them one at a time.
-+12V on the 5V row would damage the DinMeter port and the sensor.
+Power is orange and blue so it can never be mixed up with the red/black of the Grove (5V and GND).
+The green power terminal is the 2-pin pluggable screw plug (2.54 mm) that comes in the DinMeter box.
 
 ## Not connected in stage 1-2
 
@@ -42,9 +39,9 @@ Put a small label "5V" on the Grove red and "12V" on the power red before stripp
 
 ## Rules
 
-- One wire per terminal hole, ferrule on every wire at the board end.
-- Grove plug in the DinMeter: secure with a dab of hot glue or a cable tie (M5 Grove cables have no latch).
-- Strain relief (cable tie through the pod wall) before the cables leave through the back of the pod.
+- One wire per terminal hole. 0.14 mm² is too thin for a ferrule: strip 8 mm, fold the strands back once, then clamp.
+- The latching Grove plug clicks into PORT.B; no glue needed.
+- Joins in the pod: solder, then heat-shrink. Strain relief (cable tie) before the harness leaves through the 15 × 11 slot in the back of the pod.
 - Label both ends "M5".
 
 Grove cable colours are not always standard on third-party cables. Go by the pin position (pin 1 GND, 2 5V, 3 yellow pin G2, 4 white pin G1, as printed on the DinMeter), not by the colour of a bought cable. The M5Stack cable is standard.
