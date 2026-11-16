@@ -1,5 +1,9 @@
 """DinMeter pod, solid model (CadQuery / OpenCascade).
 
+One box for everything: DinMeter in the upper window, M5Stack ADC v1.1 on the floor of the body,
+Mini 3A Relay on the inside of the cover. Grove cables stay inside; car wires leave through one
+slot in the bottom wall with a cable-tie anchor right behind it.
+
 Writes:
   dinmeter_pod.step   both parts as solids, opens in Fusion 360 (Insert > Insert/Upload, or File > Open)
   dinmeter_body.stl   for printing
@@ -10,16 +14,23 @@ All sizes in mm. Change the numbers at the top and run:  python3 pod_cq.py
 import cadquery as cq
 
 # ---------- parameters ----------
-W, H, D = 60.0, 38.0, 45.0      # body outside: width, height, depth (front face at z=0)
+W, H, D = 60.0, 68.0, 45.0      # body outside: width, height, depth (front face at z=0)
+DIN_Y = H / 2 - 19.0            # DinMeter window centre (19 mm from the top edge, as in the small pod)
 T = 2.5                         # side walls
 F = 3.0                         # front wall (DinMeter clamps against it)
 R_OUT = 4.0                     # outside corner radius
 CUT_W, CUT_H = 45.2, 22.7       # 1/32 DIN cut-out + clearance
-SLOT_W, SLOT_H = 10.7, 5.4      # Grove plug slot (HY2.0-4P 9.9 x 4.6 + 0.4 per side)
+EXIT = (14.0, 8.0)              # car-wire slot in the bottom wall: +12 V, GND, relay NO, sensor cable
+EXIT_X, EXIT_Z = 17.0, 17.0     # its position (x from centre, z from the front face)
+ADC = (32.4, 24.4, 10.2)        # ADC v1.1 32 x 24 x 10.2 + clearance, lies on the floor, 32 across
+ADC_X = -8.0                    # ADC centre x
+RELAY = (48.4, 24.4, 8.0)       # Mini 3A Relay 48 x 24 x 8 + clearance, on the inside of the cover
+RELAY_Y = -15.0                 # relay centre y (below the DinMeter, above the bottom snap tab)
+RAIL = (1.2, 1.8)               # locating rails: thickness, height. Modules sit on VHB tape between them
 P = 3.0                         # cover plate
 LIP_H, LIP_W, LIP_GAP = 2.0, 2.0, 0.3      # locating lip of the cover
-ANCHOR = (10.0, 6.0, 5.0)       # cable-tie anchor on the cover: x, y, height
-ANCHOR_Y = 9.0                  # anchor centre from the slot centre
+ANCHOR = (10.0, 6.0, 5.0)       # cable-tie anchor on the floor behind the exit slot: x, z, height
+ANCHOR_Z = 29.0                 # anchor centre z
 TIE = (3.4, 1.8)                # tunnel for a 2.5 mm cable tie
 # snap fit, no screws: two flexible tabs on the cover click into windows in the long walls of the body.
 # The cover is taped to the tunnel wall; the body with the DinMeter clicks onto it.
@@ -38,19 +49,29 @@ cavity = (cq.Workplane("XY").workplane(offset=F).rect(W - 2 * T, H - 2 * T).extr
           .edges("|Z").fillet(R_OUT - T))
 body = body.cut(cavity)
 # DinMeter cut-out with a small chamfer on the outside
-cut = cq.Workplane("XY").workplane(offset=-1).rect(CUT_W, CUT_H).extrude(F + 2)
+cut = cq.Workplane("XY").workplane(offset=-1).center(0, DIN_Y).rect(CUT_W, CUT_H).extrude(F + 2)
 body = body.cut(cut)
-body = body.faces("<Z").edges(cq.selectors.BoxSelector((-CUT_W/2-1, -CUT_H/2-1, -0.1), (CUT_W/2+1, CUT_H/2+1, 0.1))).chamfer(0.6)
+body = body.faces("<Z").edges(cq.selectors.BoxSelector((-CUT_W/2-1, DIN_Y-CUT_H/2-1, -0.1), (CUT_W/2+1, DIN_Y+CUT_H/2+1, 0.1))).chamfer(0.6)
 # snap windows in the two long walls (top / bottom), matching the cover tabs
 for sy in (-1, 1):
     win = (cq.Workplane("XY").workplane(offset=D - TAB_L - WIN_GAP)
            .center(0, sy * (H / 2 - T / 2)).rect(TAB_W + 2 * WIN_GAP, T + 2).extrude(BARB_L + 2 * WIN_GAP))
     body = body.cut(win)
-# spare Grove slot in the bottom wall, near the back
+# car-wire slot in the bottom wall
 # XZ plane faces -Y: start 1 mm inside the bottom wall and cut outwards through it
-slot_b = (cq.Workplane("XZ").workplane(offset=H / 2 - T - 1).center(0, D - 11)
-          .slot2D(SLOT_W, SLOT_H, 0).extrude(T + 3))
+slot_b = (cq.Workplane("XZ").workplane(offset=H / 2 - T - 1).center(EXIT_X, EXIT_Z)
+          .slot2D(EXIT[0], EXIT[1], 0).extrude(T + 3))
 body = body.cut(slot_b)
+FLOOR = -H / 2 + T
+# ADC: two rails on the floor, front wall is the front stop
+for sx in (-1, 1):
+    rx = ADC_X + sx * (ADC[0] / 2 + RAIL[0] / 2)
+    body = body.union(cq.Workplane("XY").box(RAIL[0], RAIL[1], 20.0).translate((rx, FLOOR + RAIL[1] / 2, F + 2 + 10.0)))
+# cable-tie anchor behind the exit slot, tunnel across x
+ax_, az_, ah_ = ANCHOR
+anchor = cq.Workplane("XY").box(ax_, ah_, az_).translate((EXIT_X, FLOOR + ah_ / 2, ANCHOR_Z)).edges("|X").fillet(0.8)
+tunnel = cq.Workplane("XY").box(ax_ + 2, TIE[1], TIE[0]).translate((EXIT_X, FLOOR + 2.2, ANCHOR_Z))
+body = body.union(anchor.cut(tunnel))
 
 # ---------- cover ----------
 cover = (cq.Workplane("XY").rect(W, H).extrude(P)
@@ -71,14 +92,10 @@ for sy in (-1, 1):
     prof = [(y0, P + TAB_L - BARB_L), (y0 + sy * BARB, P + TAB_L - BARB_L), (y0, P + TAB_L)]
     barb = cq.Workplane("YZ").workplane(offset=-TAB_W / 2).polyline(prof).close().extrude(TAB_W)
     cover = cover.union(tab).union(barb)
-# Grove slot in the middle
-cover = cover.cut(cq.Workplane("XY").workplane(offset=-1).slot2D(SLOT_W, SLOT_H, 0).extrude(P + 2))
-# cable-tie anchor with a tunnel
-ax_, ay_, az_ = ANCHOR
-anchor = (cq.Workplane("XY").workplane(offset=P).center(0, ANCHOR_Y).rect(ax_, ay_).extrude(az_)
-          .faces(">Z").edges().fillet(0.8))
-tunnel = (cq.Workplane("YZ").workplane(offset=-ax_).center(ANCHOR_Y, P + 2.2).rect(TIE[0], TIE[1]).extrude(2 * ax_))
-cover = cover.union(anchor.cut(tunnel))
+# relay: two rails along x on the inside of the plate; the lip stops it left and right
+for sy in (-1, 1):
+    ry = RELAY_Y + sy * (RELAY[1] / 2 + RAIL[0] / 2)
+    cover = cover.union(cq.Workplane("XY").box(36.0, RAIL[0], RAIL[1]).translate((0, ry, P + RAIL[1] / 2)))
 
 # ---------- export ----------
 asm = cq.Assembly()
