@@ -20,11 +20,17 @@ All sizes in mm. Change the numbers at the top and run:  python3 pod_cq.py
 import cadquery as cq
 
 # ---------- parameters ----------
-W, H, D = 64.0, 80.0, 32.0      # body outside: width (along the car), height, depth (out from the tunnel wall)
+# Sizes of the bought parts are from M5Stack's official drawings and 3D shells (github.com/m5stack/M5_Hardware):
+#   DinMeter K134: bezel 53 x 30 x 2.5, body 45.6 x 22.2, 20.4 deep behind the bezel, knob D12 x 8.6
+#   Unit Relay U023: 48 x 24 x 8 shell, relay and 3.96 header stick out on top
+#   Unit ADC v1.1 U013-V11: 32 x 24 x 8 shell
+# The orange back clip of the DinMeter is used WITHOUT its four screw ears (snip them off): with the ears
+# it is 38.6 mm across and would not fit a 32 mm deep box.
+W, H, D = 64.0, 58.0, 32.0      # body outside: width (along the car), height, depth (out from the tunnel wall)
 T = 2.0                         # side, front and bottom walls (PETG / ASA)
 TOP = 3.0                       # top wall: the DinMeter clamps against it
 R_OUT = 4.0                     # outside corner radius (DinMeter bezel corners)
-CUT_W, CUT_H = 45.2, 22.7       # 1/32 DIN cut-out + clearance (CUT_H runs along z)
+CUT_W, CUT_H = 46.0, 22.8       # DinMeter body 45.6 x 22.2 + clearance (CUT_H runs along z)
 CUT_Z = D / 2                   # cut-out centred on the top face
 P = 3.0                         # cover plate
 LIP_H, LIP_W, LIP_GAP = 2.0, 2.0, 0.3      # locating lip of the cover
@@ -32,14 +38,14 @@ TAB_W, TAB_T, TAB_L = 10.0, 1.4, 12.0      # snap tabs (in the side walls)
 BARB, BARB_L = 0.9, 2.5
 WIN_GAP = 0.4
 RELAY = (48.0, 8.0, 24.0)       # Mini 3A Relay 48 x 24 x 8 (+ relay and 3.96 terminal on top), flat on the floor
-RELAY_X, RELAY_Z = -2.0, 15.0   # relay centre: 3 mm free at the terminal end, Grove plug at the +x end
-ADC = (32.0, 24.0, 10.2)        # ADC v1.1 32 x 24 x 10.2, standing on its long edge against the front wall
-ADC_X, ADC_Y = -8.0, -5.0       # ADC centre
+RELAY_X, RELAY_Z = -2.0, 16.0   # relay centre: 3 mm free at the terminal end, Grove plug at the +x end
+ADC = (32.0, 24.0, 8.0)         # ADC v1.1 32 x 24 x 8, standing on its long edge against the front wall, above the relay
+ADC_X, ADC_Y = 7.0, -6.5        # ADC centre
 RAIL = (1.2, 1.8)               # relay stop behind it: thickness, height
 EXIT = (14.0, 8.0)              # car-wire slot in the left side wall (along z x along y): +12 V, GND, wire to K2, sensor cable
-EXIT_Y, EXIT_Z = -20.0, 17.0    # slot centre, low, at the relay terminal end
+EXIT_Y, EXIT_Z = -13.0, 16.0    # slot centre, low, at the relay terminal end
 ANCHOR = (5.0, 6.0, 10.0)       # cable-tie anchor on the inside of the left wall: depth from the wall, height, length along z
-ANCHOR_Y, ANCHOR_Z = -9.0, 24.0
+ANCHOR_Y, ANCHOR_Z = -1.0, 8.0  # above the slot, towards the front (the snap tab is at the back)
 TIE = (3.4, 1.8)                # tunnel for a 2.5 mm cable tie
 FLOOR = -H / 2 + T
 
@@ -66,8 +72,8 @@ for sx in (-1, 1):
 for zz in (RELAY_Z - RELAY[2] / 2 - 0.3 - RAIL[0] / 2, RELAY_Z + RELAY[2] / 2 + 0.3 + RAIL[0] / 2):
     body = body.union(cq.Workplane("XY").box(30.0, RAIL[1], RAIL[0]).translate((RELAY_X, FLOOR + RAIL[1] / 2, zz)))
 # ADC: ledge on the front wall under it
-body = body.union(cq.Workplane("XY").box(ADC[0] - 4, 2.0, 3.0)
-                  .translate((ADC_X, ADC_Y - ADC[1] / 2 - 0.3 - 1.0, T + 1.5)))
+body = body.union(cq.Workplane("XY").box(ADC[0] - 4, 1.4, 1.6)
+                  .translate((ADC_X, ADC_Y - ADC[1] / 2 - 0.7, T + 0.8)))
 
 # car-wire slot low in the left side wall (YZ plane, normal +X: start inside the wall, cut outwards with a negative extrude)
 side = (cq.Workplane("YZ").workplane(offset=-W / 2 + T + 1).center(EXIT_Y, EXIT_Z)

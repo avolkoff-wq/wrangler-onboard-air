@@ -5,8 +5,8 @@ Writes:
   wrangler_air_box.step   every part and every wire as its own component, opens in Fusion 360
   wrangler_air_box.glb    the same for the 3D viewer
 
-Mock-up sizes come from the M5Stack docs and product photos; connector positions on the DinMeter
-back are taken from its photo. Measure the real parts and correct the numbers below.
+Sizes and connector positions come from M5Stack's official drawings (DinMeter K134 assembly drawing)
+and 3D shells (github.com/m5stack/M5_Hardware); connector details from product photos. Measure the real parts and correct the numbers below.
 Wire paths are a routing plan, not exact lengths.
 
 Box coordinates: x along the car, y up, z from the front face (0) to the tunnel wall (32).
@@ -57,91 +57,86 @@ asm = cq.Assembly(name="wrangler_air_box")
 asm.add(B.body, name="box_body", color=cq.Color(*C["body"]))
 asm.add(B.cover, name="box_cover", loc=cq.Location((0, 0, B.D + B.P), (0, 1, 0), 180), color=cq.Color(*C["cover"]))
 
-# ---------- DinMeter (screen up) ----------
+# ---------- DinMeter (screen up), sizes from the official K134 drawing ----------
+# Mounted turned 180 deg (knob at +x, ports at -x, next to the cable entry); the screen is turned in SCREEN menu.
 cz = B.CUT_Z
 din = cq.Assembly(name="dinmeter")
-din.add(box(53, 5, 30, 0, TOP_Y + 2.5, cz), name="bezel", color=cq.Color(*C["din"]))
-din.add(box(26, 0.3, 15, 9, TOP_Y + 5.15, cz + 1), name="screen", color=cq.Color(*C["screen"]))
-din.add(cq.Workplane("XZ").workplane(offset=-(TOP_Y + 5)).center(-15, cz).circle(7).extrude(-7), name="knob", color=cq.Color(*C["knob"]))
-din.add(box(44.5, 27, 22, 0, TOP_Y - 13.5, cz), name="housing", color=cq.Color(*C["din_body"]))
-clip = box(49, 8, 26.4, 0, TOP_Y - B.TOP - 4, cz).cut(box(44.6, 9, 22.1, 0, TOP_Y - B.TOP - 4, cz))
+din.add(box(53, 2.5, 30, 0, TOP_Y + 1.25, cz).edges("|Y").fillet(4), name="bezel", color=cq.Color(*C["din"]))
+din.add(box(26.5, 0.3, 17.4, -5.5, TOP_Y + 2.6, cz), name="screen", color=cq.Color(*C["screen"]))
+din.add(cq.Workplane("XZ").workplane(offset=-(TOP_Y + 2.5)).center(14.25, cz).circle(6).extrude(-8.6), name="knob", color=cq.Color(*C["knob"]))
+din.add(box(45.6, 20.4, 22.2, 0, TOP_Y - 10.2, cz), name="housing", color=cq.Color(*C["din_body"]))
+clip = box(49, 8, 26.4, 0, TOP_Y - B.TOP - 4, cz).cut(box(45.7, 9, 22.3, 0, TOP_Y - B.TOP - 4, cz))
 din.add(clip, name="back_clip", color=cq.Color(*C["clip"]))
-DB = TOP_Y - 27                                   # DinMeter back face (bottom)
-PA, PB = (9.5, DB, cz + 2), (16.5, DB, cz + 2)    # PORT.A, PORT.B
-TERM = (14.0, DB, cz - 7)                         # green 6-36 V terminal
-din.add(box(5, 8, 9.5, PA[0], DB - 4, PA[2]), name="grove_plug_port_A", color=cq.Color(*C["grove_plug"]))
-din.add(box(5, 8, 9.5, PB[0], DB - 4, PB[2]), name="grove_plug_port_B", color=cq.Color(*C["grove_plug"]))
-din.add(box(7.6, 10, 6, TERM[0], DB - 5, TERM[2]), name="power_terminal_plug", color=cq.Color(*C["green"]))
+DB = TOP_Y - 20.4                                  # DinMeter back face (bottom)
+PA, PB = (-11.7, DB, cz - 3.0), (-18.0, DB, cz - 3.0)   # PORT.A, PORT.B (HY2.0-4P, plug from below)
+TERM = (-15.1, DB, cz + 7.6)                       # green 6-36 V terminal
+din.add(box(4.6, 8, 9.9, PA[0], DB - 4, PA[2]), name="grove_plug_port_A", color=cq.Color(*C["grove_plug"]))
+din.add(box(4.6, 8, 9.9, PB[0], DB - 4, PB[2]), name="grove_plug_port_B", color=cq.Color(*C["grove_plug"]))
+din.add(box(8.8, 10, 7, TERM[0], DB - 5, TERM[2]), name="power_terminal_plug", color=cq.Color(*C["green"]))
 asm.add(din)
+T_PLUS, T_MINUS = (TERM[0] + 1.3, DB - 10, TERM[2]), (TERM[0] - 1.3, DB - 10, TERM[2])
 
-# ---------- Mini 3A Relay (flat on the floor) ----------
+# ---------- Unit Relay U023 (flat on the floor), terminal end at -x ----------
 rx, rz = B.RELAY_X, B.RELAY_Z
 rl, rh, rw = B.RELAY
 r_x0, r_x1 = rx - rl / 2, rx + rl / 2
 ry = FLOOR + rh / 2
 rel = cq.Assembly(name="mini_relay")
-rel.add(box(rl, rh, rw, rx, ry, rz), name="case", color=cq.Color(*C["unit"]))
-rel.add(box(15.2, 7, 10.5, r_x0 + 21.5, FLOOR + rh + 3.5, rz), name="relay", color=cq.Color(*C["relay_coil"]))
-VH = (r_x0 + 5.5, FLOOR + rh + 5.5, rz)            # 3.96 terminal plug on top, wires out to -x
-rel.add(box(9, 11, 12, *VH), name="terminal_COM_NO_NC", color=cq.Color(*C["vh"]))
-rel.add(box(6.5, 4.6, 9, r_x1 + 3.25, ry, rz), name="grove_plug", color=cq.Color(*C["grove_plug"]))
+rel.add(box(rl, rh, rw, rx, ry, rz).edges("|Y").fillet(2), name="case", color=cq.Color(*C["unit"]))
+rel.add(box(15.2, 6, 10.5, r_x0 + 17.6, FLOOR + rh + 3, rz), name="relay", color=cq.Color(*C["relay_coil"]))
+VH = (r_x0 + 5, FLOOR + rh + 6, rz)                # VH3.96 plug on the header: COM, NO, NC; wires out to -x
+rel.add(box(10, 12, 12, *VH), name="terminal_COM_NO_NC", color=cq.Color(*C["vh"]))
+rel.add(box(6.5, 4.6, 9.9, r_x1 + 3.25, ry, rz), name="grove_plug", color=cq.Color(*C["grove_plug"]))
 asm.add(rel)
-R_COM = (r_x0 + 1, VH[1], rz - 4)
-R_NO = (r_x0 + 1, VH[1], rz)
+R_COM, R_NO = (r_x0, VH[1], rz - 4), (r_x0, VH[1], rz)
 
-# ---------- ADC v1.1 (on its long edge against the front wall) ----------
+# ---------- Unit ADC v1.1 (on its long edge against the front wall), terminal end at +x ----------
 ax, ay = B.ADC_X, B.ADC_Y
 al, ah, at = B.ADC
 az = B.T + at / 2
 a_x0, a_x1 = ax - al / 2, ax + al / 2
 adc = cq.Assembly(name="adc_v11")
-adc.add(box(al, ah, at, ax, ay, az), name="case", color=cq.Color(*C["unit"]))
-AT = (a_x0 + 5.5, ay, B.T + at + 5.5)              # 2-pin terminal on the back face, wires out to -x
+adc.add(box(al, ah, at, ax, ay, az).edges("|Z").fillet(2), name="case", color=cq.Color(*C["unit"]))
+AT = (a_x1 - 4.5, ay, B.T + at + 5.5)              # 3.96 terminal on the back face: IN+, GND; wires out to +x
 adc.add(box(9, 8, 11, *AT), name="terminal_IN_GND", color=cq.Color(*C["vh"]))
-adc.add(box(6.5, 9, 4.6, a_x1 + 3.25, ay, az), name="grove_plug", color=cq.Color(*C["grove_plug"]))
+adc.add(box(6.5, 9.9, 4.6, a_x0 - 3.25, ay, az), name="grove_plug", color=cq.Color(*C["grove_plug"]))
 asm.add(adc)
-A_IN = (a_x0 + 1, ay + 2, AT[2])
-A_GND = (a_x0 + 1, ay - 2, AT[2])
+A_IN, A_GND = (a_x1, ay + 2, AT[2]), (a_x1, ay - 2, AT[2])
 
 # ---------- wires ----------
 xw = -B.W / 2 + B.T            # inside of the left wall
-SL = (-B.W / 2 - 1, B.EXIT_Y, B.EXIT_Z)   # slot centre, outside
-out_y = -B.H / 2 - 25          # wires run on down to the car harness
-xl = xw + 3.0                  # vertical run along the left wall, past the cable-tie anchor
-SP12 = (xl + 1, 1.0, 26.0)     # +12 V splice
-SPG = (xl + 1, 4.0, 29.5)      # GND splice
-SPS = (25.0, ay, 18.0)         # sensor +5 V spliced into the PORT.A Grove cable
-BRK = (xl, ay - 9, 21.0)       # sensor cable breakout
+SL = (-B.W / 2, B.EXIT_Y, B.EXIT_Z)
+out_x = SL[0] - 9
+out_y = -B.H / 2 - 22          # outside: on down to the car harness
+SP12 = (-25.0, 3.0, 24.0)      # +12 V splice
+SPG = (-24.0, 2.0, 18.0)       # GND splice
+BRK = (-21.0, -15.0, 26.0)     # sensor cable breakout
+SPS = (-18.5, -4.5, 8.0)       # sensor +5 V spliced into the PORT.A Grove red wire
 
 
 def wire(name, pts, col, r):
     asm.add(tube(pts, r), name=name, color=cq.Color(*C[col]))
 
 
-def out(dz):                   # entry path from the harness through the slot
-    return [(SL[0] - 10, out_y, SL[2] + dz), (SL[0] - 10, SL[1] - 2, SL[2] + dz), (SL[0], SL[1], SL[2] + dz), (xl, SL[1] + 3, SL[2] + dz)]
+def entry(dz, inside):
+    return [(out_x, out_y, SL[2] + dz), (out_x, SL[1] - 3, SL[2] + dz), (SL[0], SL[1], SL[2] + dz)] + inside
 
-# car side: +12 V, GND, wire to K2, sensor cable
-wire("car_12V_AUX1_red_1.5", out(-2.5) + [(xl, 0, 22), (SP12[0], SP12[1] - 5, SP12[2])], "red", 1.3)
-wire("car_GND_black_1.5", out(2.5) + [(xl + 1, -2, 29.5), (SPG[0], SPG[1] - 5, SPG[2])], "black", 1.3)
-wire("to_K2_86_via_D1_brown_1.5", [R_NO, (xw + 1.5, R_NO[1], R_NO[2]), (xw + 1.5, SL[1], SL[2]), (SL[0], SL[1], SL[2]), (SL[0] - 10, SL[1] - 4, SL[2]), (SL[0] - 10, out_y, SL[2])], "brown", 1.3)
-wire("sensor_cable_4core", out(0)[:-1] + [(xl, SL[1] + 3, SL[2]), BRK], "sensor", 2.0)
-# +12 V splice: car +12 -> relay COM (red) and DinMeter + (orange)
-wire("12V_to_relay_COM_red", [(SP12[0], SP12[1] - 5, SP12[2]), (xl + 1, -16, 26), (xw + 1.5, R_COM[1], 26), (xw + 1.5, R_COM[1], R_COM[2]), R_COM], "red", 1.0)
-wire("12V_to_DinMeter_plus_orange_0.25", [(SP12[0], SP12[1] + 5, SP12[2]), (SP12[0], 0.5, 24), (TERM[0] - 1.7, 0.5, 24), (TERM[0] - 1.7, 0.5, TERM[2]), (TERM[0] - 1.7, DB - 10, TERM[2])], "orange", 0.6)
-wire("GND_to_DinMeter_minus_blue_0.25", [(SPG[0], SPG[1] + 5, SPG[2]), (SPG[0], 2.0, 29.5), (TERM[0] + 1.7, 2.0, 29.5), (TERM[0] + 1.7, 2.0, TERM[2]), (TERM[0] + 1.7, DB - 10, TERM[2])], "blue", 0.6)
-# sensor breakout: SIG and GND to the ADC terminal, +5 V up to the Grove splice
-wire("sensor_SIG_yellow", [BRK, (xl, A_IN[1], 21), (A_IN[0] - 1, A_IN[1], A_IN[2]), A_IN], "yellow", 0.6)
-wire("sensor_GND_black", [BRK, (xl + 1.2, A_GND[1], 20), (A_GND[0] - 1, A_GND[1], A_GND[2]), A_GND], "black", 0.6)
-wire("sensor_5V_red", [BRK, (xl + 2, ay - 9, 29.5), (SPS[0], ay - 9, 29.5), (SPS[0], SPS[1] - 1, SPS[2] + 5)], "red", 0.6)
-# Grove cables
-wire("grove_PORT_A_to_ADC", [(PA[0], DB - 8, PA[2]), (PA[0], DB - 10, 22), (25, DB - 10, 22), (25, ay, 18), (25, ay, az), (a_x1 + 6.5, ay, az)], "grove", 1.2)
-wire("grove_PORT_B_to_relay", [(PB[0], DB - 8, PB[2]), (PB[0], DB - 11, 26), (28.6, DB - 11, 26), (28.6, ry, 26), (28.6, ry, rz), (r_x1 + 6.5, ry, rz)], "grove", 1.2)
-# heat-shrink over the splices
+wire("car_12V_AUX1_red_1.5", entry(-2.5, [(-28.5, -11, 13.5), (-26.5, -6, 19), (SP12[0], SP12[1] - 5, SP12[2])]), "red", 1.3)
+wire("car_GND_black_1.5", entry(2.5, [(-28.5, -11, 18.5), (-26.5, -8, 17), (SPG[0], SPG[1] - 5, SPG[2])]), "black", 1.3)
+wire("to_K2_86_via_D1_brown_1.5", [R_NO, (-28.5, R_NO[1], R_NO[2]), (SL[0], SL[1], SL[2]), (out_x, SL[1] - 3, SL[2] - 5), (out_x, out_y, SL[2] - 5)], "brown", 1.3)
+wire("sensor_cable_4core", entry(0, [(-28, -14, 22), (-25, -15, 26), BRK]), "sensor", 2.0)
+wire("12V_to_relay_COM_red", [(SP12[0], SP12[1] - 5, SP12[2]), (-27, -6, 18), (-27.5, R_COM[1], R_COM[2]), R_COM], "red", 1.0)
+wire("12V_to_DinMeter_plus_orange_0.25", [(SP12[0], SP12[1] + 5, SP12[2]), (-23.5, -3, 27), (T_PLUS[0], -3, 27), (T_PLUS[0], -3, T_PLUS[2]), T_PLUS], "orange", 0.6)
+wire("GND_to_DinMeter_minus_blue_0.25", [(SPG[0], SPG[1] + 5, SPG[2]), (-23, -4, 20.5), (T_MINUS[0], -4, 20.5), (T_MINUS[0], -4, T_MINUS[2]), T_MINUS], "blue", 0.6)
+wire("sensor_SIG_yellow", [BRK, (24.5, -15, 26), (25.5, A_IN[1], A_IN[2]), A_IN], "yellow", 0.6)
+wire("sensor_GND_black", [BRK, (24, -16, 27), (26.5, A_GND[1], A_GND[2]), A_GND], "black", 0.6)
+wire("sensor_5V_red", [BRK, (-20, -5, 26), (-20, -5, SPS[2]), (SPS[0], SPS[1], SPS[2])], "red", 0.6)
+wire("grove_PORT_A_to_ADC", [(PA[0], DB - 8, PA[2]), (PA[0], -1.5, PA[2]), (-18.5, -3, 10), (-18.5, ay, az), (a_x0 - 6.5, ay, az)], "grove", 1.2)
+wire("grove_PORT_B_to_relay", [(PB[0], DB - 8, PB[2]), (PB[0], -6, PB[2]), (PB[0], -6, 25), (28.5, -6, 25), (28.5, ry, 25), (28.5, ry, rz), (r_x1 + 6.5, ry, rz)], "grove", 1.2)
 asm.add(sleeve(SP12, (0, 1, 0)), name="shrink_12V_splice", color=cq.Color(*C["shrink"]))
 asm.add(sleeve(SPG, (0, 1, 0)), name="shrink_GND_splice", color=cq.Color(*C["shrink"]))
-asm.add(sleeve(SPS, (0, 0, 1), 8, 1.9), name="shrink_sensor_5V_splice", color=cq.Color(*C["shrink"]))
-asm.add(sleeve((xl, BRK[1] - 3, BRK[2]), (0, 1, 0), 8, 2.6), name="shrink_sensor_breakout", color=cq.Color(*C["shrink"]))
+asm.add(sleeve(SPS, (0, 1, 0), 7, 1.9), name="shrink_sensor_5V_splice", color=cq.Color(*C["shrink"]))
+asm.add(sleeve((BRK[0] - 3, BRK[1], BRK[2]), (1, 0, 0), 8, 2.6), name="shrink_sensor_breakout", color=cq.Color(*C["shrink"]))
 
 asm.save("wrangler_air_box.step")
 asm.save("wrangler_air_box.glb", tolerance=0.25, angularTolerance=0.4)
