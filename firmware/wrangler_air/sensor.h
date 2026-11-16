@@ -28,16 +28,22 @@ class Sensor {
 
  private:
 #if BENCH_SIM
-  // Virtual 4-tyre system: while K1 is on, tyres rise and the sensor reads
-  // tyres + a flow offset that shrinks as they fill. Returns the voltage at G1.
+ public:
+  // Virtual 4-tyre system. Flow ramps up/down with the compressor (spin-up),
+  // falls as the tyres fill, and the sensor reads tyres + SIM_C * rise rate.
+  static inline float simP = SIM_START_BAR;  // real tyre pressure, bar (harness may set it)
+  static inline float simFlow = 0;           // 0..1 compressor flow
+ private:
   float simTyre() {
-    static float p = SIM_START_BAR;
     static uint32_t last = millis();
     const uint32_t now = millis();
     const float dt = (now - last) / 1000.0f; last = now;
     const bool on = digitalRead(PIN_K1) == HIGH;
-    if (on) p += SIM_RATE * dt;
-    const float reading = p + (on ? max(0.15f, SIM_OFFSET - 0.06f * p) : 0.0f);
+    simFlow += ((on ? 1.0f : 0.0f) - simFlow) * min(1.0f, dt / SIM_SPINUP_S);
+    const float rise = SIM_RATE * simFlow * max(0.0f, 1.0f - simP / SIM_PMAX);
+    simP += rise * dt;
+    const float noise = SIM_NOISE * ((float)random(-1000, 1000) / 1000.0f);
+    const float reading = simP + SIM_C * rise + noise;
     return (reading / SENSOR_FS * SENSOR_SPAN + SENSOR_V0) / DIVIDER;
   }
 #endif

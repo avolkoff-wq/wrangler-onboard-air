@@ -23,6 +23,8 @@ class Calibration {
   int    index() const { return i_; }
   float  entry() const { return entry_; }
   float  rawNow() const { return s_->rawBar(); }
+  uint32_t phaseMs() const { return millis() - t0_; }
+  static constexpr uint32_t SETTLE_TOTAL_MS = SETTLE_MS + 1000;
   void   turn(int steps) { if (state_ == CState::ENTER) entry_ = max(0.0f, entry_ + steps * 0.05f); }
 
   // button press: confirm current step
@@ -43,7 +45,7 @@ class Calibration {
       if (s_->rawBar() - DEFAULT_OFFSET >= points[i_] - 0.05f || s_->rawBar() > TARGET_MAX + 0.6f) {
         relay(false); state_ = CState::SETTLING; t0_ = now;
       }
-    } else if (state_ == CState::SETTLING && now - t0_ >= SETTLE_MS + 1000) {
+    } else if (state_ == CState::SETTLING && now - t0_ >= SETTLE_TOTAL_MS) {
       raw_[i_] = s_->rawBar();
       entry_ = roundf(raw_[i_] * 20) / 20.0f;   // start the dial at the raw value
       state_ = CState::ENTER;

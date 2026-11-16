@@ -63,3 +63,19 @@
 - Две копии программы (OTA-разделы) и откат при неудачном старте.
 - На время обновления G2 и G13 LOW.
 - Калибровка и поправки в отдельной области памяти, переживают обновление.
+
+## 0.2.0: fewer compressor starts
+
+- Flow offset while pumping: **AUTO** learns `offset = c × rise rate`; **MANUAL** uses a fixed value. Menu → OFFSET (AUTO or 0.05-1.50 bar).
+- Settle before a measurement: **AUTO** waits until the reading is steady (1-6 s); **MANUAL** uses a fixed time. Menu → SETTLE (AUTO or 1.0-10.0 s).
+- The stop margin adapts to how well earlier stops landed. Top-up time is learned separately.
+- Timers on screen: the whole run time and the number of starts at the top, a countdown on pauses (settle, measure, learning pulse, top-up), a stopwatch while pumping. Calibration shows a countdown on the pause and a stopwatch while pumping.
+- VERSION shows the learned values: off, c, rate, top, bias, dev, settle, starts.
+
+Simulation (4 tyres, target 2.3 bar, 3 rounds of 0.2 / 1.0 / 1.8 bar starts), compressor starts:
+
+| start | v0.1 | v0.2 round 1 | round 2 | round 3 |
+|---|---|---|---|---|
+| 0.2 bar | 3 → 2 → 2 | 3 | 2 | 1 |
+| 1.0 bar | 2 | 2 | 2 | 1 |
+| 1.8 bar | 2 | 2 | 1 | 1 |
