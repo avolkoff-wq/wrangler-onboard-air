@@ -203,9 +203,15 @@ void drawCal() {
       canvas.setTextColor(TFT_GREEN);
       canvas.drawString("CALIBRATION SAVED", 120, 20);
       canvas.setTextColor(TFT_WHITE);
-      canvas.drawString("scale x" + String(settings.calA, 3), 120, 50);
-      canvas.drawString("zero " + String(settings.calB, 2) + " bar", 120, 76);
-      canvas.drawString("fit error " + String(cal.fitErr(), 2) + " bar", 120, 102); break;
+      { // plain words: how wrong the sensor was, and how good the result is
+        const float pct = (settings.calA - 1.0f) * 100.0f;   // a > 1: sensor read low
+        const float z = -settings.calB;                       // b < 0: sensor read high at zero
+        canvas.drawString(fabsf(pct) < 0.2f ? "Sensor slope: exact"
+                          : "Sensor reads " + String(fabsf(pct), 1) + "% " + (pct > 0 ? "low" : "high"), 120, 50);
+        canvas.drawString(fabsf(z) < 0.01f ? "Zero: exact"
+                          : "Zero: " + String(fabsf(z), 2) + " bar " + (z > 0 ? "high" : "low"), 120, 76);
+        canvas.drawString("Accuracy +/-" + String(cal.fitErr(), 2) + " bar", 120, 102);
+      } break;
     case CState::FAILED:
       canvas.setTextColor(TFT_RED);
       canvas.drawString("CALIBRATION FAILED", 120, 55);

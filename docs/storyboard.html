@@ -107,13 +107,12 @@ h2{font:700 26px/1.1 var(--display);margin:36px 0 4px;text-wrap:balance}
       <div class="do"><b>Последнее значение с манометра, нажимаешь.</b></div></div>
 
     <div class="frame"><div class="head"><span class="step">C9 · Сохранено</span></div>
-      <div class="dev"><div class="scr"><div class="mid c-green"><span>CALIBRATION SAVED</span><span style="color:#fff">scale x1.012</span><span style="color:#fff">zero -0.02 bar</span><span style="color:#fff">fit error 0.02 bar</span></div></div><div class="knob press"></div></div>
+      <div class="dev"><div class="scr"><div class="mid c-green"><span>CALIBRATION SAVED</span><span style="color:#fff">Sensor reads 1.2% low</span><span style="color:#fff">Zero: 0.02 bar high</span><span style="color:#fff">Accuracy +/-0.02 bar</span></div></div><div class="knob press"></div></div>
       <div class="do"><b>Нажимаешь, возврат на главный экран.</b></div>
-      <div class="why">Программа проводит прямую через 4 точки: <b>давление = scale × датчик + zero</b>.<br>
-<b>scale</b> (раньше «a»): наклон. 1.012 значит, что датчик занижает на 1.2%: при 2.00 по датчику реально 2.02.<br>
-<b>zero</b> (раньше «b»): сдвиг нуля. −0.02 значит, что датчик показывает на 0.02 bar больше, чем есть.<br>
-<b>fit error</b>: насколько самая кривая из 4 точек ушла от прямой. До 0.05 хорошо; больше значит, что одно значение введено неточно, лучше повторить.<br>
-Если scale вне 0.7-1.3 или zero больше ±0.5 bar, будет CALIBRATION FAILED и останется старая калибровка.</div></div>
+      <div class="why"><b>Sensor reads 1.2% low</b>: датчик занижает на 1.2%, программа теперь это учитывает.<br>
+<b>Zero: 0.02 bar high</b>: при открытом шланге датчик показывал 0.02 bar вместо нуля.<br>
+<b>Accuracy +/-0.02 bar</b>: насколько итог расходится с манометром в худшей из 4 точек. До 0.05 хорошо, больше значит, что одно значение введено неточно: калибровку лучше повторить.<br>
+Если датчик врёт больше чем на 30% или больше чем на 0.5 bar в нуле, будет CALIBRATION FAILED и останется старая калибровка.</div></div>
   </div>
   <p class="note">После калибровки в колёсах около 3 bar: страви до рабочего давления спускным клапаном. Поправка на ходу при калибровке не трогается, её программа выучит на первой настоящей подкачке.</p>
 
