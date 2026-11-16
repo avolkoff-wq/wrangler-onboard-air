@@ -39,21 +39,13 @@ cover=cover-slot(P+4).translate((0,0,-1))   # main slot, cable goes into the tun
 # strain relief inside the cover: one cable-tie anchor beside the Grove slot.
 # The harness comes in through the slot, lies on an anchor and is tied to it with a 2.5 mm cable tie,
 # so a pull on the harness goes into the cover, not into the Grove plug. Leave a small slack loop to PORT.B.
-import os
-ANCHOR = os.environ.get('ANCHOR', 'tunnel')   # 'tunnel' (closed window) or 'arch' (open bridge)
 for sy in (1,):
-    if ANCHOR == 'arch':
-        # open bridge: bar 10 x 6 x 2 on two posts; the tie slides in from the side under the bar (opening 6 x 3)
-        bar  = Manifold.cube((10,6,2),center=True).translate((0,sy*9.0,P+4))
-        post = [Manifold.cube((2,6,3),center=True).translate((x,sy*9.0,P+1.5)) for x in (-4,4)]
-        cover = cover + bar + post[0] + post[1]
-    else:
-        blk = Manifold.cube((10,6,5),center=True).translate((0,sy*9.0,P+2.5))
-        tun = Manifold.cube((12,3.4,1.8),center=True).translate((0,sy*9.0,P+2.2))   # tunnel for the tie, along x
-        cover = cover + (blk - tun)
+    blk = Manifold.cube((10,6,5),center=True).translate((0,sy*9.0,P+2.5))
+    tun = Manifold.cube((12,3.4,1.8),center=True).translate((0,sy*9.0,P+2.2))   # tunnel for the tie, along x
+    cover = cover + (blk - tun)
 def save(m,n):
   me=m.to_mesh(); tm=trimesh.Trimesh(me.vert_properties[:,:3],me.tri_verts); tm.export(n); return tm
-b=save(body,'dinmeter_body.stl'); c=save(cover,'dinmeter_back.stl' if ANCHOR=='tunnel' else 'dinmeter_back_arch.stl')
+b=save(body,'dinmeter_body.stl'); c=save(cover,'dinmeter_back.stl')
 print('body',b.bounds.tolist(),b.is_watertight,round(b.volume/1000,1),'cm3')
 print('cover',c.bounds.tolist(),c.is_watertight,round(c.volume/1000,1),'cm3')
 # preview scene
