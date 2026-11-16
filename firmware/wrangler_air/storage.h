@@ -6,6 +6,7 @@
 struct Settings {
   float target  = 2.2f;           // bar
   bool  psi     = false;          // display units
+  uint8_t rot   = 1;              // screen rotation: 1 wide (knob right), 0 portrait, 3 / 2 the same turned 180
 
   // flow offset: dynamic sensor reading minus real tyre pressure
   bool  offAuto   = true;         // true: learned; false: offManual
@@ -29,6 +30,7 @@ struct Settings {
     Preferences p; p.begin("air", true);
     target       = p.getFloat("target", target);
     psi          = p.getBool ("psi", psi);
+    rot          = p.getUChar("rot", rot) & 3;
     offAuto      = p.getBool ("offAuto", offAuto);
     offManual    = p.getFloat("offMan", offManual);
     offset       = p.getFloat("offset", offset);
@@ -51,6 +53,7 @@ struct Settings {
     Preferences p; p.begin("air", false);
     p.putFloat("target", target);
     p.putBool ("psi", psi);
+    p.putUChar("rot", rot);
     p.putBool ("offAuto", offAuto);
     p.putFloat("offMan", offManual);
     p.putFloat("offset", offset);

@@ -4,7 +4,8 @@
 // Controls
 //   turn            set target (0.1 bar steps, max 3.0 bar)
 //   press           start / stop
-//   long press      menu: CALIBRATE, UNITS, OFFSET, SETTLE, RESET LEARNING, UPDATE, VERSION, EXIT
+//   long press      menu: CALIBRATE, UNITS, OFFSET, SETTLE, SCREEN, RESET LEARNING, UPDATE, VERSION, EXIT
+//   SCREEN: press to turn the picture 90 degrees (WIDE, PORTRAIT, WIDE 180, PORTRAIT 180)
 //   OFFSET / SETTLE: press to edit, turn: AUTO or a fixed value, press to save
 //
 // Libraries: M5Unified (Arduino Library Manager). Board: M5Stack StampS3 / "M5DinMeter".
@@ -29,8 +30,8 @@ M5Canvas canvas(&M5.Display);
 enum class Screen { MAIN, MENU, EDIT, CAL, OTA, VERSION };
 Screen screen = Screen::MAIN;
 int menuPos = 0;
-enum MenuItem { M_CAL, M_UNITS, M_OFFSET, M_SETTLE, M_RESET, M_UPDATE, M_VERSION, M_EXIT };
-const char* MENU[] = {"CALIBRATE", "UNITS", "OFFSET", "SETTLE", "RESET LEARNING", "UPDATE", "VERSION", "EXIT"};
+enum MenuItem { M_CAL, M_UNITS, M_OFFSET, M_SETTLE, M_SCREEN, M_RESET, M_UPDATE, M_VERSION, M_EXIT };
+const char* MENU[] = {"CALIBRATE", "UNITS", "OFFSET", "SETTLE", "SCREEN", "RESET LEARNING", "UPDATE", "VERSION", "EXIT"};
 constexpr int MENU_N = sizeof(MENU) / sizeof(MENU[0]);
 
 // ---------- helpers ----------
@@ -65,49 +66,85 @@ void beep(int n = 1) {
 }
 
 // ---------- drawing ----------
+// Every screen is a column of centred lines laid out for the current canvas size,
+// so the same code works in landscape (240x135) and portrait (135x240).
+using Font = const lgfx::IFont*;
+const Font F_SMALL = &fonts::FreeSans9pt7b;
+const Font F_TEXT  = &fonts::FreeSansBold9pt7b;
+const Font F_MID   = &fonts::FreeSansBold12pt7b;
+const Font F_LARGE = &fonts::FreeSansBold18pt7b;
+const Font F_DIGIT = &fonts::Font7;           // 7-segment digits, 48 px high
+
+struct Ln { String t; Font f; uint16_t c; Font alt = nullptr; };   // alt: smaller font if t does not fit
+int W() { return canvas.width(); }
+int H() { return canvas.height(); }
+bool portrait() { return H() > W(); }
+
+// split into lines no wider than maxW (words are kept whole)
+int wrapText(const String& t, int maxW, String* out, int maxOut) {
+  int n = 0; String cur;
+  int i = 0;
+  while (i <= (int)t.length() && n < maxOut) {
+    int j = t.indexOf(' ', i); if (j < 0) j = t.length();
+    String w = t.substring(i, j);
+    String cand = cur.length() ? cur + " " + w : w;
+    if (cur.length() && canvas.textWidth(cand) > maxW) { out[n++] = cur; cur = w; }
+    else cur = cand;
+    i = j + 1;
+  }
+  if (cur.length() && n < maxOut) out[n++] = cur;
+  return n;
+}
+
+// draws the lines spread evenly between top and bottom
+void drawLines(std::initializer_list<Ln> ls, int top = 0, int bottom = -1) {
+  if (bottom < 0) bottom = H();
+  const int maxW = W() - 8;
+  struct Row { String t; Font f; uint16_t c; int h; } rows[16]; int n = 0;
+  for (const Ln& l : ls) {
+    Font f = l.f; canvas.setFont(f);
+    if (l.alt && canvas.textWidth(l.t) > maxW) { f = l.alt; canvas.setFont(f); }
+    String parts[4]; const int k = (f == F_DIGIT) ? (parts[0] = l.t, 1) : wrapText(l.t, maxW, parts, 4);
+    for (int q = 0; q < k && n < 16; q++) rows[n++] = { parts[q], f, l.c, canvas.fontHeight() };
+  }
+  int total = 0; for (int q = 0; q < n; q++) total += rows[q].h;
+  const float gap = max(2.0f, (float)(bottom - top - total) / (n + 1));
+  float y = top + gap;
+  canvas.setTextDatum(top_center);
+  for (int q = 0; q < n; q++) {
+    canvas.setFont(rows[q].f); canvas.setTextColor(rows[q].c);
+    canvas.drawString(rows[q].t, W() / 2, (int)y);
+    y += rows[q].h + gap;
+  }
+}
+
+// small grey line at the very top: total time (and starts)
+int drawTopBar(const String& t) {
+  canvas.setFont(F_SMALL); canvas.setTextColor(TFT_LIGHTGREY); canvas.setTextDatum(top_left);
+  String parts[2]; const int k = wrapText(t, W() - 22, parts, 2);
+  for (int q = 0; q < k; q++) canvas.drawString(parts[q], 4, 2 + q * canvas.fontHeight());
+  return 4 + k * canvas.fontHeight();
+}
+
 void drawMain() {
   canvas.fillSprite(TFT_BLACK);
   const PState st = pump.state();
   const bool est = pump.estimating();
   const float shown = (st == PState::IDLE) ? sensor.bar(settings.calA, settings.calB)
                                            : (est ? pump.estimate() : pump.staticBar());
-  canvas.setTextDatum(middle_center);
-  canvas.setFont(&fonts::Font7);
-  canvas.setTextSize(1);
-  if (pump.paused() && !sensor.fault()) {
-    // pause: big countdown to the end of the measurement
-    canvas.setTextColor(TFT_CYAN);
-    canvas.drawString(String(pump.pauseLeftMs() / 1000.0f, 1), 120, 52);
-    canvas.setFont(&fonts::FreeSansBold9pt7b);
-    canvas.setTextColor(TFT_LIGHTGREY);
-    canvas.drawString("s", 120, 92);
-  } else {
-    canvas.setTextColor(sensor.fault() ? TFT_RED : TFT_GREENYELLOW);
-    canvas.drawString(sensor.fault() ? "--.-" : fmt(max(0.0f, shown)), 120, 52);
-    canvas.setFont(&fonts::FreeSansBold9pt7b);
-    canvas.setTextColor(TFT_LIGHTGREY);
-    canvas.drawString(String(est ? "~ " : "") + unitName(), 120, 92);
-  }
+  const int top = (st != PState::IDLE) ? drawTopBar(mmss(pump.runMs()) + "  starts " + String(pump.starts())) : 0;
 
-  // top line: whole run time and compressor starts
-  canvas.setFont(&fonts::FreeSans9pt7b);
-  canvas.setTextDatum(top_left);
-  canvas.setTextColor(TFT_LIGHTGREY);
-  if (st != PState::IDLE) canvas.drawString(mmss(pump.runMs()) + "  starts " + String(pump.starts()), 4, 2);
-  canvas.setFont(&fonts::FreeSansBold9pt7b);
-  canvas.setTextDatum(middle_center);
-
-  const String tm = "  " + phaseTimer(pump.phaseMs(), pump.phaseLenMs());
+  const String tm = phaseTimer(pump.phaseMs(), pump.phaseLenMs());
   String line; uint16_t col = TFT_WHITE;
   switch (st) {
     case PState::IDLE:      line = "SET " + fmt(settings.target) + "  press: start"; break;
     case PState::SETTLE:    line = "SETTLING -> " + fmt(settings.target); col = TFT_CYAN; break;
     case PState::MEASURE:   line = "MEASURING -> " + fmt(settings.target); col = TFT_CYAN; break;
-    case PState::CAL_PULSE: line = "LEARNING" + tm; col = TFT_ORANGE; break;
-    case PState::MAIN:      line = "PUMP -> " + fmt(settings.target) + tm; col = TFT_ORANGE; break;
-    case PState::TOPUP:     line = "TOP-UP" + tm; col = TFT_ORANGE; break;
+    case PState::CAL_PULSE: line = "LEARNING " + tm; col = TFT_ORANGE; break;
+    case PState::MAIN:      line = "PUMP -> " + fmt(settings.target) + "  " + tm; col = TFT_ORANGE; break;
+    case PState::TOPUP:     line = "TOP-UP " + tm; col = TFT_ORANGE; break;
     case PState::DONE:      line = "DONE " + fmt(pump.staticBar()) + "  " + mmss(pump.runMs()); col = TFT_GREEN; break;
-    case PState::ERROR: {
+    case PState::ERROR:
       col = TFT_RED;
       switch (pump.error()) {
         case PErr::SENSOR:  line = "ERR SENSOR"; break;
@@ -116,106 +153,85 @@ void drawMain() {
         case PErr::TIMEOUT: line = "ERR TIMEOUT"; break;
         default:            line = "ERR"; break;
       }
-    } break;
+      break;
   }
-  canvas.setTextColor(col);
-  canvas.drawString(line, 120, 118);
-  if (pump.compressorOn()) canvas.fillCircle(228, 10, 6, TFT_ORANGE);
+  if (pump.paused() && !sensor.fault())      // pause: big countdown to the end of the measurement
+    drawLines({ {String(pump.pauseLeftMs() / 1000.0f, 1), F_DIGIT, TFT_CYAN}, {"s", F_TEXT, TFT_LIGHTGREY}, {line, F_TEXT, col} }, top);
+  else
+    drawLines({ {sensor.fault() ? "--.-" : fmt(max(0.0f, shown)), F_DIGIT, sensor.fault() ? TFT_RED : TFT_GREENYELLOW},
+                {String(est ? "~ " : "") + unitName(), F_TEXT, TFT_LIGHTGREY}, {line, F_TEXT, col} }, top);
+  if (pump.compressorOn()) canvas.fillCircle(W() - 10, 10, 6, TFT_ORANGE);
   canvas.pushSprite(0, 0);
+}
+
+String rotName() {
+  switch (settings.rot) { case 0: return "PORTRAIT"; case 2: return "PORTRAIT 180"; case 3: return "WIDE 180"; default: return "WIDE"; }
 }
 
 void drawMenu() {
   canvas.fillSprite(TFT_BLACK);
-  canvas.setFont(&fonts::FreeSansBold9pt7b);
+  const Font f = portrait() ? F_SMALL : F_TEXT;
+  canvas.setFont(f);
   canvas.setTextDatum(middle_left);
-  const int first = constrain(menuPos - 2, 0, max(0, MENU_N - 5));
-  for (int k = 0; k < 5 && first + k < MENU_N; k++) {
+  const int rowH = 26, vis = max(1, (H() - 4) / rowH);
+  const int first = constrain(menuPos - vis / 2, 0, max(0, MENU_N - vis));
+  for (int k = 0; k < vis && first + k < MENU_N; k++) {
     const int i = first + k;
-    const int y = 14 + k * 26;
-    if (i == menuPos) canvas.fillRoundRect(4, y - 11, 232, 22, 4, TFT_DARKGREEN);
+    const int y = 2 + rowH / 2 + k * rowH;
+    if (i == menuPos) canvas.fillRoundRect(3, y - 11, W() - 6, 22, 4, TFT_DARKGREEN);
     canvas.setTextColor(TFT_WHITE);
     String t = MENU[i];
     if (i == M_UNITS)  t += String(": ") + unitName();
     if (i == M_OFFSET) t += ": " + offText(offIdx());
     if (i == M_SETTLE) t += ": " + setText(setIdx());
-    canvas.drawString(t, 12, y);
+    if (i == M_SCREEN) t += ": " + rotName();
+    if (i == M_RESET && portrait()) t = "RESET LEARN";
+    canvas.drawString(t, 8, y);
   }
   canvas.pushSprite(0, 0);
 }
 
 void drawEdit() {
   canvas.fillSprite(TFT_BLACK);
-  canvas.setFont(&fonts::FreeSansBold9pt7b);
-  canvas.setTextDatum(middle_center);
-  canvas.setTextColor(TFT_CYAN);
   const bool off = editItem == M_OFFSET;
-  canvas.drawString(off ? "OFFSET WHILE PUMPING" : "SETTLE BEFORE MEASURE", 120, 14);
-  canvas.setFont(&fonts::FreeSansBold18pt7b);
-  canvas.setTextColor(TFT_GREENYELLOW);
-  canvas.drawString(off ? offText(editIdx) : setText(editIdx), 120, 58);
-  canvas.setFont(&fonts::FreeSans9pt7b);
-  canvas.setTextColor(TFT_LIGHTGREY);
   String hint;
   if (off) hint = "learned now: " + (settings.c > 0 ? "c " + String(settings.c, 1) + " s" : String(settings.offset, 2) + " bar");
   else     hint = "last auto: " + String(settings.settleLearn, 1) + " s";
-  canvas.drawString(hint, 120, 96);
-  canvas.drawString("turn: change  press: save", 120, 120);
+  drawLines({ {off ? "OFFSET WHILE PUMPING" : "SETTLE BEFORE MEASURE", F_TEXT, TFT_CYAN},
+              {off ? offText(editIdx) : setText(editIdx), F_LARGE, TFT_GREENYELLOW, F_MID},
+              {hint, F_SMALL, TFT_LIGHTGREY}, {"turn: change  press: save", F_SMALL, TFT_LIGHTGREY} });
   canvas.pushSprite(0, 0);
 }
 
 void drawCal() {
   canvas.fillSprite(TFT_BLACK);
-  canvas.setFont(&fonts::FreeSansBold9pt7b);
-  canvas.setTextDatum(middle_center);
-  canvas.setTextColor(TFT_WHITE);
   const int i = cal.index();
-  if (cal.state() != CState::DONE && cal.state() != CState::FAILED) {
-    canvas.setFont(&fonts::FreeSans9pt7b);
-    canvas.setTextDatum(top_left);
-    canvas.setTextColor(TFT_LIGHTGREY);
-    canvas.drawString(mmss(cal.totalMs()), 4, 2);
-    canvas.setFont(&fonts::FreeSansBold9pt7b);
-    canvas.setTextDatum(middle_center);
-    canvas.setTextColor(TFT_WHITE);
-  }
+  int top = 0;
+  if (cal.state() != CState::DONE && cal.state() != CState::FAILED) top = drawTopBar(mmss(cal.totalMs()));
+  const String n = "CAL " + String(i + 1) + "/4";
   switch (cal.state()) {
     case CState::ZERO_WAIT:
-      canvas.drawString("CAL 1/4: hose open to air", 120, 40);
-      canvas.drawString("press when ready", 120, 80); break;
+      drawLines({ {"CAL 1/4", F_TEXT, TFT_WHITE}, {"hose open to air", F_TEXT, TFT_WHITE}, {"press when ready", F_SMALL, TFT_LIGHTGREY} }, top); break;
     case CState::PUMPING:
-      canvas.drawString("CAL " + String(i + 1) + "/4: pumping to ~" + String(cal.points[i], 0), 120, 40);
-      canvas.setTextColor(TFT_ORANGE);
-      canvas.drawString(mmss(cal.phaseMs()), 120, 66);
-      canvas.setTextColor(TFT_WHITE);
-      canvas.drawString("press: abort", 120, 90); break;
-    case CState::SETTLING:
-      canvas.drawString("CAL " + String(i + 1) + "/4: settling", 120, 36);
-      canvas.setFont(&fonts::Font7);
-      canvas.setTextColor(TFT_CYAN);
-      { const uint32_t e = cal.phaseMs(), L = Calibration::SETTLE_TOTAL_MS;
-        canvas.drawString(String((e >= L ? 0 : L - e) / 1000.0f, 1), 120, 86); } break;
+      drawLines({ {n + ": pumping to ~" + String(cal.points[i], 0), F_TEXT, TFT_WHITE},
+                  {mmss(cal.phaseMs()), F_LARGE, TFT_ORANGE, F_MID}, {"press: abort", F_SMALL, TFT_LIGHTGREY} }, top); break;
+    case CState::SETTLING: {
+      const uint32_t e = cal.phaseMs(), L = Calibration::SETTLE_TOTAL_MS;
+      drawLines({ {n + ": settling", F_TEXT, TFT_WHITE}, {String((e >= L ? 0 : L - e) / 1000.0f, 1), F_DIGIT, TFT_CYAN} }, top);
+    } break;
     case CState::ENTER:
-      canvas.drawString("Gauge shows? turn + press", 120, 25);
-      canvas.setFont(&fonts::Font7);
-      canvas.setTextColor(TFT_GREENYELLOW);
-      canvas.drawString(String(cal.entry(), 2), 120, 80); break;
-    case CState::DONE:
-      canvas.setTextColor(TFT_GREEN);
-      canvas.drawString("CALIBRATION SAVED", 120, 20);
-      canvas.setTextColor(TFT_WHITE);
-      { // plain words: how wrong the sensor was, and how good the result is
-        const float pct = (settings.calA - 1.0f) * 100.0f;   // a > 1: sensor read low
-        const float z = -settings.calB;                       // b < 0: sensor read high at zero
-        canvas.drawString(fabsf(pct) < 0.2f ? "Sensor slope: exact"
-                          : "Sensor reads " + String(fabsf(pct), 1) + "% " + (pct > 0 ? "low" : "high"), 120, 50);
-        canvas.drawString(fabsf(z) < 0.01f ? "Zero: exact"
-                          : "Zero: " + String(fabsf(z), 2) + " bar " + (z > 0 ? "high" : "low"), 120, 76);
-        canvas.drawString("Accuracy +/-" + String(cal.fitErr(), 2) + " bar", 120, 102);
-      } break;
+      drawLines({ {"Gauge shows?", F_TEXT, TFT_WHITE}, {String(cal.entry(), 2), F_DIGIT, TFT_GREENYELLOW},
+                  {"turn + press", F_SMALL, TFT_LIGHTGREY} }, top); break;
+    case CState::DONE: {   // plain words: how wrong the sensor was, and how good the result is
+      const float pct = (settings.calA - 1.0f) * 100.0f;   // a > 1: sensor read low
+      const float z = -settings.calB;                       // b < 0: sensor read high at zero
+      drawLines({ {"CALIBRATION SAVED", F_TEXT, TFT_GREEN},
+                  {fabsf(pct) < 0.2f ? "Sensor slope: exact" : "Sensor reads " + String(fabsf(pct), 1) + "% " + (pct > 0 ? "low" : "high"), F_TEXT, TFT_WHITE},
+                  {fabsf(z) < 0.01f ? "Zero: exact" : "Zero: " + String(fabsf(z), 2) + " bar " + (z > 0 ? "high" : "low"), F_TEXT, TFT_WHITE},
+                  {"Accuracy +/-" + String(cal.fitErr(), 2) + " bar", F_TEXT, TFT_WHITE} });
+    } break;
     case CState::FAILED:
-      canvas.setTextColor(TFT_RED);
-      canvas.drawString("CALIBRATION FAILED", 120, 55);
-      canvas.drawString("press: back", 120, 90); break;
+      drawLines({ {"CALIBRATION FAILED", F_TEXT, TFT_RED}, {"old calibration kept", F_SMALL, TFT_LIGHTGREY}, {"press: back", F_SMALL, TFT_LIGHTGREY} }); break;
     default: break;
   }
   canvas.pushSprite(0, 0);
@@ -223,33 +239,27 @@ void drawCal() {
 
 void drawOta() {
   canvas.fillSprite(TFT_BLACK);
-  canvas.setFont(&fonts::FreeSansBold9pt7b);
-  canvas.setTextDatum(middle_center);
-  canvas.setTextColor(TFT_CYAN);
-  canvas.drawString("UPDATE MODE", 120, 14);
-  canvas.setTextColor(TFT_WHITE);
-  canvas.drawString("WiFi " OTA_SSID, 120, 44);
-  canvas.drawString("pass " OTA_PASS, 120, 68);
-  canvas.drawString("http://192.168.4.1", 120, 92);
-  canvas.setTextColor(TFT_LIGHTGREY);
-  canvas.drawString(ota.progress() ? String(ota.progress() / 1024) + " kB received" : "long press: exit", 120, 120);
+  drawLines({ {"UPDATE MODE", F_TEXT, TFT_CYAN}, {"WiFi " OTA_SSID, F_TEXT, TFT_WHITE}, {"pass " OTA_PASS, F_TEXT, TFT_WHITE},
+              {"192.168.4.1", F_TEXT, TFT_WHITE},
+              {ota.progress() ? String(ota.progress() / 1024) + " kB received" : "long press: exit", F_SMALL, TFT_LIGHTGREY} });
   canvas.pushSprite(0, 0);
 }
 
 void drawVersion() {
   canvas.fillSprite(TFT_BLACK);
-  canvas.setFont(&fonts::FreeSansBold9pt7b);
-  canvas.setTextDatum(middle_center);
-  canvas.setTextColor(TFT_WHITE);
-  canvas.drawString("Wrangler Air " FW_VERSION, 120, 12);
-  canvas.setFont(&fonts::FreeSans9pt7b);
-  canvas.setTextColor(TFT_LIGHTGREY);
-  canvas.drawString("off " + String(settings.offset, 2) + "  c " + String(settings.c, 1) + (settings.offAuto ? "  AUTO" : "  MAN"), 120, 38);
-  canvas.drawString("rate " + String(settings.rate, 3) + "  top " + String(settings.kTop, 3), 120, 60);
-  canvas.drawString("bias " + String(settings.bias, 2) + "  dev " + String(settings.dev, 2), 120, 82);
-  canvas.drawString("settle " + String(settings.settleLearn, 1) + "s  starts " + String(pump.starts()), 120, 104);
-  canvas.drawString(settings.learned ? "learned" : "not learned yet", 120, 124);
+  drawLines({ {"Wrangler Air " FW_VERSION, F_TEXT, TFT_WHITE},
+              {"off " + String(settings.offset, 2) + "  c " + String(settings.c, 1) + (settings.offAuto ? " AUTO" : " MAN"), F_SMALL, TFT_LIGHTGREY},
+              {"rate " + String(settings.rate, 3) + "  top " + String(settings.kTop, 3), F_SMALL, TFT_LIGHTGREY},
+              {"bias " + String(settings.bias, 2) + "  dev " + String(settings.dev, 2), F_SMALL, TFT_LIGHTGREY},
+              {"settle " + String(settings.settleLearn, 1) + "s  starts " + String(pump.starts()), F_SMALL, TFT_LIGHTGREY},
+              {settings.learned ? "learned" : "not learned yet", F_SMALL, TFT_LIGHTGREY} });
   canvas.pushSprite(0, 0);
+}
+
+void applyRotation() {
+  M5.Display.setRotation(settings.rot);
+  canvas.deleteSprite();
+  canvas.createSprite(M5.Display.width(), M5.Display.height());
 }
 
 // ---------- setup / loop ----------
@@ -261,11 +271,9 @@ void setup() {
 
   auto cfg = M5.config();
   M5.begin(cfg);
-  M5.Display.setRotation(1);
   M5.Display.setBrightness(160);
-  canvas.createSprite(M5.Display.width(), M5.Display.height());
-
   settings.load();
+  applyRotation();     // WIDE / PORTRAIT, chosen in the menu
   sensor.begin();
   pump.begin(&sensor, &settings);
   cal.begin(&sensor, &settings);
@@ -317,6 +325,7 @@ void loop() {
           case M_UNITS:   settings.psi = !settings.psi; settings.save(); break;
           case M_OFFSET:  editItem = M_OFFSET; editIdx = offIdx(); screen = Screen::EDIT; break;
           case M_SETTLE:  editItem = M_SETTLE; editIdx = setIdx(); screen = Screen::EDIT; break;
+          case M_SCREEN:  settings.rot = (settings.rot + 1) % 4; settings.save(); applyRotation(); break;
           case M_RESET:   settings.resetLearning(); beep(); break;
           case M_UPDATE:  ota.start(); screen = Screen::OTA; break;
           case M_VERSION: screen = Screen::VERSION; break;

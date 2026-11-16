@@ -72,6 +72,7 @@
 - Timers on screen (tenths of a second): the whole run time and the number of starts at the top, a countdown on pauses (settle, measure, learning pulse, top-up), a stopwatch while pumping. Calibration shows a countdown on the pause and a stopwatch while pumping.
 - Calibration result reads "Sensor reads 1.2% low / Zero: 0.02 bar high / Accuracy +/-0.02 bar" instead of a= b=.
 - VERSION shows the learned values: off, c, rate, top, bias, dev, settle, starts.
+- Menu → SCREEN turns the picture 90 degrees: WIDE, PORTRAIT, WIDE 180, PORTRAIT 180. All screens lay themselves out for the chosen orientation.
 
 Simulation (4 tyres, target 2.3 bar, 3 rounds of 0.2 / 1.0 / 1.8 bar starts), compressor starts:
 
