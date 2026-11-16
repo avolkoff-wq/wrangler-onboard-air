@@ -17,11 +17,12 @@ for sx in(-1,1):
     boss=cyl(3.4,12).translate((sx*bx,sy*by,D-12))
     pilot=cyl(1.25,11).translate((sx*bx,sy*by,D-11+0.01))
     body=(body+boss)-pilot
-# connector slot: only the Grove plug (HY2.0-4P, about 10 x 5) passes through, plus the thin power wires beside it.
+# connector slot: only the Grove plug passes through (HY2.0-4P housing 9.9 x 4.6 mm, +0.4 mm print clearance per side).
+# After the plug is through, the Grove cable and the two thin power wires lie in the slot together.
 # The green power terminal is a screw plug: its wires are clamped inside the pod, it never goes through.
-SW,SH=12.5,7.0
-def slot(depth): return rr(SW,SH,2).extrude(depth)
-# spare slot in the bottom wall near the back (12.5 along the width, 7 along the depth)
+SW,SH=10.7,5.4
+def slot(depth): return rr(SW,SH,1.2).extrude(depth)
+# spare slot in the bottom wall near the back (10.7 along the width, 5.4 along the depth)
 body=body-slot(T+4).rotate((90,0,0)).translate((0,-H/2+T+2,D-11))
 # BACK COVER: plate + locating lip + side ears with mounting holes
 P=3
@@ -33,7 +34,7 @@ for sx in(-1,1):
     cover=cover-cyl(1.7,P+3).translate((sx*bx,sy*by,-1))-cyl(3.2,1.6).translate((sx*bx,sy*by,-0.01))
     # lip relief around bosses
     cover=cover-cyl(4.0,3).translate((sx*bx,sy*by,P))
-# cable exit straight through the cover into the tunnel trim (cut a 12.5 x 7 slot in the trim at the same spot)
+# cable exit straight through the cover into the tunnel trim (cut a 10.7 x 5.4 slot in the trim at the same spot)
 cover=cover-slot(P+4).translate((0,0,-1))   # main slot, cable goes into the tunnel trim
 def save(m,n):
   me=m.to_mesh(); tm=trimesh.Trimesh(me.vert_properties[:,:3],me.tri_verts); tm.export(n); return tm

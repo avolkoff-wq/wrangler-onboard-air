@@ -16,8 +16,8 @@ ax.add_patch(Rectangle((F,-H/2+T),D-F,H-2*T,fc='white',ec='#888',lw=.8,ls='--'))
 for y in (H/2-T-3,-(H/2-T-3)):
     ax.add_patch(Rectangle((D-12,y-3.4),12,6.8,fc='#d5d5d5',ec='#888',lw=.8,ls='--'))
 # cable hole in bottom wall
-ax.add_patch(Rectangle((D-11-3.5,-H/2-0.4),7,T+0.8,fc='white',ec=k,lw=1.2))
-ax.text(D-11,-H/2-4,'Grove slot 12.5 × 7',ha='center',fontsize=9)
+ax.add_patch(Rectangle((D-11-2.7,-H/2-0.4),5.4,T+0.8,fc='white',ec=k,lw=1.2))
+ax.text(D-11,-H/2-4,'Grove slot 10.7 × 5.4',ha='center',fontsize=9)
 # back cover + lip
 ax.add_patch(Rectangle((D+0.5,-H/2),P,H,fc='#cfd8e3',ec=k,lw=1.4))
 ax.add_patch(Rectangle((D-1.5,-H/2+T+0.3),2,H-2*T-0.6,fc='#cfd8e3',ec='#555',lw=.8,ls='--'))
@@ -27,7 +27,7 @@ ax.add_patch(Rectangle((0,-11.25),27,22.5,fc='#ffd2bd',ec='#c0602a',lw=1,ls='--'
 ax.text(-2.5,0,'DinMeter\nfront',rotation=90,ha='center',va='center',fontsize=9)
 ax.text(14,0,'DinMeter body\n(behind front plate)',ha='center',va='center',fontsize=9,color='#8a3c12')
 ax.text(D/2+5,H/2-6,'pod body',fontsize=10,ha='center')
-ax.text(D+2,H/2+3,'back cover: flat, VHB tape\nto the tunnel side wall,\nGrove slot 12.5 × 7 in the centre\n(Grove plug passes through)',fontsize=9)
+ax.text(D+2,H/2+3,'back cover: flat, VHB tape\nto the tunnel side wall,\nGrove slot 10.7 × 5.4 in the centre\n(Grove plug passes through)',fontsize=9)
 # dimensions
 dim(0,-H/2-9,D,-H/2-9,'45')
 dim(D+0.5,-H/2-15,D+P+0.5,-H/2-15,'3',off=(4,0))
