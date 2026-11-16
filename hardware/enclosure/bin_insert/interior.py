@@ -32,12 +32,14 @@ ax.add_patch(FancyBboxPatch((56,41),26,5,boxstyle='round,pad=0,rounding_size=1',
 for i in range(8): ax.add_patch(Rectangle((57.5+i*3.1,42.2),2.2,2.6,fc='#1a1d21',ec='#666',lw=.6))
 ax.text(69,39.2,'window / drive switches',ha='center',fontsize=7.5,color='#bbb')
 # lower stack: left bin with DinMeter, centre USB/12V, right AUX bank
-ax.add_patch(FancyBboxPatch((55,26),12,9,boxstyle='round,pad=0,rounding_size=1',fc='#14171a',ec='#777'))   # bin opening
-ax.add_patch(Rectangle((55.6,26.6),10.8,7.8,fc='#3a4250',ec='#111'))                                         # printed insert
-ax.add_patch(Rectangle((56.6,27.8),8.8,5.2,fc='#e2602a',ec='#111'))                                           # DinMeter front
-ax.add_patch(Rectangle((57.2,28.5),4.6,3.8,fc='#0c0f12'))
-ax.text(59.5,30.4,'2.3',color='#b6f34a',fontsize=7,ha='center',va='center',family='monospace',weight='bold')
-ax.add_patch(Circle((63.6,30.4),1.25,fc='#ddd',ec='#555'))
+ax.add_patch(FancyBboxPatch((55,26),12,9,boxstyle='round,pad=0,rounding_size=1',fc=trim,ec='#777'))
+for i in range(3): ax.add_patch(Rectangle((56.2+i*3.7,27.5),3,6,fc='#1a1d21',ec='#888',lw=.6))
+ax.text(61,24.5,'lockers / sway bar',ha='center',fontsize=7,color='#bbb')
+# DinMeter pod on the left side wall of the tunnel, at the driver's right knee
+ax.add_patch(Polygon([[50.6,4.5],[54.2,6.5],[54.2,15.5],[50.6,13.5]],fc='#3a4250',ec='#111'))
+ax.add_patch(Polygon([[51.1,6.2],[53.7,7.6],[53.7,13.9],[51.1,12.5]],fc='#e2602a',ec='#111'))
+ax.add_patch(Polygon([[51.4,9.4],[53.4,10.5],[53.4,13.4],[51.4,12.3]],fc='#0c0f12'))
+ax.add_patch(Circle((52.4,7.9),0.8,fc='#ddd',ec='#555'))
 ax.add_patch(FancyBboxPatch((68.5,26),8,9,boxstyle='round,pad=0,rounding_size=1',fc='#14171a',ec='#777'))
 for y in (32,29): ax.add_patch(Rectangle((70,y),2,1.3,fc='#555')); ax.add_patch(Circle((74.5,y+0.6),1,fc='#333',ec='#888'))
 ax.text(72.5,24.5,'USB / 12V',ha='center',fontsize=7,color='#bbb')
@@ -49,10 +51,10 @@ ax.add_patch(Rectangle((67.5,6),3,12,fc='#111')); ax.add_patch(Circle((69,18),3,
 ax.add_patch(Rectangle((74,8),2,8,fc='#111')); ax.add_patch(Circle((75,16),2,fc='#111'))
 ax.text(69,2.2,'shifter + transfer case lever',ha='center',fontsize=7.5,color='#999')
 # labels
-ax.annotate('DinMeter in the printed insert,\nin the driver-side lower bin\n(right knee, under the switch row)',xy=(61,28),xytext=(18,14),
+ax.annotate('DinMeter pod, portrait, taped to the\nleft side wall of the tunnel trim\n(driver\'s right knee, faces the driver)',xy=(51.5,10),xytext=(12,13),
             fontsize=11,color=lab,weight='bold',arrowprops=dict(arrowstyle='->',color=lab,lw=1.8))
-ax.annotate('cable goes back behind the stack\nto the AUX wiring and relay box',xy=(66,26),xytext=(92,10),fontsize=9,color='#2a7',
+ax.annotate('cable through the back of the pod\ninto the tunnel trim',xy=(53.5,11),xytext=(92,10),fontsize=9,color='#2a7',
             arrowprops=dict(arrowstyle='->',color='#2a7',lw=1.4))
 ax.text(65,79,'Jeep Wrangler JL, driver\'s view (LHD) - schematic, not to scale',ha='center',fontsize=12,weight='bold',color='#222')
-ax.text(65,75.3,'Bin positions taken from the Mopar diagram of the 2023 Rubicon lower centre stack; check against your car',ha='center',fontsize=9,color='#444')
+ax.text(65,75.3,'Rubicon lower stack: lockers left, USB centre, AUX right - no free slot, so the pod goes on the tunnel side wall',ha='center',fontsize=9,color='#444')
 plt.savefig('interior_location.png',dpi=150,bbox_inches='tight')
