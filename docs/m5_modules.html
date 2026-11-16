@@ -57,7 +57,7 @@ a{color:var(--gnd)}
   <rect x="12" y="12" width="250" height="696" rx="10" fill="none" stroke="var(--line)" stroke-dasharray="6 6"/>
   <text x="26" y="36" font-size="13" style="fill:var(--muted)">ПРИБОРНАЯ ПАНЕЛЬ JL</text>
   <rect x="278" y="12" width="520" height="696" rx="10" fill="none" stroke="var(--line)" stroke-dasharray="6 6"/>
-  <text x="292" y="36" font-size="13" style="fill:var(--muted)">ТОННЕЛЬ: один корпус 60×68×48, DinMeter + реле + ADC</text>
+  <text x="292" y="36" font-size="13" style="fill:var(--muted)">ТОННЕЛЬ: один корпус 55×63×35, DinMeter + реле + ADC</text>
   <rect x="814" y="12" width="274" height="696" rx="10" fill="none" stroke="var(--line)" stroke-dasharray="6 6"/>
   <text x="828" y="36" font-size="13" style="fill:var(--muted)">У КОМПРЕССОРА</text>
 
@@ -182,7 +182,7 @@ a{color:var(--gnd)}
         <li>Платы нет: PhotoMOS, делитель 10k/20k (он внутри ADC), резисторы, клеммы и коробка WISKA не нужны.</li>
         <li>Реле сидит на том же G2, что и K1: управление компрессором в прошивке не меняется.</li>
         <li>Датчик читается по I2C через ADC вместо G1. Это единственная правка прошивки.</li>
-        <li>Всё в одном корпусе с DinMeter: ADC лежит на дне, реле на внутренней стороне крышки, кабели Grove остаются внутри. Наружу через одну щель в дне выходят только провода машины: +12 В, масса, провод на K2 и кабель датчика.</li>
+        <li>Всё в одном корпусе 55×63×35 мм: DinMeter в верхнем торце экраном вверх, реле лежит на дне, ADC на нём. Кабели Grove остаются внутри. Наружу через щель в задней крышке, за обшивку, выходят только провода машины: +12 В, масса, провод на K2 и кабель датчика.</li>
         <li>Клапаны на этапах 2 и 3 потом: тогда понадобится второе реле или 4-Relay.</li>
       </ul>
     </section>
