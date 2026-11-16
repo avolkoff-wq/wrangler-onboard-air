@@ -64,7 +64,7 @@ h2{font:700 26px/1.1 var(--display);margin:36px 0 4px;text-wrap:balance}
     <span><i class="mk l"></i>держать 1 с</span>
     <span><i class="od"></i>компрессор работает</span>
     <span>~ перед bar: давление колёс оценено на ходу (датчик минус поправка)</span>
-    <span>вверху: общее время и число пусков; внизу: «2s» обратный отсчёт паузы, «0:14» секундомер качания</span>
+    <span>вверху: общее время и число пусков; внизу: «2.3s» обратный отсчёт паузы, «0:14.2» секундомер качания, всё с десятыми секунды</span>
   </div>
 
   <h2>1. Первая калибровка</h2>
@@ -85,13 +85,13 @@ h2{font:700 26px/1.1 var(--display);margin:36px 0 4px;text-wrap:balance}
       <div class="why">Программа запоминает показание датчика как 0 bar.</div></div>
 
     <div class="frame"><div class="head"><span class="step">C4 · Качает к 1</span><span class="t">≈ 15-20 с</span></div>
-      <div class="dev"><div class="scr"><div class="mid"><span>CAL 2/4: pumping to ~1</span><span class="tm o">0:12</span><span>press: abort</span></div></div><div class="knob"></div></div>
+      <div class="dev"><div class="scr"><div class="mid"><span>CAL 2/4: pumping to ~1</span><span class="tm o">0:12.4</span><span>press: abort</span></div></div><div class="knob"></div></div>
       <div class="do"><b>Штуцеры на колёсах, спускной закрыт.</b> Компрессор работает сам, секундомер показывает, сколько он уже качает.</div>
       <div class="why">Останавливается чуть раньше 1 bar, нажатие прерывает калибровку.</div></div>
 
     <div class="frame"><div class="head"><span class="step">C5 · Пауза</span><span class="t">3 с</span></div>
-      <div class="dev"><div class="scr"><div class="mid"><span>CAL 2/4: settling</span><span class="num" style="color:#5fd3e6">2</span></div></div><div class="knob"></div></div>
-      <div class="do">Компрессор стоит, давление в линии выравнивается с колёсами. Крупно обратный отсчёт 3 → 0.</div></div>
+      <div class="dev"><div class="scr"><div class="mid"><span>CAL 2/4: settling</span><span class="num" style="color:#5fd3e6">2.4</span></div></div><div class="knob"></div></div>
+      <div class="do">Компрессор стоит, давление в линии выравнивается с колёсами. Крупно обратный отсчёт с десятыми: 3.0 → 0.0.</div></div>
 
     <div class="frame"><div class="head"><span class="step">C6 · Ввод 1</span></div>
       <div class="dev"><div class="scr"><div class="mid"><span>Gauge shows? turn + press</span><span class="num">0.98</span></div></div><div class="knob turn"></div></div>
@@ -99,7 +99,7 @@ h2{font:700 26px/1.1 var(--display);margin:36px 0 4px;text-wrap:balance}
       <div class="why">Число стартует с показания датчика, обычно крутить нужно на 1-3 щелчка.</div></div>
 
     <div class="frame"><div class="head"><span class="step">C7 · Точки 2 и 3</span><span class="t">≈ 40 с</span></div>
-      <div class="dev"><div class="scr"><div class="mid"><span>CAL 4/4: pumping to ~3</span><span class="tm o">0:31</span><span>press: abort</span></div></div><div class="knob"></div></div>
+      <div class="dev"><div class="scr"><div class="mid"><span>CAL 4/4: pumping to ~3</span><span class="tm o">0:31.7</span><span>press: abort</span></div></div><div class="knob"></div></div>
       <div class="do">То же самое: качает к 2, пауза, ввод, потом к 3, пауза, ввод.</div></div>
 
     <div class="frame"><div class="head"><span class="step">C8 · Ввод 3</span></div>
@@ -127,38 +127,38 @@ h2{font:700 26px/1.1 var(--display);margin:36px 0 4px;text-wrap:balance}
       <div class="why">Цель сохраняется в памяти через 2 с после поворота.</div></div>
 
     <div class="frame"><div class="head"><span class="step">S2 · Старт</span><span class="t">0:00</span></div>
-      <div class="dev"><div class="scr"><div class="top">0:01  starts 0</div><div class="big">0.2</div><div class="unit">bar</div><div class="line c-cyan">SETTLING&nbsp; 2s</div></div><div class="knob press"></div></div>
+      <div class="dev"><div class="scr"><div class="top">0:01.2  starts 0</div><div class="big">0.2</div><div class="unit">bar</div><div class="line c-cyan">SETTLING&nbsp; 2.3s</div></div><div class="knob press"></div></div>
       <div class="do"><b>Нажимаешь.</b> Компрессор стоит, 2.8 с замер без потока.</div></div>
 
     <div class="frame"><div class="head"><span class="step">S3 · Обучение</span><span class="t">0:03-0:18</span></div>
-      <div class="dev"><div class="scr"><div class="top">0:09  starts 1</div><div class="dot"></div><div class="big">0.6</div><div class="unit">~ bar</div><div class="line c-orange">LEARNING&nbsp; 9s</div></div><div class="knob"></div></div>
+      <div class="dev"><div class="scr"><div class="top">0:09.4  starts 1</div><div class="dot"></div><div class="big">0.6</div><div class="unit">~ bar</div><div class="line c-orange">LEARNING&nbsp; 8.6s</div></div><div class="knob"></div></div>
       <div class="do">Компрессор работает 15 с без остановки.</div>
       <div class="why">Только в первый раз: замеряет, на сколько датчик на ходу врёт вверх.</div></div>
 
     <div class="frame"><div class="head"><span class="step">S4 · Замер</span><span class="t">0:18-0:21</span></div>
-      <div class="dev"><div class="scr"><div class="top">0:20  starts 1</div><div class="big">0.9</div><div class="unit">bar</div><div class="line c-cyan">MEASURING&nbsp; 1s</div></div><div class="knob"></div></div>
+      <div class="dev"><div class="scr"><div class="top">0:20.3  starts 1</div><div class="big">0.9</div><div class="unit">bar</div><div class="line c-cyan">MEASURING&nbsp; 0.5s</div></div><div class="knob"></div></div>
       <div class="do">Компрессор стоит. Поправка и скорость записаны в память.</div></div>
 
     <div class="frame"><div class="head"><span class="step">S5 · Подкачка</span><span class="t">0:21-0:47</span></div>
-      <div class="dev"><div class="scr"><div class="top">0:35  starts 2</div><div class="dot"></div><div class="big">1.6</div><div class="unit">~ bar</div><div class="line c-orange">PUMP -&gt; 2.3&nbsp; 0:14</div></div><div class="knob"></div></div>
+      <div class="dev"><div class="scr"><div class="top">0:35.8  starts 2</div><div class="dot"></div><div class="big">1.6</div><div class="unit">~ bar</div><div class="line c-orange">PUMP -&gt; 2.3&nbsp; 0:14.2</div></div><div class="knob"></div></div>
       <div class="do">Качает без пауз. Цифра растёт, это колёса: датчик минус поправка.</div>
       <div class="why">Стоп, когда оценка дойдёт до цели минус запас (0.03-0.15, подстраивается сам). Нажатие в любой момент останавливает.</div></div>
 
     <div class="frame"><div class="head"><span class="step">S6 · Контроль</span><span class="t">0:47-0:50</span></div>
-      <div class="dev"><div class="scr"><div class="top">0:48  starts 2</div><div class="big">2.2</div><div class="unit">bar</div><div class="line c-cyan">SETTLING&nbsp; 0:01</div></div><div class="knob"></div></div>
+      <div class="dev"><div class="scr"><div class="top">0:48.1  starts 2</div><div class="big">2.2</div><div class="unit">bar</div><div class="line c-cyan">SETTLING&nbsp; 0:01.3</div></div><div class="knob"></div></div>
       <div class="do">Компрессор стоит. Реально в колёсах 2.21, до цели не хватает 0.09.</div>
       <div class="why">Поправка уточняется: 70% старой плюс 30% новой.</div></div>
 
     <div class="frame"><div class="head"><span class="step">S7 · Добивка</span><span class="t">0:50-0:52</span></div>
-      <div class="dev"><div class="scr"><div class="top">0:51  starts 3</div><div class="dot"></div><div class="big">2.3</div><div class="unit">~ bar</div><div class="line c-orange">TOP-UP&nbsp; 1s</div></div><div class="knob"></div></div>
+      <div class="dev"><div class="scr"><div class="top">0:51.6  starts 3</div><div class="dot"></div><div class="big">2.3</div><div class="unit">~ bar</div><div class="line c-orange">TOP-UP&nbsp; 1.2s</div></div><div class="knob"></div></div>
       <div class="do">Короткий импульс: 0.09 / 0.05 = 1.8 с.</div></div>
 
     <div class="frame"><div class="head"><span class="step">S8 · Замер</span><span class="t">0:52-0:55</span></div>
-      <div class="dev"><div class="scr"><div class="top">0:53  starts 3</div><div class="big">2.3</div><div class="unit">bar</div><div class="line c-cyan">MEASURING&nbsp; 1s</div></div><div class="knob"></div></div>
+      <div class="dev"><div class="scr"><div class="top">0:53.2  starts 3</div><div class="big">2.3</div><div class="unit">bar</div><div class="line c-cyan">MEASURING&nbsp; 0.5s</div></div><div class="knob"></div></div>
       <div class="do">2.29: в допуске 0.05 от цели.</div></div>
 
     <div class="frame"><div class="head"><span class="step">S9 · Готово</span><span class="t">0:55</span></div>
-      <div class="dev"><div class="scr"><div class="top">0:55  starts 3</div><div class="big">2.3</div><div class="unit">bar</div><div class="line c-green">DONE 2.3&nbsp; 0:55</div></div><div class="knob press"></div></div>
+      <div class="dev"><div class="scr"><div class="top">0:55.4  starts 3</div><div class="big">2.3</div><div class="unit">bar</div><div class="line c-green">DONE 2.3&nbsp; 0:55.4</div></div><div class="knob press"></div></div>
       <div class="do"><b>Два писка.</b> Нажимаешь, возврат на главный экран, снимаешь штуцеры.</div></div>
   </div>
 

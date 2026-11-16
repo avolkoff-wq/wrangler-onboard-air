@@ -37,10 +37,15 @@ constexpr int MENU_N = sizeof(MENU) / sizeof(MENU[0]);
 float toUnit(float bar) { return settings.psi ? bar * 14.5038f : bar; }
 const char* unitName() { return settings.psi ? "psi" : "bar"; }
 String fmt(float bar) { return String(toUnit(bar), settings.psi ? 0 : 1); }
-String mmss(uint32_t ms) { const uint32_t s = ms / 1000; char b[8]; snprintf(b, sizeof b, "%lu:%02lu", (unsigned long)(s / 60), (unsigned long)(s % 60)); return b; }
+// m:ss.t (tenths of a second)
+String mmss(uint32_t ms) {
+  const uint32_t t = ms / 100, s = t / 10; char b[12];
+  snprintf(b, sizeof b, "%lu:%02lu.%lu", (unsigned long)(s / 60), (unsigned long)(s % 60), (unsigned long)(t % 10));
+  return b;
+}
 // countdown when the length is known, elapsed otherwise
 String phaseTimer(uint32_t elapsed, uint32_t len) {
-  if (len) { const uint32_t left = elapsed >= len ? 0 : len - elapsed; return String((left + 999) / 1000) + "s"; }
+  if (len) { const uint32_t left = elapsed >= len ? 0 : len - elapsed; return String(left / 1000.0f, 1) + "s"; }
   return mmss(elapsed);
 }
 
@@ -169,7 +174,8 @@ void drawCal() {
       canvas.drawString("CAL " + String(i + 1) + "/4: settling", 120, 36);
       canvas.setFont(&fonts::Font7);
       canvas.setTextColor(TFT_CYAN);
-      canvas.drawString(String(phaseTimer(cal.phaseMs(), Calibration::SETTLE_TOTAL_MS).toInt()), 120, 86); break;
+      { const uint32_t e = cal.phaseMs(), L = Calibration::SETTLE_TOTAL_MS;
+        canvas.drawString(String((e >= L ? 0 : L - e) / 1000.0f, 1), 120, 86); } break;
     case CState::ENTER:
       canvas.drawString("Gauge shows? turn + press", 120, 25);
       canvas.setFont(&fonts::Font7);
