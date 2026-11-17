@@ -8,6 +8,7 @@ import base64
 import json
 import re
 import layout_box as L
+from power_svg import power_svg
 
 D = json.load(open(f"cables_{L.TAG}.json"))
 S = 4.0                                    # px per mm
@@ -347,7 +348,7 @@ else:
     script = script.replace("if(o.isMesh){o.material=o.material.clone();o.material.side=THREE.DoubleSide}",
                             "if(o.isMesh){o.material=o.material.clone();o.material.side=THREE.DoubleSide;if(o.parent&&o.parent.name==='boss_part_to_cut_off'||o.name==='boss_part_to_cut_off'){o.material.color.set(0xff2020)}}")
     head = head.replace("<title>Hammond 1591S Cut Plan</title>", "<title>Hammond 1591C Cut Plan</title>")
-    section = section.replace("<h2>3. Раскладка и кабели внутри</h2>", "<h2>4. Раскладка и кабели внутри</h2>").replace("до крышки остаётся не меньше 6 мм", "до крышки остаётся около 3 мм")
+    section = section.replace("<h2>3. Раскладка и кабели внутри</h2>", "<h2>5. Раскладка и кабели внутри</h2>").replace("до крышки остаётся не меньше 6 мм", "до крышки остаётся около 3 мм")
     section = section.replace("Врезки +12 В и массы в нижней свободной полосе между бобышками", "Врезки +12 В и массы в нижней свободной полосе под реле и ADC")
     body = f'''<main>
 <h1>Wrangler Air в коробке Hammond 1591C</h1>
@@ -365,8 +366,14 @@ else:
 <section class="card"><h2>3. Паз под провода в нижнем торце</h2>{end_view("slot")}
 <ul><li>Паз <b>{L.SLOT_L:.0f} × {L.SLOT_H:.0f} мм</b> со скруглёнными концами, центр в <b>{L.W/2 + L.SLOT_X:.1f} мм</b> от края стороны A и в <b>{L.SLOT_Z:.1f} мм</b> от низа коробки.</li>
 <li>Через паз: +12 В, масса, провод на K2, три провода датчика в термоусадке.</li></ul></section>
+<section class="card"><h2>4. Питание и пайки</h2>{power_svg()}
+<ul><li><b>S1</b>, +12 В: красный 1.5 от AUX1 спаять с красным 1.5 на COM реле и оранжевым 0.25 на «+» DinMeter.</li>
+<li><b>S2</b>, масса: чёрный 1.5 от кузова спаять с синим 0.25 на «−» DinMeter. Это только переход с толстого провода на тонкий под клемму DinMeter.</li>
+<li><b>S3</b>, +5 В датчика: зачистить 5 мм красной жилы кабеля Grove PORT.A посередине, не разрезая, намотать на неё красный провод датчика и пропаять.</li>
+<li>Каждую пайку закрыть термоусадкой, S1 и S2 уложить в нижней свободной полосе коробки.</li>
+<li>Реле и ADC отдельного питания не требуют: 5 В и массу они получают от DinMeter по кабелям Grove.</li></ul></section>
 {section}
-<section class="card"><h2>5. 3D</h2><div id="stage"></div><p class="lead" style="margin-top:8px">Вращать мышью или пальцем, колесо или щипок для масштаба. Крышка показана поднятой, коробка полупрозрачная, срезаемые части бобышек красные.</p></section>
+<section class="card"><h2>6. 3D</h2><div id="stage"></div><p class="lead" style="margin-top:8px">Вращать мышью или пальцем, колесо или щипок для масштаба. Крышка показана поднятой, коробка полупрозрачная, срезаемые части бобышек красные.</p></section>
 '''
     h = head + body + script
 glb = base64.b64encode(open(f"wrangler_air_{L.TAG}.glb", "rb").read()).decode()
