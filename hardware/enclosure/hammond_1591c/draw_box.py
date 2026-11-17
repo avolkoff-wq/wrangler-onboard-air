@@ -8,7 +8,7 @@ import base64
 import json
 import re
 import layout_box as L
-from power_svg import power_svg_nosolder
+from power_svg import power_svg_iec
 
 D = json.load(open(f"cables_{L.TAG}.json"))
 S = 4.0                                    # px per mm
@@ -366,7 +366,7 @@ else:
 <section class="card"><h2>3. Паз под провода в нижнем торце</h2>{end_view("slot")}
 <ul><li>Паз <b>{L.SLOT_L:.0f} × {L.SLOT_H:.0f} мм</b> со скруглёнными концами, центр в <b>{L.W/2 + L.SLOT_X:.1f} мм</b> от края стороны A и в <b>{L.SLOT_Z:.1f} мм</b> от низа коробки.</li>
 <li>Через паз: +12 В, масса, провод на K2, три провода датчика в термоусадке.</li></ul></section>
-<section class="card"><h2>4. Питание и подключение</h2>{power_svg_nosolder()}
+<section class="card"><h2>4. Питание и подключение</h2>{power_svg_iec()}
 <ul><li><b>+12 В:</b> от AUX1 через предохранитель F1 на 3 А. Сразу за держателем F1, ещё снаружи коробки, термоусадочный соединитель с припоем делит линию на два красных провода 0.75: один на COM реле, второй на «+» DinMeter. В каждой клемме по одному проводу.</li>
 <li><b>Масса:</b> чёрный 0.25 от кузова прямо в «−» DinMeter.</li>
 <li><b>Компрессор:</b> NO реле, красный 0.75 через паз на D1 и дальше на фиолетовый провод ARB вместо штатной кнопки. Внутри ARB этот провод идёт через реле давления на два своих реле по 40 А, гасящий диод не нужен. AUX2 через D2 на тот же провод работает как обход.</li>
