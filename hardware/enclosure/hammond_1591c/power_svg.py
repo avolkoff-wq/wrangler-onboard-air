@@ -146,7 +146,7 @@ def fuse(x, y, label):
 
 def power_svg_nosolder():
     """Same circuit without solder: twin ferrule at relay COM, ground straight to the DinMeter,
-    sensor +5 V taken off the PORT.A Grove red wire with a 3M Scotchlok UR2."""
+    sensor +5 V tapped off the PORT.A Grove red wire with a 3M Scotchlok UB2A (wire not cut)."""
     o = ['<svg viewBox="0 0 1020 630" style="color:var(--fg);max-width:1000px;margin:0 auto;background:#fff;border-radius:8px">',
          '<style>.bt{font:700 14px var(--f);text-anchor:middle;fill:#1d232b}.bs{font:12px var(--f);text-anchor:middle;fill:#5d6672}'
          '.pl{font:600 12px var(--f);fill:#1d232b}.sp{font:700 13px var(--f);fill:#1b7f3b}.wl{font:12px var(--f);fill:#38404a}.hd{font:700 13px var(--f);fill:#5d6672}</style>']
@@ -197,11 +197,11 @@ def power_svg_nosolder():
     o.append('<text x="172" y="356" class="pl">D3</text><circle cx="165" cy="320" r="3.5" fill="#111"/><circle cx="165" cy="380" r="3.5" fill="#111"/>')
     o.append(line([(144, 380), (165, 380), (165, 420)], BLK, 3)); o.append(gnd(165, 420))
     o.append('<text x="20" y="615" class="wl">F1: предохранитель MINI 3 А в держателе TC-Mini FK1 · D1, D2: диоды MINI в таких же держателях · D3: 1N4007 на катушке K2</text>')
-    # sensor: +5 V from the Grove red wire through a Scotchlok UR2, GND and SIG to the ADC terminal
+    # sensor: +5 V from the Grove red wire through a Scotchlok UB2A tap, GND and SIG to the ADC terminal
     ux = 700 + 4.5 * 1.5
     o.append(line([(851, 440), (830, 440), (830, 275), (ux + 8, 275)], RED, 3))
     o.append(f'<rect x="{ux - 8}" y="263" width="22" height="24" rx="4" fill="#d42020" stroke="#7a0f0f" stroke-width="1.5"/>')
-    o.append(f'<text x="{ux + 22}" y="258" class="sp">UR2</text>')
+    o.append(f'<text x="{ux + 22}" y="258" class="sp">UB2A, ответвление</text>')
     o.append(line([(851, 480), (730, 480), (730, 434)], YEL, 3))
     o.append(line([(851, 520), (660, 520), (660, 434)], BLK, 3))
     o.append('<text x="855" y="565" class="wl">3 × 0.25 в термоусадке,</text><text x="855" y="582" class="wl">в коробку через паз</text>')
