@@ -181,8 +181,8 @@ def power_svg_nosolder():
     o.append('<text x="262" y="88" class="wl">0.75 красный</text>')
     o.append(line([(356, 366), (330, 366), (330, 240), (530, 240), (530, 110), (556, 110)], RED, 4))
     o.append('<text x="400" y="232" class="wl">перемычка 0.75 на «+»</text>')
-    o.append('<rect x="341" y="347" width="16" height="26" rx="3" fill="#2b8a3e" stroke="#123" stroke-width="1.5"/>')
-    o.append('<text x="440" y="432" class="sp" text-anchor="middle">COM: оба провода в одной</text><text x="440" y="448" class="sp" text-anchor="middle">двойной гильзе 2 × 0.75</text>')
+    o.append('<circle cx="350" cy="360" r="7" fill="#d42020" stroke="#111" stroke-width="1.5"/>')
+    o.append('<text x="440" y="432" class="sp" text-anchor="middle">COM: оба провода скрутить</text><text x="440" y="448" class="sp" text-anchor="middle">и вместе под один винт</text>')
     # ground
     o.append(line([(150, 495), (545, 495), (545, 150), (556, 150)], BLK, 3))
     o.append('<text x="290" y="512" class="wl">0.25 чёрный, прямо в «−» DinMeter</text>')
