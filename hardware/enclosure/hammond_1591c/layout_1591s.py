@@ -1,7 +1,7 @@
 """Wrangler Air in a stock Hammond 1591SBK (110.1 x 82.2 x 44, black ABS), sizes from Hammond drawing 1591S REV 06.16.2023.
 
 The box stands upright with its lid against the tunnel wall. The DinMeter goes into the UPPER END WALL (the short side,
-82 x 44), screen up. Relay and ADC lie flat on the box bottom (the face towards the driver). Car wires enter through
+82 x 44), screen up. Relay and ADC lie flat on the box bottom (the face towards the driver), Grove plugs towards the DinMeter. Car wires enter through
 a slot in the lower end wall.
 Axes: x along the car (box width 82.2), y up (box length 110.1), z from the box bottom (0) to the lid (44).
 
@@ -38,7 +38,7 @@ box = box.cut(cq.Workplane("XY").box(CUT_W, 10, CUT_H).translate((DIN_X, TOP_Y -
 
 # ---------- wire slot in the lower end wall ----------
 SLOT_X, SLOT_Z, SLOT_L, SLOT_H = -16.0, 20.0, 14.0, 8.0
-box = box.cut(cq.Workplane("XZ").workplane(offset=TOP_Y - 3).center(SLOT_X, SLOT_Z).slot2D(SLOT_L, SLOT_H, 0).extrude(6))
+box = box.cut(cq.Workplane("XZ").workplane(offset=TOP_Y - 5).center(SLOT_X, SLOT_Z).slot2D(SLOT_L, SLOT_H, 0).extrude(8))
 
 def bx(sx, sy, sz, cx, cy, cz):
     return cq.Workplane("XY").box(sx, sy, sz).translate((cx, cy, cz))
@@ -53,21 +53,32 @@ for nm, xx, zz, sx, sz, h, col in (("grove_plug_port_A", -11.7, -3, 4.6, 9.9, 8,
                                     ("power_terminal_plug", -15.1, 7.6, 8.8, 7, 10, (0.2, 0.65, 0.3))):
     din.add(bx(sx, h, sz, DIN_X + xx, DB - h / 2, DIN_Z + zz), name=nm, color=cq.Color(*col))
 
-# ---------- Unit Relay flat on the box bottom, terminal end at -x ----------
-RX0, RY = -30.0, -26.0
+# ---------- Unit Relay flat on the box bottom, long side along y: Grove plug up (towards the DinMeter), terminal down ----------
+# Both Grove plugs face the DinMeter, so 10 cm Grove cables reach; the relay terminal faces the wire slot.
+RXC, RY0 = -23.5, -36.0            # relay centre x, lower end y (case y -36..12)
 Z0 = FLOOR
 rel = cq.Assembly(name="mini_relay")
-rel.add(bx(48, 24, 8, RX0 + 24, RY, Z0 + 4), name="case", color=cq.Color(0.93, 0.94, 0.95))
-rel.add(bx(15.2, 10.5, 6, RX0 + 17.6, RY, Z0 + 8 + 3), name="relay", color=cq.Color(0.98, 0.55, 0.10))
-rel.add(bx(10, 12, 12, RX0 + 5, RY, Z0 + 8 + 6), name="terminal_COM_NO_NC", color=cq.Color(0.98, 0.45, 0.15))
-rel.add(bx(6.5, 9.9, 4.6, RX0 + 48 + 3.25, RY, Z0 + 4), name="grove_plug", color=cq.Color(0.97, 0.97, 0.97))
+rel.add(bx(24, 48, 8, RXC, RY0 + 24, Z0 + 4), name="case", color=cq.Color(0.93, 0.94, 0.95))
+rel.add(bx(10.5, 15.2, 6, RXC, RY0 + 17.6, Z0 + 8 + 3), name="relay", color=cq.Color(0.98, 0.55, 0.10))
+rel.add(bx(12, 10, 12, RXC, RY0 + 5, Z0 + 8 + 6), name="terminal_COM_NO_NC", color=cq.Color(0.98, 0.45, 0.15))
+rel.add(bx(9.9, 6.5, 4.6, RXC, RY0 + 48 + 3.25, Z0 + 4), name="grove_plug", color=cq.Color(0.97, 0.97, 0.97))
+REL_GROVE = (RXC, RY0 + 48 + 6.5, Z0 + 4)          # where the Grove cable leaves the relay plug (+y)
+REL_PIN = {"COM": (RXC - 3.96, RY0, Z0 + 15), "NO": (RXC, RY0, Z0 + 15), "NC": (RXC + 3.96, RY0, Z0 + 15)}
 
-# ---------- Unit ADC v1.1 flat on the box bottom above the relay, Grove end at -x ----------
-AX0, AY = -16.0, 4.0
+# ---------- Unit ADC v1.1 flat on the box bottom, long side along y: Grove plug up, terminal down ----------
+AXC, AY0 = 18.0, -22.0             # ADC centre x, lower end y (case y -22..10)
 adc = cq.Assembly(name="adc_v11")
-adc.add(bx(32, 24, 8, AX0 + 16, AY, Z0 + 4), name="case", color=cq.Color(0.93, 0.94, 0.95))
-adc.add(bx(9, 8, 11, AX0 + 32 - 4.5, AY, Z0 + 8 + 5.5), name="terminal_IN_GND", color=cq.Color(0.98, 0.45, 0.15))
-adc.add(bx(6.5, 9.9, 4.6, AX0 - 3.25, AY, Z0 + 4), name="grove_plug", color=cq.Color(0.97, 0.97, 0.97))
+adc.add(bx(24, 32, 8, AXC, AY0 + 16, Z0 + 4), name="case", color=cq.Color(0.93, 0.94, 0.95))
+adc.add(bx(9, 8, 11, AXC, AY0 + 4.5, Z0 + 8 + 5.5), name="terminal_IN_GND", color=cq.Color(0.98, 0.45, 0.15))
+adc.add(bx(9.9, 6.5, 4.6, AXC, AY0 + 32 + 3.25, Z0 + 4), name="grove_plug", color=cq.Color(0.97, 0.97, 0.97))
+ADC_GROVE = (AXC, AY0 + 32 + 6.5, Z0 + 4)
+ADC_PIN = {"IN": (AXC - 2, AY0 + 0.5, Z0 + 13.5), "GND": (AXC + 2, AY0 + 0.5, Z0 + 13.5)}
+
+# DinMeter connectors: where the cables leave (downwards, -y)
+DIN_A = (DIN_X - 11.7, DB - 8, DIN_Z - 3)
+DIN_B = (DIN_X - 18.0, DB - 8, DIN_Z - 3)
+DIN_PLUS, DIN_MINUS = (DIN_X - 15.1 + 1.3, DB - 10, DIN_Z + 7.6), (DIN_X - 15.1 - 1.3, DB - 10, DIN_Z + 7.6)
+SLOT_IN = (SLOT_X, -Y_IN, SLOT_Z)
 
 asm = cq.Assembly(name="wrangler_air_1591s")
 asm.add(box, name="hammond_1591s_body", color=cq.Color(0.16, 0.17, 0.19))
