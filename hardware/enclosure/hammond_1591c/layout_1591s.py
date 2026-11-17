@@ -1,0 +1,103 @@
+"""Wrangler Air in a stock Hammond 1591SBK (110.1 x 82.2 x 44, black ABS), sizes from Hammond drawing 1591S REV 06.16.2023.
+
+The box stands upright with its lid against the tunnel wall. The DinMeter goes into the UPPER END WALL (the short side,
+82 x 44), screen up. Relay and ADC lie flat on the box bottom (the face towards the driver). Car wires enter through
+a slot in the lower end wall.
+Axes: x along the car (box width 82.2), y up (box length 110.1), z from the box bottom (0) to the lid (44).
+
+Writes wrangler_air_1591s.step / .glb and prints the cut-out coordinates and clearances.
+"""
+import cadquery as cq
+
+W, L, HB, HL = 82.2, 110.1, 40.0, 4.0       # outside width (x), length (y), body height, lid
+IN_W, IN_L, FLOOR = 75.87, 103.77, 2.0
+BOSS_X, BOSS_Y, BOSS_D, BOSS_HOLE = 60.4, 88.3, 7.6, 2.5   # boss centres inside the box (boss dia estimated)
+RIB_D, RIB_W, RIB_H, RIB_PITCH = 1.0, 3.0, 34.9, 6.0      # card guides on the long walls (pitch estimated)
+X_IN, Y_IN = IN_W / 2, IN_L / 2
+TOP_Y = L / 2
+
+box = (cq.Workplane("XY").rect(W, L).extrude(HB).edges("|Z").fillet(5.0).faces("<Z").edges().fillet(1.0))
+box = box.cut(cq.Workplane("XY").workplane(offset=FLOOR).rect(IN_W, IN_L).extrude(HB).edges("|Z").fillet(2.0))
+for sx in (-1, 1):
+    for sy in (-1, 1):
+        c = (sx * BOSS_X / 2, sy * BOSS_Y / 2)
+        box = box.union(cq.Workplane("XY").workplane(offset=FLOOR).center(*c).circle(BOSS_D / 2).extrude(HB - FLOOR))
+        box = box.union(cq.Workplane("XY").workplane(offset=FLOOR).center(c[0] + sx * 4, c[1] + sy * 4).rect(6, 6).extrude(HB - FLOOR))
+        box = box.cut(cq.Workplane("XY").workplane(offset=HB - 12).center(*c).circle(BOSS_HOLE / 2).extrude(12))
+n = int((IN_L - 24) / RIB_PITCH)
+for i in range(n + 1):
+    y = -(n * RIB_PITCH) / 2 + i * RIB_PITCH
+    for sx in (-1, 1):
+        box = box.union(cq.Workplane("XY").box(RIB_D, RIB_W, RIB_H).translate((sx * (X_IN - RIB_D / 2), y, HB - RIB_H / 2)))
+lid = cq.Workplane("XY").rect(W, L).extrude(HL).edges("|Z").fillet(5.0).faces(">Z").edges().fillet(1.0).translate((0, 0, HB))
+
+# ---------- DinMeter in the upper end wall ----------
+DIN_X, DIN_Z = 0.0, 20.0
+CUT_W, CUT_H = 46.0, 22.8
+box = box.cut(cq.Workplane("XY").box(CUT_W, 10, CUT_H).translate((DIN_X, TOP_Y - 2, DIN_Z)))
+
+# ---------- wire slot in the lower end wall ----------
+SLOT_X, SLOT_Z, SLOT_L, SLOT_H = -16.0, 20.0, 14.0, 8.0
+box = box.cut(cq.Workplane("XZ").workplane(offset=TOP_Y - 3).center(SLOT_X, SLOT_Z).slot2D(SLOT_L, SLOT_H, 0).extrude(6))
+
+def bx(sx, sy, sz, cx, cy, cz):
+    return cq.Workplane("XY").box(sx, sy, sz).translate((cx, cy, cz))
+
+din = cq.Assembly(name="dinmeter")
+din.add(bx(53, 2.5, 30, DIN_X, TOP_Y + 1.25, DIN_Z).edges("|Y").fillet(4), name="bezel", color=cq.Color(0.89, 0.38, 0.16))
+din.add(bx(26.5, 0.3, 17.4, DIN_X - 5.5, TOP_Y + 2.6, DIN_Z), name="screen", color=cq.Color(0.05, 0.06, 0.07))
+din.add(cq.Workplane("XZ").workplane(offset=-(TOP_Y + 2.5)).center(DIN_X + 14.25, DIN_Z).circle(6).extrude(-8.6), name="knob", color=cq.Color(0.85, 0.85, 0.85))
+din.add(bx(45.6, 20.4, 22.2, DIN_X, TOP_Y - 10.2, DIN_Z), name="housing", color=cq.Color(0.95, 0.64, 0.50))
+DB = TOP_Y - 20.4
+for nm, xx, zz, sx, sz, h, col in (("grove_plug_port_A", -11.7, -3, 4.6, 9.9, 8, (0.97,) * 3), ("grove_plug_port_B", -18.0, -3, 4.6, 9.9, 8, (0.97,) * 3),
+                                    ("power_terminal_plug", -15.1, 7.6, 8.8, 7, 10, (0.2, 0.65, 0.3))):
+    din.add(bx(sx, h, sz, DIN_X + xx, DB - h / 2, DIN_Z + zz), name=nm, color=cq.Color(*col))
+
+# ---------- Unit Relay flat on the box bottom, terminal end at -x ----------
+RX0, RY = -30.0, -26.0
+Z0 = FLOOR
+rel = cq.Assembly(name="mini_relay")
+rel.add(bx(48, 24, 8, RX0 + 24, RY, Z0 + 4), name="case", color=cq.Color(0.93, 0.94, 0.95))
+rel.add(bx(15.2, 10.5, 6, RX0 + 17.6, RY, Z0 + 8 + 3), name="relay", color=cq.Color(0.98, 0.55, 0.10))
+rel.add(bx(10, 12, 12, RX0 + 5, RY, Z0 + 8 + 6), name="terminal_COM_NO_NC", color=cq.Color(0.98, 0.45, 0.15))
+rel.add(bx(6.5, 9.9, 4.6, RX0 + 48 + 3.25, RY, Z0 + 4), name="grove_plug", color=cq.Color(0.97, 0.97, 0.97))
+
+# ---------- Unit ADC v1.1 flat on the box bottom above the relay, Grove end at -x ----------
+AX0, AY = -16.0, 4.0
+adc = cq.Assembly(name="adc_v11")
+adc.add(bx(32, 24, 8, AX0 + 16, AY, Z0 + 4), name="case", color=cq.Color(0.93, 0.94, 0.95))
+adc.add(bx(9, 8, 11, AX0 + 32 - 4.5, AY, Z0 + 8 + 5.5), name="terminal_IN_GND", color=cq.Color(0.98, 0.45, 0.15))
+adc.add(bx(6.5, 9.9, 4.6, AX0 - 3.25, AY, Z0 + 4), name="grove_plug", color=cq.Color(0.97, 0.97, 0.97))
+
+asm = cq.Assembly(name="wrangler_air_1591s")
+asm.add(box, name="hammond_1591s_body", color=cq.Color(0.16, 0.17, 0.19))
+asm.add(lid, name="hammond_1591s_lid", color=cq.Color(0.30, 0.32, 0.35))
+asm.add(din); asm.add(rel); asm.add(adc)
+
+if __name__ == "__main__":
+    import itertools
+    from OCP.BRepExtrema import BRepExtrema_DistShapeShape
+    items = []
+    def walk(a, loc=cq.Location()):
+        l = loc * a.loc
+        if a.obj is not None:
+            items.append((a.name, a.obj.val().moved(l)))
+        for c in a.children:
+            walk(c, l)
+    walk(asm)
+    ok = {("hammond_1591s_body", "housing"), ("hammond_1591s_body", "bezel"), ("relay", "case"), ("terminal_COM_NO_NC", "case"),
+          ("hammond_1591s_body", "case"), ("bezel", "screen")}
+    bad = [(round(s1.intersect(s2).Volume(), 2), n1, n2) for (n1, s1), (n2, s2) in itertools.combinations(items, 2)
+           if (n1, n2) not in ok and (n2, n1) not in ok and s1.intersect(s2).Volume() > 0.01]
+    print("collisions:", bad)
+    def d(a, b):
+        e = BRepExtrema_DistShapeShape(a.wrapped, b.wrapped); e.Perform(); return round(e.Value(), 1)
+    I = {}
+    for n, s in items:
+        I.setdefault(n, []).append(s)
+    body = I["hammond_1591s_body"][0]
+    print("din housing - box (bosses)", d(I["housing"][0], body), "| relay grove plug - box", d(I["grove_plug"][0], body))
+    print("adc - din plugs", min(d(I["case"][1], I[k][0]) for k in ("grove_plug_port_A", "grove_plug_port_B", "power_terminal_plug")),
+          "| adc - relay", d(I["case"][1], I["case"][0]), "| relay - box (bosses)", d(I["case"][0], body))
+    asm.save("wrangler_air_1591s.step")
+    asm.save("wrangler_air_1591s.glb", tolerance=0.25, angularTolerance=0.4)
