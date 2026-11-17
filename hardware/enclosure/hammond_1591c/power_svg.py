@@ -233,7 +233,7 @@ def power_svg_iec():
          '.w{stroke:#111;stroke-width:2;fill:none;stroke-linejoin:miter}.b{fill:#fff;stroke:#111;stroke-width:1.5}'
          '.box{fill:none;stroke:#111;stroke-width:1.2;stroke-dasharray:10 4 2 4}.t{fill:#fff;stroke:#111;stroke-width:1.5}</style>']
 
-    CC = {"RD": "#d42020", "BK": "#111111", "YE": "#e0a800", "VT": "#7b2cbf", "WH": "#a7adb4", "OG": "#ff7a00"}
+    CC = {"RD": "#d42020", "BK": "#111111", "YE": "#e0a800", "VT": "#7b2cbf", "WH": "#a7adb4", "OG": "#ff7a00", "BU": "#1f5fd6"}
 
     def L(*pts, c="BK", w=2.5):
         o.append(f'<polyline fill="none" stroke="{CC[c]}" stroke-width="{w}" stroke-linejoin="miter" points="' + " ".join(f"{x},{y}" for x, y in pts) + '"/>')
@@ -326,10 +326,10 @@ def power_svg_iec():
     lab(20, 352, "внутри: реле давления,", "c", "start"); lab(20, 366, "2 реле 12 В 40 А", "c", "start")
 
     comp(20, 420, 100, 160, "-B1", "датчик", "0.5–4.5 В")
-    for k, t, c in ((5, "+5 V", "OG"), (6, "GND", "BK"), (7, "OUT", "YE")):
+    for k, t, c in ((5, "+5 V", "OG"), (6, "GND", "BU"), (7, "OUT", "YE")):
         pinl(120, T[k], t, "r")
         L((123, T[k]), (267, T[k]), c=c)
-    lab(140, T[5] - 6, "OG 0.25", "c", "start"); lab(140, T[6] - 6, "BK 0.25", "c", "start"); lab(140, T[7] - 6, "YE 0.25", "c", "start")
+    lab(140, T[5] - 6, "OG 0.25", "c", "start"); lab(140, T[6] - 6, "BU 0.25", "c", "start"); lab(140, T[7] - 6, "YE 0.25", "c", "start")
 
     # inside
     comp(600, 70, 200, 160, "-A1", "M5Stack DinMeter", "12 В → 5 В")
@@ -350,7 +350,7 @@ def power_svg_iec():
     o.append('<circle cx="720" cy="400" r="3" class="t"/>')
     grove4([(720, 236), (720, 394)], ("WH", "YE", "BK", "RD")); lab(736, 320, "-W2 Grove 10 см", "c", "start")
     pinl(620, T[6], "GND"); pinl(620, T[7], "IN")
-    L((313, T[6]), (617, T[6]), c="BK"); L((313, T[7]), (617, T[7]), c="YE")
+    L((313, T[6]), (617, T[6]), c="BU"); L((313, T[7]), (617, T[7]), c="YE")
     L((313, T[5]), (560, T[5]), (560, 360), (726, 360), c="OG"); dot(726, 360)
     lab(736, 364, "-X4 пайка на красную жилу W2", "c", "start")
 
