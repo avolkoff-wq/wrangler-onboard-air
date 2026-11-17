@@ -151,7 +151,7 @@ def power_svg_nosolder():
          '<style>.bt{font:700 14px var(--f);text-anchor:middle;fill:#1d232b}.bs{font:12px var(--f);text-anchor:middle;fill:#5d6672}'
          '.pl{font:600 12px var(--f);fill:#1d232b}.sp{font:700 13px var(--f);fill:#1b7f3b}.wl{font:12px var(--f);fill:#38404a}.hd{font:700 13px var(--f);fill:#5d6672}</style>']
     o.append('<rect x="250" y="30" width="550" height="560" rx="12" fill="#f6f7f9" stroke="#5d6672" stroke-width="2" stroke-dasharray="8 6"/>')
-    o.append('<text x="525" y="22" class="hd" text-anchor="middle">КОРОБКА 1591C, БЕЗ ПАЙКИ</text>')
+    o.append('<text x="525" y="22" class="hd" text-anchor="middle">КОРОБКА 1591C, ОДНА ПАЙКА</text>')
     o.append('<text x="125" y="22" class="hd" text-anchor="middle">МАШИНА</text><text x="925" y="22" class="hd" text-anchor="middle">ДАТЧИК</text>')
     o.append('<rect x="244" y="70" width="12" height="440" rx="4" fill="#fff" stroke="#e3612a" stroke-width="2"/>'
              '<text x="250" y="530" class="wl" text-anchor="middle">паз</text>')
@@ -200,8 +200,7 @@ def power_svg_nosolder():
     # sensor: +5 V from the Grove red wire through a Scotchlok UB2A tap, GND and SIG to the ADC terminal
     ux = 700 + 4.5 * 1.5
     o.append(line([(851, 440), (830, 440), (830, 275), (ux + 8, 275)], RED, 3))
-    o.append(f'<rect x="{ux - 8}" y="263" width="22" height="24" rx="4" fill="#d42020" stroke="#7a0f0f" stroke-width="1.5"/>')
-    o.append(f'<text x="{ux + 22}" y="258" class="sp">UB2A, ответвление</text>')
+    o.append(splice(ux, 275, "пайка", 12, -12))
     o.append(line([(851, 480), (730, 480), (730, 434)], YEL, 3))
     o.append(line([(851, 520), (660, 520), (660, 434)], BLK, 3))
     o.append('<text x="855" y="565" class="wl">3 × 0.25 в термоусадке,</text><text x="855" y="582" class="wl">в коробку через паз</text>')
