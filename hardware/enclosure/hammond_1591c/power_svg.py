@@ -176,13 +176,15 @@ def power_svg_nosolder():
     o.append(grove([(700, 214), (700, 340)], (WHT, YEL, BLK, RED)))
     o.append('<text x="660" y="300" class="wl" text-anchor="end">Grove 10 см</text>')
     # +12 V
-    o.append(line([(150, 95), (310, 95), (310, 354), (356, 354)], RED, 4))
-    o.append(fuse(195, 95, "F1 3 А"))
-    o.append('<text x="262" y="88" class="wl">0.75 красный</text>')
-    o.append(line([(356, 366), (330, 366), (330, 240), (530, 240), (530, 110), (556, 110)], RED, 4))
-    o.append('<text x="400" y="232" class="wl">перемычка 0.75 на «+»</text>')
-    o.append('<circle cx="350" cy="360" r="7" fill="#d42020" stroke="#111" stroke-width="1.5"/>')
-    o.append('<text x="440" y="432" class="sp" text-anchor="middle">COM: оба провода скрутить</text><text x="440" y="448" class="sp" text-anchor="middle">и вместе под один винт</text>')
+    # AUX1 -> F1 -> solder-seal Y splice outside the box -> two red 0.75: relay COM and DinMeter +
+    o.append(line([(150, 95), (222, 95)], RED, 4))
+    o.append(fuse(185, 95, "F1 3 А"))
+    o.append(line([(222, 95), (530, 95), (530, 110), (556, 110)], RED, 4))
+    o.append('<text x="300" y="86" class="wl">0.75 красный на «+» DinMeter</text>')
+    o.append(line([(222, 95), (222, 130), (310, 130), (310, 360), (356, 360)], RED, 4))
+    o.append('<text x="316" y="250" class="wl" transform="rotate(90 316 250)">0.75 красный на COM</text>')
+    o.append('<rect x="210" y="86" width="24" height="18" rx="5" fill="#ffffffcc" stroke="#c0392b" stroke-width="2"/>')
+    o.append('<text x="222" y="72" class="sp" text-anchor="middle">Y</text>')
     # ground
     o.append(line([(150, 495), (545, 495), (545, 150), (556, 150)], BLK, 3))
     o.append('<text x="290" y="512" class="wl">0.25 чёрный, прямо в «−» DinMeter</text>')
@@ -193,7 +195,7 @@ def power_svg_nosolder():
     o.append(line([(150, 185), (190, 185), (190, 320)], RED, 3))
     o.append(diode(190, 260, "down")); o.append('<text x="168" y="264" class="pl" text-anchor="end">D2</text>')
     o.append('<circle cx="190" cy="320" r="4" fill="#111"/>')
-    o.append('<text x="20" y="615" class="wl">F1: предохранитель MINI 3 А в держателе TC-Mini FK1 · D1, D2: диоды MINI в таких же держателях</text>')
+    o.append('<text x="20" y="615" class="wl">F1: MINI 3 А в держателе TC-Mini FK1 · D1, D2: диоды MINI в таких же держателях · Y и выводы держателей: термоусадочные соединители с припоем</text>')
     # sensor: +5 V from the Grove red wire through a Scotchlok UB2A tap, GND and SIG to the ADC terminal
     ux = 700 + 4.5 * 1.5
     o.append(line([(851, 440), (830, 440), (830, 275), (ux + 8, 275)], RED, 3))
