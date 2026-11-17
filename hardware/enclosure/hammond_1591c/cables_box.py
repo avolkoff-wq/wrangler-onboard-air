@@ -1,4 +1,4 @@
-"""Wrangler Air in the Hammond 1591S: every cable inside the box, with real lengths.
+"""Wrangler Air in the Hammond box (WA_BOX=1591s or 1591c, see layout_box.py): every cable inside the box, with real lengths.
 
 Grove cables are the flat 4-wire M5Stack ones (black, red, yellow, white, each about 1.3 mm), modelled wire by wire.
 M5Stack sells them by overall length: 5, 10, 20 cm (docs.m5stack.com/en/accessory/cable/Grove_Cable).
@@ -8,13 +8,13 @@ is the free ribbon that has to lie somewhere in the box.
 The cut-to-length wires (FLRY 1.5, Donau 0.25) follow the routes below; the cut length is the route plus 20 mm
 for stripping and the terminal or splice, rounded up to 5 mm.
 
-Run:  python3 cables_1591s.py
-Writes wrangler_air_1591s.step / .glb (box, parts and all cables) and cables_1591s.json (routes and lengths for the drawing).
+Run:  WA_BOX=1591c python3 cables_box.py
+Writes wrangler_air_<box>.step / .glb (box, parts and all cables) and cables_<box>.json (routes and lengths for the drawing).
 """
 import json
 import math
 import cadquery as cq
-import layout_1591s as L
+import layout_box as L
 
 PLUG = 7.0           # length of one Grove plug body along the cable
 WIRE_D = 1.3         # one Grove conductor
@@ -84,11 +84,13 @@ down = (0, -1, 0)
 # PORT.A (DinMeter, x -11.7) -> ADC (x +18): the spare lies as a flat U above the ADC, between the units and the lid
 A, Ab = L.DIN_A, L.ADC_GROVE
 ra = fit_loop(A, down, Ab, (0, -1, 0),
-              lambda h: [(-4.0, 20.0, 26.0), (14.0 + h, 20.0, 29.0), (14.0 + h, 29.0, 30.0), (12.0, 29.0, 28.0), (Ab[0], 24.0, 14.0), (Ab[0], Ab[1] + 5, Ab[2] + 1.5)], free)
+              lambda h: [(L.AXC - 22, Ab[1] + 3.5, 26.0), (L.AXC - 4 + h, Ab[1] + 3.5, 29.0), (L.AXC - 4 + h, Ab[1] + 12.5, 30.0), (L.AXC - 6, Ab[1] + 12.5, 28.0),
+                         (Ab[0], Ab[1] + 7.5, 14.0), (Ab[0], Ab[1] + 5, Ab[2] + 1.5)], free)
 # PORT.B (DinMeter, x -18) -> relay (x -23.5): the spare lies as a flat U above the relay
 B, Bb = L.DIN_B, L.REL_GROVE
 rb = fit_loop(B, down, Bb, (0, -1, 0),
-              lambda h: [(-17.0, 17.0, 27.0), (-15.0, 10.0 - h, 30.0), (-31.0, 10.0 - h, 31.0), (-31.0, 12.0, 27.0), (Bb[0], 25.0, 13.0), (Bb[0], Bb[1] + 5, Bb[2] + 1.5)], free)
+              lambda h: [(B[0] + 1, Bb[1] - 1.5, 27.0), (L.RXC + 8.5, Bb[1] - 8.5 - h, 30.0), (L.RXC - 7.5, Bb[1] - 8.5 - h, 31.0), (L.RXC - 7.5, Bb[1] - 6.5, 27.0),
+                         (Bb[0], Bb[1] + 6.5, 13.0), (Bb[0], Bb[1] + 5, Bb[2] + 1.5)], free)
 for name, pts, frm, to in (("grove_PORT_A_to_ADC", ra, "DinMeter PORT.A", "ADC v1.1"), ("grove_PORT_B_to_relay", rb, "DinMeter PORT.B", "Mini 3A Relay")):
     # across the ribbon: along z at the DinMeter (plug pins in a row along z), along x at the units (plugs lie flat)
     flat = []
@@ -102,7 +104,8 @@ for name, pts, frm, to in (("grove_PORT_A_to_ADC", ra, "DinMeter PORT.A", "ADC v
 # ---------- cut-to-length wires ----------
 S = L.SLOT_IN
 OUT = -L.L / 2 - 6          # 6 mm outside the lower end wall
-E_NO, E_12, E_G, E_SB = (-19.5, 20.0), (-16.3, 21.7), (-16.3, 18.3), (-12.8, 20.0)   # x, z of each wire in the slot
+SX, SZ = L.SLOT_X, L.SLOT_Z
+E_NO, E_12, E_G, E_SB = (SX - 3.5, SZ), (SX - 0.3, SZ + 1.7), (SX - 0.3, SZ - 1.7), (SX + 3.2, SZ)   # x, z of each wire in the slot
 SP12, SPG, BRK = (-6.0, -45.0, 14.0), (4.0, -45.0, 12.0), (2.0, -48.5, 8.0)
 # +5 V splice into the red conductor of the PORT.A Grove ribbon, a third of the way along it
 spl = cables[0]["wires"][1][2]
@@ -120,16 +123,16 @@ w("12V_to_relay_COM", [SP12, (SP12[0] - 5, SP12[1] + 1, SP12[2] + 1), (-21.0, -4
   "red", 2.2, "+12 V splice", "relay COM", FLRY_R)
 w("relay_NO_to_K2", [L.REL_PIN["NO"], (L.REL_PIN["NO"][0], L.REL_PIN["NO"][1] - 6, L.REL_PIN["NO"][2] + 2), (E_NO[0], S[1] + 4, E_NO[1]), (E_NO[0], OUT, E_NO[1])],
   "red", 2.2, "relay NO", "slot, on to D1 and K2 pin 86", FLRY_R)
-w("12V_to_DinMeter_plus", [SP12, (-8.0, -36.0, 19.0), (-8.0, 14.0, 24.0), (L.DIN_PLUS[0], 19.0, L.DIN_PLUS[2]), L.DIN_PLUS],
+w("12V_to_DinMeter_plus", [SP12, (L.CH_X - 1, -36.0, 19.0), (L.CH_X - 1, 14.0, 24.0), (L.DIN_PLUS[0], 19.0, L.DIN_PLUS[2]), L.DIN_PLUS],
   "orange", 1.0, "+12 V splice", "DinMeter terminal +", DON + " orange")
-w("GND_to_DinMeter_minus", [SPG, (-6.0, -36.0, 18.0), (-6.5, 14.0, 23.0), (L.DIN_MINUS[0], 18.5, L.DIN_MINUS[2]), L.DIN_MINUS],
+w("GND_to_DinMeter_minus", [SPG, (L.CH_X + 1, -36.0, 18.0), (L.CH_X + 0.5, 14.0, 23.0), (L.DIN_MINUS[0], 18.5, L.DIN_MINUS[2]), L.DIN_MINUS],
   "blue", 1.0, "GND splice", "DinMeter terminal -", DON + " blue")
 w("sensor_SIG", [BRK, (12.0, -42.0, 10.0), (L.ADC_PIN["IN"][0], L.ADC_PIN["IN"][1] - 7, L.ADC_PIN["IN"][2]), L.ADC_PIN["IN"]],
   "yellow", 1.0, "sensor bundle", "ADC IN", DON + " yellow")
 w("sensor_GND", [BRK, (14.0, -43.0, 9.0), (L.ADC_PIN["GND"][0], L.ADC_PIN["GND"][1] - 7, L.ADC_PIN["GND"][2]), L.ADC_PIN["GND"]],
   "black", 1.0, "sensor bundle", "ADC GND", DON + " black")
-w("sensor_5V", [BRK, (-2.0, -38.0, 16.0), (-3.0, 12.0, 21.0), spl], "red", 1.0, "sensor bundle", "splice into PORT.A Grove red", DON + " red")
-w("sensor_bundle", [(E_SB[0], OUT, E_SB[1]), (E_SB[0], S[1] + 3, E_SB[1]), (-6.0, S[1] + 2, 12.0), BRK], "shrink", 3.4, "slot", "breakout", "3 x Donau 0.25 in Electraline heat shrink")
+w("sensor_5V", [BRK, (L.CH_X + 5, -38.0, 16.0), (L.CH_X + 4, 12.0, 21.0), spl], "red", 1.0, "sensor bundle", "splice into PORT.A Grove red", DON + " red")
+w("sensor_bundle", [(E_SB[0], OUT, E_SB[1]), (E_SB[0], S[1] + 3, E_SB[1]), (SX + 10, S[1] + 2, 12.0), BRK], "shrink", 3.4, "slot", "breakout", "3 x Donau 0.25 in Electraline heat shrink")
 
 # ---------- assembly ----------
 asm = L.asm
@@ -153,7 +156,7 @@ if __name__ == "__main__":
             walk(ch, l)
     walk(asm)
     cab = [p for p in parts if p[0].startswith(("grove_P", "car_", "12V_", "GND_", "relay_NO", "sensor_"))]
-    solid = [p for p in parts if p not in cab and not p[0].startswith("shrink") and p[0] != "hammond_1591s_lid"]
+    solid = [p for p in parts if p not in cab and not p[0].startswith(("shrink", "boss_part")) and p[0] != f"{L.NAME}_lid"]
     lid_z = L.HB
     print("routes:")
     for c in cables:
@@ -171,11 +174,11 @@ if __name__ == "__main__":
                     worst.append(f"{m} ({vol:.1f} mm3)")
         top = s.BoundingBox().zmax
         print(f"  {n}: top z {top:.1f} (lid {lid_z}), hits: {worst}")
-    asm.save("wrangler_air_1591s.step")
-    asm.save("wrangler_air_1591s.glb", tolerance=0.2, angularTolerance=0.4)
+    asm.save(f"wrangler_air_{L.TAG}.step")
+    asm.save(f"wrangler_air_{L.TAG}.glb", tolerance=0.2, angularTolerance=0.4)
     r1 = lambda p: [round(q, 2) for q in p]
     json.dump({"cables": [{**{k: c[k] for k in ("name", "from", "to", "route", "stock", "colors")}, "pts": [r1(p) for p in c["pts"]],
                            "wires": [[r1(p) for p in ww] for ww in c["wires"]]} for c in cables],
                "wires": [{**x, "pts": [r1(p) for p in x["pts"]]} for x in wires],
-               "splices": {"12V": SP12, "GND": SPG, "breakout": BRK, "5V": r1(spl)}}, open("cables_1591s.json", "w"), indent=1)
+               "splices": {"12V": SP12, "GND": SPG, "breakout": BRK, "5V": r1(spl)}}, open(f"cables_{L.TAG}.json", "w"), indent=1)
     print("ok")

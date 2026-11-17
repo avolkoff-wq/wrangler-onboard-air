@@ -1,28 +1,60 @@
-"""Wrangler Air in a stock Hammond 1591SBK (110.1 x 82.2 x 44, black ABS), sizes from Hammond drawing 1591S REV 06.16.2023.
+"""Wrangler Air in a stock Hammond 1591 ABS box, DinMeter in the short end wall.
 
-The box stands upright with its lid against the tunnel wall. The DinMeter goes into the UPPER END WALL (the short side,
-82 x 44), screen up. Relay and ADC lie flat on the box bottom (the face towards the driver), Grove plugs towards the DinMeter. Car wires enter through
+Two boxes, picked with the environment variable WA_BOX (default 1591s):
+  1591s  Hammond 1591SBK, 110.1 x 82.2 x 44, drawing 1591S REV 06.16.2023
+  1591c  Hammond 1591CBK, 120 x 65 x 40, drawing 1591C REV 06.16.2023. The end face is close to the DinMeter bezel, so the
+         two lid bosses at the DinMeter end are cut down below BOSS_CUT_Z (they keep their top with the brass insert),
+         and the DinMeter sits low in the end wall so its back clip passes under what is left of the bosses.
+
+The box stands upright with its lid against the tunnel wall. The DinMeter goes into the UPPER END WALL (the short side), screen up. Relay and ADC lie flat on the box bottom (the face towards the driver), Grove plugs towards the DinMeter. Car wires enter through
 a slot in the lower end wall.
 Axes: x along the car (box width 82.2), y up (box length 110.1), z from the box bottom (0) to the lid (44).
 
-Writes wrangler_air_1591s.step / .glb and prints the cut-out coordinates and clearances.
+Prints collisions and clearances; cables_box.py adds the cables and writes the STEP and GLB.
 """
+import os
 import cadquery as cq
 
-W, L, HB, HL = 82.2, 110.1, 40.0, 4.0       # outside width (x), length (y), body height, lid
-IN_W, IN_L, FLOOR = 75.87, 103.77, 2.0
-BOSS_X, BOSS_Y, BOSS_D, BOSS_HOLE = 60.4, 88.3, 7.6, 2.5   # boss centres inside the box (boss dia estimated)
-RIB_D, RIB_W, RIB_H, RIB_PITCH = 1.0, 3.0, 34.9, 6.0      # card guides on the long walls (pitch estimated)
+TAG = os.environ.get("WA_BOX", "1591s")
+if TAG == "1591c":
+    W, L, HB, HL = 65.0, 120.0, 36.0, 4.0
+    IN_W, IN_L, FLOOR = 58.53, 113.53, 2.0
+    BOSS_X, BOSS_Y, BOSS_D, BOSS_HOLE = 42.35, 97.35, 7.6, 2.5
+    RIB_D, RIB_W, RIB_H, RIB_PITCH = 1.0, 3.0, 30.9, 6.0
+    DIN_X, DIN_Z = 0.0, 15.6          # low: the back clip (26.4 high) ends at z 28.8, under the boss stubs
+    BOSS_CUT_Z = 29.5                 # the two bosses at the DinMeter end are cut away from the floor up to this height
+    SLOT_X, SLOT_Z = -8.0, 18.0
+    RXC, RY0, AXC, AY0 = -15.5, -32.5, 15.5, -18.0
+    CH_X = 0.0                        # wire channel between relay and ADC
+else:
+    W, L, HB, HL = 82.2, 110.1, 40.0, 4.0       # outside width (x), length (y), body height, lid
+    IN_W, IN_L, FLOOR = 75.87, 103.77, 2.0
+    BOSS_X, BOSS_Y, BOSS_D, BOSS_HOLE = 60.4, 88.3, 7.6, 2.5   # boss centres inside the box (boss dia estimated)
+    RIB_D, RIB_W, RIB_H, RIB_PITCH = 1.0, 3.0, 34.9, 6.0      # card guides on the long walls (pitch estimated)
+    DIN_X, DIN_Z = 0.0, 20.0
+    BOSS_CUT_Z = None
+    SLOT_X, SLOT_Z = -16.0, 20.0
+    RXC, RY0, AXC, AY0 = -23.5, -36.0, 18.0, -22.0
+    CH_X = -7.0
+NAME = f"hammond_{TAG}"
 X_IN, Y_IN = IN_W / 2, IN_L / 2
 TOP_Y = L / 2
 
 box = (cq.Workplane("XY").rect(W, L).extrude(HB).edges("|Z").fillet(5.0).faces("<Z").edges().fillet(1.0))
 box = box.cut(cq.Workplane("XY").workplane(offset=FLOOR).rect(IN_W, IN_L).extrude(HB).edges("|Z").fillet(2.0))
+boss_cut = None
 for sx in (-1, 1):
     for sy in (-1, 1):
         c = (sx * BOSS_X / 2, sy * BOSS_Y / 2)
-        box = box.union(cq.Workplane("XY").workplane(offset=FLOOR).center(*c).circle(BOSS_D / 2).extrude(HB - FLOOR))
-        box = box.union(cq.Workplane("XY").workplane(offset=FLOOR).center(c[0] + sx * 4, c[1] + sy * 4).rect(6, 6).extrude(HB - FLOOR))
+        b = (cq.Workplane("XY").workplane(offset=FLOOR).center(*c).circle(BOSS_D / 2).extrude(HB - FLOOR)
+             .union(cq.Workplane("XY").workplane(offset=FLOOR).center(c[0] + sx * 4, c[1] + sy * 4).rect(6, 6).extrude(HB - FLOOR)))
+        if BOSS_CUT_Z and sy > 0:      # DinMeter end: the part below BOSS_CUT_Z is cut off (shown red in the model)
+            low = cq.Workplane("XY").box(20, 20, BOSS_CUT_Z - FLOOR).translate((c[0], c[1], (BOSS_CUT_Z + FLOOR) / 2))
+            part = b.intersect(low)
+            part = part.cut(cq.Workplane("XY").workplane(offset=0).rect(W, L).extrude(HB).cut(cq.Workplane("XY").rect(IN_W, IN_L).extrude(HB)))
+            boss_cut = part if boss_cut is None else boss_cut.union(part)
+            b = b.cut(low)
+        box = box.union(b)
         box = box.cut(cq.Workplane("XY").workplane(offset=HB - 12).center(*c).circle(BOSS_HOLE / 2).extrude(12))
 n = int((IN_L - 24) / RIB_PITCH)
 for i in range(n + 1):
@@ -32,12 +64,11 @@ for i in range(n + 1):
 lid = cq.Workplane("XY").rect(W, L).extrude(HL).edges("|Z").fillet(5.0).faces(">Z").edges().fillet(1.0).translate((0, 0, HB))
 
 # ---------- DinMeter in the upper end wall ----------
-DIN_X, DIN_Z = 0.0, 20.0
 CUT_W, CUT_H = 46.0, 22.8
 box = box.cut(cq.Workplane("XY").box(CUT_W, 10, CUT_H).translate((DIN_X, TOP_Y - 2, DIN_Z)))
 
 # ---------- wire slot in the lower end wall ----------
-SLOT_X, SLOT_Z, SLOT_L, SLOT_H = -16.0, 20.0, 14.0, 8.0
+SLOT_L, SLOT_H = 14.0, 8.0
 box = box.cut(cq.Workplane("XZ").workplane(offset=TOP_Y - 5).center(SLOT_X, SLOT_Z).slot2D(SLOT_L, SLOT_H, 0).extrude(8))
 
 def bx(sx, sy, sz, cx, cy, cz):
@@ -55,7 +86,6 @@ for nm, xx, zz, sx, sz, h, col in (("grove_plug_port_A", -11.7, -3, 4.6, 9.9, 8,
 
 # ---------- Unit Relay flat on the box bottom, long side along y: Grove plug up (towards the DinMeter), terminal down ----------
 # Both Grove plugs face the DinMeter, so 10 cm Grove cables reach; the relay terminal faces the wire slot.
-RXC, RY0 = -23.5, -36.0            # relay centre x, lower end y (case y -36..12)
 Z0 = FLOOR
 rel = cq.Assembly(name="mini_relay")
 rel.add(bx(24, 48, 8, RXC, RY0 + 24, Z0 + 4), name="case", color=cq.Color(0.93, 0.94, 0.95))
@@ -66,7 +96,6 @@ REL_GROVE = (RXC, RY0 + 48 + 6.5, Z0 + 4)          # where the Grove cable leave
 REL_PIN = {"COM": (RXC - 3.96, RY0, Z0 + 15), "NO": (RXC, RY0, Z0 + 15), "NC": (RXC + 3.96, RY0, Z0 + 15)}
 
 # ---------- Unit ADC v1.1 flat on the box bottom, long side along y: Grove plug up, terminal down ----------
-AXC, AY0 = 18.0, -22.0             # ADC centre x, lower end y (case y -22..10)
 adc = cq.Assembly(name="adc_v11")
 adc.add(bx(24, 32, 8, AXC, AY0 + 16, Z0 + 4), name="case", color=cq.Color(0.93, 0.94, 0.95))
 adc.add(bx(9, 8, 11, AXC, AY0 + 4.5, Z0 + 8 + 5.5), name="terminal_IN_GND", color=cq.Color(0.98, 0.45, 0.15))
@@ -80,9 +109,11 @@ DIN_B = (DIN_X - 18.0, DB - 8, DIN_Z - 3)
 DIN_PLUS, DIN_MINUS = (DIN_X - 15.1 + 1.3, DB - 10, DIN_Z + 7.6), (DIN_X - 15.1 - 1.3, DB - 10, DIN_Z + 7.6)
 SLOT_IN = (SLOT_X, -Y_IN, SLOT_Z)
 
-asm = cq.Assembly(name="wrangler_air_1591s")
-asm.add(box, name="hammond_1591s_body", color=cq.Color(0.16, 0.17, 0.19))
-asm.add(lid, name="hammond_1591s_lid", color=cq.Color(0.30, 0.32, 0.35))
+asm = cq.Assembly(name=f"wrangler_air_{TAG}")
+asm.add(box, name=f"{NAME}_body", color=cq.Color(0.16, 0.17, 0.19))
+asm.add(lid, name=f"{NAME}_lid", color=cq.Color(0.30, 0.32, 0.35))
+if boss_cut is not None:
+    asm.add(boss_cut, name="boss_part_to_cut_off", color=cq.Color(0.90, 0.10, 0.10, 0.55))
 asm.add(din); asm.add(rel); asm.add(adc)
 
 if __name__ == "__main__":
@@ -96,8 +127,8 @@ if __name__ == "__main__":
         for c in a.children:
             walk(c, l)
     walk(asm)
-    ok = {("hammond_1591s_body", "housing"), ("hammond_1591s_body", "bezel"), ("relay", "case"), ("terminal_COM_NO_NC", "case"),
-          ("hammond_1591s_body", "case"), ("bezel", "screen")}
+    ok = {(f"{NAME}_body", "housing"), (f"{NAME}_body", "bezel"), ("relay", "case"), ("terminal_COM_NO_NC", "case"),
+          (f"{NAME}_body", "case"), ("bezel", "screen")}
     bad = [(round(s1.intersect(s2).Volume(), 2), n1, n2) for (n1, s1), (n2, s2) in itertools.combinations(items, 2)
            if (n1, n2) not in ok and (n2, n1) not in ok and s1.intersect(s2).Volume() > 0.01]
     print("collisions:", bad)
@@ -106,9 +137,8 @@ if __name__ == "__main__":
     I = {}
     for n, s in items:
         I.setdefault(n, []).append(s)
-    body = I["hammond_1591s_body"][0]
+    body = I[f"{NAME}_body"][0]
     print("din housing - box (bosses)", d(I["housing"][0], body), "| relay grove plug - box", d(I["grove_plug"][0], body))
     print("adc - din plugs", min(d(I["case"][1], I[k][0]) for k in ("grove_plug_port_A", "grove_plug_port_B", "power_terminal_plug")),
           "| adc - relay", d(I["case"][1], I["case"][0]), "| relay - box (bosses)", d(I["case"][0], body))
-    asm.save("wrangler_air_1591s.step")
-    asm.save("wrangler_air_1591s.glb", tolerance=0.25, angularTolerance=0.4)
+
