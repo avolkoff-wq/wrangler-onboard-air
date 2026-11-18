@@ -4,3 +4,4 @@ __pycache__/
 node_modules/
 .pio/
 __pycache__/
+firmware/wrangler_air/*.ino.cpp
