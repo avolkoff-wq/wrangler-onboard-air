@@ -69,12 +69,12 @@ YIN, YOUT = -L.Y_IN + 6, -L.TOP_Y - 30  # just inside the lock nut, 30 mm outsid
 # drops from PORT.B over the relay plug, folds back under the DinMeter plugs and comes into the relay plug from their side.
 B, Bb = L.DIN_B, L.REL_GROVE
 w1 = fit_loop(B, down, Bb, (0, -1, 0),
-              lambda h: [(B[0] + 1, 16.0, 12.5), (Bb[0], 17.0, 10.2), (Bb[0], 26.0 + h, 9.6), (Bb[0], 28.0 + h, 7.6)], 50 - 2 * PLUG)
+              lambda h: [(B[0] + 1, 16.0, 12.5), (Bb[0], 16.5, 10.3), (Bb[0], 25.0 + h, 9.9), (Bb[0], 27.0 + h, 7.6)], 50 - 2 * PLUG)
 # W2: PORT.A -> along the free right half of the floor -> right gland -> outside (2 m, only the first 30 mm shown)
 A = L.DIN_A
 sx = gS[0] - 1.6
 w2 = [A, (A[0], A[1] - 4, A[2]), (A[0] + 6, A[1] - 12, 21.0), (sx, 0.0, 21.0), (sx, -30.0, gS[1]), (sx, YIN, gS[1]), (sx, YOUT, gS[1])]
-for name, pts, frm, to, stock, fl in (("W1_grove_PORT_B_to_relay", w1, "DinMeter PORT.B", "Mini 3A Relay", 50, None),
+for name, pts, frm, to, stock, fl in (("W1_grove_PORT_B_to_relay", w1, "DinMeter PORT.B", "Mini 3A Relay", 50, (1, 0, 0)),
                                      ("W2_grove_PORT_A_to_sensor", w2, "DinMeter PORT.A", "sensor (via gland, 2 m)", 2000, (1, 0, 0))):
     flat = [fl or norm((i / (len(pts) - 1), 0, 1 - i / (len(pts) - 1))) for i in range(len(pts))]
     cables.append({"name": name, "from": frm, "to": to, "pts": pts, "route": round(length(pts), 1), "stock": stock,
