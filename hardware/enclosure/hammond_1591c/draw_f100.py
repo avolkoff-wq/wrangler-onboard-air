@@ -89,9 +89,7 @@ COLS = {"black": "#111", "red": "#d42020", "yellow": "#e0a800", "white": "#9aa0a
 try:
     D = json.load(open(f"cables_{L.TAG}.json"))
     for c in D["cables"]:
-        o.append('<polyline fill="none" stroke="#555" stroke-width="7" stroke-linejoin="round" stroke-opacity=".35" points="' + " ".join(f"{P(p[0], p[1])[0]:.1f},{P(p[0], p[1])[1]:.1f}" for p in c["pts"]) + '"/>')
-        for k, col in enumerate(("black", "red", "yellow", "white")):
-            pass
+        o.append('<polyline fill="none" stroke="#9aa0a6" stroke-width="6" stroke-linejoin="round" stroke-opacity=".8" points="' + " ".join(f"{P(p[0], p[1])[0]:.1f},{P(p[0], p[1])[1]:.1f}" for p in c["pts"]) + '"/>')
     for x in D["wires"]:
         o.append(f'<polyline fill="none" stroke="{COLS[x["color"]]}" stroke-width="3" stroke-linejoin="round" points="' + " ".join(f"{P(p[0], p[1])[0]:.1f},{P(p[0], p[1])[1]:.1f}" for p in x["pts"]) + '"/>')
 except FileNotFoundError:

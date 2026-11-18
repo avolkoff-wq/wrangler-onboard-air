@@ -104,7 +104,7 @@ else:
     # ---- f100x: relay across the box next to the glands, terminal at the right. Right gland = sensor + ARB, left = power ----
     # W1 needs a 10 cm Grove here (free ribbon 86 mm): down the left side in a loop towards the lid, into the plug at the left end
     w1 = fit_loop(B, down, Bb, (1, 0, 0),
-                  lambda h: [(-23.0, 8.0, 20.0 + h), (-27.0, -6.0, 20.0 + h), (-29.5, -19.0, 11.0), (-30.6, -26.0, 7.5)], 100 - 2 * PLUG, kb=1.5)
+                  lambda h: [(-23.0, 8.0, 20.0 + h), (-27.0, -6.0, 20.0 + h), (-28.0, -19.0, 11.0), (-29.3, -26.0, 7.5)], 100 - 2 * PLUG, kb=1.5)
     w1_stock = 100
     # W2 Grove 2 m: PORT.A across to the right half, over the relay into the right gland
     gx = sx - 1.6
