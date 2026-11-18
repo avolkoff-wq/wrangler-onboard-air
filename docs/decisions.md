@@ -75,3 +75,7 @@
 - **Датчик 5 V + ADC v1.1:** вход ESP32 до 3,3 V, G1 занят на PORT.B. +5 V датчика от красного провода Grove PORT.A
   (единственная пайка, X4).
 - **Не использовать** запчасти Crown Automotive. Текст на экране DinMeter только латиницей.
+
+## 2026-11-19 Boot splash
+- VOLKOV AIR (AIR amber), version below, a generic SUV drives over two bumps; 1.6 s, a press skips it. No Jeep grille or logo. Mock-up: docs/screen/splash.gif. Outputs stay off during the splash.
+- Power off by switching AUX1 is fine: NVS and LittleFS survive a cut; mid-run the relays drop, the NC valve closes, only that run's hour-meter minutes and trace tail are lost.

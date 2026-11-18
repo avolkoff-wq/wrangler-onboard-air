@@ -961,6 +961,58 @@ void applyRotation() {
   canvas.createSprite(M5.Display.width(), M5.Display.height());
 }
 
+// ---------- boot splash: VOLKOV AIR, a generic SUV drives over bumps (1.6 s, a press skips it) ----------
+float splashGround(float x, float g, float k) {   // world x in landscape pixels, k = screen width / 240
+  x /= k;
+  return g - k * (12 * expf(-sq((x - 95) / 10)) + 9 * expf(-sq((x - 165) / 8)) - 3 * expf(-sq((x - 200) / 6)));
+}
+void splash() {
+  const int w = W(), h = H();
+  const bool port = h > w;
+  const float k = w / 240.0f, g = h - 23 * (port ? 2.0f : 1.0f);
+  const uint16_t grey = canvas.color565(110, 110, 110);
+  constexpr int N = 40, FRAME_MS = 40;
+  for (int i = 0; i < N; i++) {
+    const uint32_t t0 = millis();
+    if (digitalRead(PIN_BTN) == LOW) break;
+    const float t = i / float(N - 1), fade = min(1.0f, t * 2.2f);
+    canvas.fillSprite(TFT_BLACK);
+    for (int x = 0; x < w - 1; x++) canvas.drawLine(x, splashGround(x, g, k), x + 1, splashGround(x + 1, g, k), grey);
+    for (int x = 4; x < w; x += 11) canvas.drawPixel(x, splashGround(x, g, k) + 4, grey);
+    // SUV: wheels sit on the track, the body follows the line through both axles
+    const float xr = (-40 + t * 300) * k, wb = 26, yr = splashGround(xr, g, k) - 5, yf = splashGround(xr + wb, g, k) - 5;
+    const float a = atan2f(yf - yr, wb), ca = cosf(a), sa = sinf(a);
+    auto P = [&](float px, float py, int& ox, int& oy) { ox = lroundf(xr + px * ca + py * sa); oy = lroundf(yr + px * sa - py * ca); };
+    const float body[][2] = {{-7, 2}, {33, 2}, {33, 10}, {27, 10}, {23, 18}, {1, 18}, {-1, 10}, {-7, 10}};
+    for (int j = 0; j < 8; j++) {
+      int x0, y0, x1, y1; P(body[j][0], body[j][1], x0, y0); P(body[(j + 1) % 8][0], body[(j + 1) % 8][1], x1, y1);
+      canvas.drawLine(x0, y0, x1, y1, TFT_WHITE);
+    }
+    { int x0, y0, x1, y1; P(11, 10, x0, y0); P(11, 17, x1, y1); canvas.drawLine(x0, y0, x1, y1, TFT_WHITE); }
+    for (float wx : {xr, xr + wb}) {
+      const float wy = (wx == xr) ? yr : yf;
+      canvas.fillCircle(wx, wy, 5, TFT_BLACK); canvas.drawCircle(wx, wy, 5, TFT_WHITE); canvas.drawPixel(wx, wy, TFT_WHITE);
+    }
+    // title fades in
+    const uint8_t v = 255 * fade;
+    const uint16_t white = canvas.color565(v, v, v), amb = canvas.color565(255 * fade, 165 * fade, 0), gv = canvas.color565(110 * fade, 110 * fade, 110 * fade);
+    canvas.setFont(&fonts::FreeSansBold18pt7b); canvas.setTextDatum(top_left);
+    if (port) {
+      textAt("VOLKOV", w / 2, 30, &fonts::FreeSansBold18pt7b, white, top_center);
+      textAt("AIR", w / 2, 70, &fonts::FreeSansBold18pt7b, amb, top_center);
+      textAt(FW_VERSION, w / 2, 112, &fonts::Font2, gv, top_center);
+    } else {
+      const int tw = canvas.textWidth("VOLKOV "), aw = canvas.textWidth("AIR"), x0 = (w - tw - aw) / 2;
+      textAt("VOLKOV ", x0, 18, &fonts::FreeSansBold18pt7b, white, top_left);
+      textAt("AIR", x0 + tw, 18, &fonts::FreeSansBold18pt7b, amb, top_left);
+      textAt(FW_VERSION, w / 2, 58, &fonts::Font2, gv, top_center);
+    }
+    canvas.pushSprite(0, 0);
+    while (millis() - t0 < FRAME_MS) delay(1);
+  }
+  while (digitalRead(PIN_BTN) == LOW) delay(5);   // a press that skipped the splash does not reach the main screen
+}
+
 // ---------- setup / loop ----------
 void setup() {
   // outputs first: compressor and K4 must never twitch at boot
@@ -990,6 +1042,7 @@ void setup() {
   pump.begin(&sensor, &settings);
   cal.begin(&sensor, &settings);
   input::begin();
+  splash();          // outputs are already off; sensor and pump wait
 }
 
 void loop() {
