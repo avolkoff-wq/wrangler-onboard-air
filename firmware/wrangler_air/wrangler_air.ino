@@ -5,10 +5,11 @@
 // Every build keeps a log on the flash: menu UPDATE -> Wi-Fi WranglerAir -> http://192.168.4.1/log
 //
 // Controls
-//   turn            pick a typical pressure: ROAD 2.3, GRAVEL 1.5, TRAIL 1.2, ROCK 1.0, SAND 0.8, RECOVERY 0.5 bar
-//                   (config.h PRESETS); LOW shown below 0.8
-//   press           start / stop
-//   long press      menu: CALIBRATE, SENSOR (live volts for the bench), UNITS, OFFSET, SETTLE, SCREEN, RESET LEARNING, UPDATE, VERSION, EXIT
+//   turn            pick a typical pressure: HIGHWAY 2.5, ROUGH ROAD 1.8, GRAVEL 1.5, TRAIL 1.2, ROCK 1.0, SAND 0.8,
+//                   RECOVERY 0.5 bar, CUSTOM x.x (config.h PRESETS); LOW shown below 0.8
+//   press           start / stop; on CUSTOM it first opens the value: turn 0.1 bar steps, press OK = save and start,
+//                   long press = cancel (one look at the value before every custom run)
+//   long press      menu: CALIBRATE, SENSOR (live volts for the bench), UNITS, TYRE, OFFSET, SETTLE, SCREEN, RESET LEARNING, UPDATE, VERSION, EXIT
 //   SCREEN: press to turn the picture 90 degrees (WIDE, PORTRAIT, WIDE 180, PORTRAIT 180)
 //   OFFSET / SETTLE: press to edit, turn: AUTO or a fixed value, press to save
 //
@@ -32,7 +33,7 @@ Calibration cal;
 Ota ota;
 M5Canvas canvas(&M5.Display);
 
-enum class Screen { MAIN, MENU, EDIT, CAL, OTA, VERSION, SENSOR };
+enum class Screen { MAIN, MENU, EDIT, CAL, OTA, VERSION, SENSOR, CUSTOM };
 Screen screen = Screen::MAIN;
 int menuPos = 0;
 enum MenuItem { M_CAL, M_SENSOR, M_UNITS, M_TYRE, M_OFFSET, M_SETTLE, M_SCREEN, M_RESET, M_UPDATE, M_VERSION, M_EXIT };
@@ -61,6 +62,7 @@ constexpr int SET_N = 19;                     // 1.0 .. 10.0 s
 float offVal(int i) { return i * 0.05f; }
 float setVal(int i) { return 0.5f + i * 0.5f; }
 int editItem = M_OFFSET, editIdx = 0;
+float customEdit = 2.0f;   // value being set on the CUSTOM screen
 uint32_t resetArm = 0;   // RESET LEARNING waits for a second press
 int offIdx() { return settings.offAuto ? 0 : constrain((int)roundf(settings.offManual / 0.05f), 1, OFF_N); }
 int setIdx() { return settings.settleAuto ? 0 : constrain((int)roundf((settings.settleManual - 0.5f) / 0.5f), 1, SET_N); }
@@ -219,6 +221,15 @@ void drawEdit() {
   canvas.pushSprite(0, 0);
 }
 
+void drawCustom() {   // CUSTOM preset value, cyan big number (orange below TARGET_LOW_WARN)
+  canvas.fillSprite(TFT_BLACK);
+  const bool low = customEdit < TARGET_LOW_WARN;
+  drawLines({ {fmt(customEdit), F_DIGIT, low ? TFT_ORANGE : TFT_CYAN},
+              {String(unitName()) + (low ? "  LOW" : ""), F_TEXT, low ? TFT_ORANGE : TFT_LIGHTGREY},
+              {"CUSTOM: turn 0.1, press: OK", F_TEXT, TFT_WHITE} });
+  canvas.pushSprite(0, 0);
+}
+
 void drawCal() {
   canvas.fillSprite(TFT_BLACK);
   const int i = cal.index();
@@ -330,10 +341,10 @@ void loop() {
   switch (screen) {
     case Screen::MAIN: {
       if (steps && !pump.busy()) {
-        // the knob steps through the typical pressures (config.h PRESETS), clockwise = higher
+        // the knob steps through the typical pressures (config.h PRESETS), clockwise = higher; CUSTOM is last
         int i = constrain((int)settings.preset - steps, 0, N_PRESETS - 1);
-        while (PRESETS[i].bar < TARGET_MIN && i > 0) i--;      // inflate-only builds keep all; deflate build stops at 0.5
-        settings.preset = i; settings.target = PRESETS[i].bar;
+        while (settings.presetBar(i) < TARGET_MIN && i > 0) i--;
+        settings.preset = i; settings.target = settings.presetBar(i);
         pump.clearResult();
       }
       static bool dirty = false; static uint32_t lastTurn = 0;
@@ -343,6 +354,7 @@ void loop() {
       if (b == input::Btn::SHORT) {
         if (pump.busy()) pump.stop();
         else if (pump.state() == PState::DONE || pump.state() == PState::ERROR) pump.clearResult();
+        else if (settings.preset == P_CUSTOM) { customEdit = settings.custom; screen = Screen::CUSTOM; }   // check the value first
         else pump.start();
       }
       if (b == input::Btn::LONG && !pump.busy()) { screen = Screen::MENU; menuPos = 0; }
@@ -393,6 +405,17 @@ void loop() {
       }
       if (b == input::Btn::LONG) screen = Screen::MENU;   // leave without saving
       if (screen == Screen::EDIT) drawEdit();
+      break;
+
+    case Screen::CUSTOM:   // CUSTOM preset: turn 0.1 bar, press = save and start, long = cancel
+      if (steps) customEdit = roundf(constrain(customEdit + steps * TARGET_STEP, TARGET_MIN, TARGET_MAX) * 10) / 10.0f;
+      if (b == input::Btn::SHORT) {
+        settings.custom = settings.target = customEdit; settings.save();
+        wlog::ev("CUSTOM_SET", wlog::kv("custom", settings.custom, 2));
+        screen = Screen::MAIN; pump.start();
+      }
+      if (b == input::Btn::LONG) screen = Screen::MAIN;
+      if (screen == Screen::CUSTOM) drawCustom();
       break;
 
     case Screen::CAL:

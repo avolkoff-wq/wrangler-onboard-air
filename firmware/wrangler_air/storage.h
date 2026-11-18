@@ -5,6 +5,7 @@
 
 struct Settings {
   uint8_t preset = 0;             // index into PRESETS (config.h); the target follows it
+  float custom  = PRESETS[P_CUSTOM].bar; // bar, value of the CUSTOM preset
   float target  = PRESETS[0].bar; // bar
   bool  psi     = false;          // display units
   uint8_t rot   = 1;              // screen rotation: 1 wide (knob right), 0 portrait, 3 / 2 the same turned 180
@@ -33,11 +34,13 @@ struct Settings {
   uint32_t bootN = 0;             // power-up counter, first column of the log
   uint8_t tyre  = 0;              // index into TYRES (config.h)
   float airL() const { return airVL(tyre); }
+  float presetBar(int i) const { return i == P_CUSTOM ? custom : PRESETS[i].bar; }
 
   void load() {
     Preferences p; p.begin("air", true);
     preset       = p.getUChar("preset", preset); if (preset >= N_PRESETS) preset = 0;
-    target       = PRESETS[preset].bar;
+    custom       = constrain(p.getFloat("custom", custom), TARGET_MIN, TARGET_MAX);
+    target       = presetBar(preset);
     psi          = p.getBool ("psi", psi);
     rot          = p.getUChar("rot", rot) & 3;
     offAuto      = p.getBool ("offAuto", offAuto);
@@ -66,6 +69,7 @@ struct Settings {
   void save() const {
     Preferences p; p.begin("air", false);
     p.putUChar("preset", preset);
+    p.putFloat("custom", custom);
     p.putFloat("target", target);
     p.putBool ("psi", psi);
     p.putUChar("rot", rot);

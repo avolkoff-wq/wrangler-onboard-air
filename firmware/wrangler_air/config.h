@@ -72,15 +72,18 @@ constexpr float TARGET_STEP      = 0.1f;
 // Typical pressures: the knob steps through these instead of 0.1 bar. Latin names only (screen font).
 // 255/75R17 without beadlocks. Below 0.8 bar the screen shows LOW.
 struct Preset { const char* name; float bar; };
-constexpr Preset PRESETS[] = {      // owner's list, 18.11.2026
-  {"ROAD",     2.3f},   // 33 psi
-  {"GRAVEL",   1.5f},   // 22 psi: gravel, dirt roads, washboard
-  {"TRAIL",    1.2f},   // 17 psi: trails, mud, snow
-  {"ROCK",     1.0f},   // 15 psi: rocks, slow crawling
-  {"SAND",     0.8f},   // 12 psi: sand, dunes
-  {"RECOVERY", 0.5f},   //  7 psi: stuck in soft sand, walking pace only
+constexpr Preset PRESETS[] = {      // owner's list, 18.11.2026, high to low; index 0 = default
+  {"HIGHWAY",    2.5f}, // 36 psi: factory door placard 37 psi (LT255/75R17 and LT285/70R17), Swiss motorway
+  {"ROUGH ROAD", 1.8f}, // 26 psi: broken asphalt, comfort
+  {"GRAVEL",     1.5f}, // 22 psi: gravel, dirt roads, washboard
+  {"TRAIL",      1.2f}, // 17 psi: trails, mud, snow
+  {"ROCK",       1.0f}, // 15 psi: rocks, slow crawling
+  {"SAND",       0.8f}, // 12 psi: sand, dunes
+  {"RECOVERY",   0.5f}, //  7 psi: stuck in soft sand, walking pace only
+  {"CUSTOM",     2.0f}, // own value, set with the knob in 0.1 bar steps (NVS "custom"); 2.0 is only the default
 };
 constexpr int N_PRESETS = sizeof(PRESETS) / sizeof(PRESETS[0]);
+constexpr int P_CUSTOM  = N_PRESETS - 1;   // the last preset is CUSTOM
 constexpr float STOP_MARGIN      = 0.10f;  // stop margin before anything is learned
 constexpr float MARGIN_MIN       = 0.03f;  // adaptive margin limits
 constexpr float MARGIN_MAX       = 0.15f;
