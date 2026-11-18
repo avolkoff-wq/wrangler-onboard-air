@@ -3,6 +3,8 @@
 Контроллер бортового компрессора ARB Twin (CKMTA12) для Jeep Wrangler JL на M5Stack DinMeter.
 Задаёшь целевое давление энкодером, нажимаешь, система подкачивает 4 колеса сама и останавливается на цели.
 
+**Актуальное состояние:** [docs/decisions.md](docs/decisions.md) (решения), [docs/bom.md](docs/bom.md) (закупка), [hardware/enclosure/hammond_1591c/box_f100.png](hardware/enclosure/hammond_1591c/box_f100.png) (корпус), [power_schematic.png](hardware/enclosure/hammond_1591c/power_schematic.png) (схема). Разделы ниже про плату Perma-Proto описывают прежний вариант, сейчас сборка на модулях M5 Grove (реле + ADC).
+
 ## Как устроено
 
 - **AUX1** питает DinMeter и плату. DinMeter читает датчик давления и через PhotoMOS K1 включает силовое реле компрессора K2.
