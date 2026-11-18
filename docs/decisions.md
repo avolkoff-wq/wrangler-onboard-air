@@ -4,12 +4,12 @@
 
 ## 18.11.2026 (своя коробка)
 
-- **Своя печатная коробка с крышкой на защёлках, два исполнения (отдельные чертежи):**
-  `cust` (схема A, без ADC) 54 x 100 x 36: `box_cust.png`, `box_cust_3d.html`, STL `box_cust_body.stl` / `box_cust_lid.stl`.
-  `cust_adc` (схема B, с ADC) 60 x 100 x 36: `box_cust_adc.png`, `box_cust_adc_3d.html`, STL `box_cust_adc_body.stl` / `box_cust_adc_lid.stl`.
+- **Своя печатная коробка с крышкой на защёлках, одна на обе схемы:** 60 x 100 x 36, печатные файлы `box_cust_adc_body` / `box_cust_adc_lid` (.stl для печати, .step для CAD).
+  Чертежи раскладки отдельно: `box_cust.png` / `box_cust_3d.html` (схема A, без ADC, место ADC пустое), `box_cust_adc.png` / `box_cust_adc_3d.html` (схема B, с ADC).
+  Узкий вариант 54 мм убран: печатаем один корпус, при переходе A → B перепечатывать не надо.
   Стенки и дно 2 мм, крышка 2 мм с бортиком 1,5 x 3,5 и 4 защёлками (крючок 1,2 мм, зуб 0,8, гнёзда в стенке 1,0), паз под отвёртку.
-  DinMeter в верхнем торце, два ввода M12 в нижнем торце (±12 мм, высота 18). Печать PETG или ASA, крышкой вниз не печатать.
-  Модель: `WA_BOX=cust` / `cust_adc` в `layout_box.py`, провода `cables_f100.py`, чертёж `draw_f100.py`, STL `export_cust_stl.py`.
+  DinMeter в верхнем торце (окно 46 x 22,8, просто вставляется), два ввода M12 в нижнем торце (±12 мм, высота 18). Печать PETG или ASA.
+  Модель: `WA_BOX=cust` / `cust_adc` в `layout_box.py`, провода `cables_f100.py`, чертёж `draw_f100.py`, STL/STEP `WA_BOX=cust_adc python3 export_cust_stl.py`.
 - **Длины проводов (мм):** cust: GND 140, +12 V 140, COM 100, VT 70.
   cust_adc: GND 145, +12 V 140, COM 75, VT 100, датчик GND/IN 85, +5 V к X4 135.
 

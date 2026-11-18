@@ -24,7 +24,7 @@ if TAG in ("cust", "cust_adc"):
     # Own printed box (PETG/ASA), made to fit: cust = schematic A (no ADC), cust_adc = schematic B (ADC v1.1 next to the relay).
     # Walls and floor 2 mm, flat lid 2 mm held by 4 snap hooks. DinMeter in the upper end wall, two M12 glands in the lower one.
     ADC_IN = TAG == "cust_adc"
-    IN_W = 56.0 if ADC_IN else 50.0
+    IN_W = 56.0                       # one printed box for both schematics (A leaves the ADC place empty)
     IN_L, FLOOR, WALL = 96.0, 2.0, 2.0
     W, L, HB, HL = IN_W + 2 * WALL, IN_L + 2 * WALL, 34.0, 2.0
     BOSS_X = BOSS_Y = BOSS_D = BOSS_HOLE = None
@@ -34,7 +34,7 @@ if TAG in ("cust", "cust_adc"):
     SLOT_X, SLOT_Z = 8.0, 18.0
     GLANDS = ((-12.0, 18.0), (12.0, 18.0))
     GLAND_SENSOR, GLAND_POWER = (1, 0) if ADC_IN else (0, 1)
-    RXC, RY0, AXC, AY0 = (-15.5 if ADC_IN else -12.5), -34.0, 15.5, -18.0
+    RXC, RY0, AXC, AY0 = -15.5, -34.0, 15.5, -18.0
     REL_ACROSS = False
     CH_X = 0.0
     SNAP = True
