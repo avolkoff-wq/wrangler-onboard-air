@@ -7,6 +7,7 @@
 #include "config.h"
 #include "sensor.h"
 #include "storage.h"
+#include "log.h"
 
 enum class CState { OFF, ZERO_WAIT, PUMPING, SETTLING, ENTER, DONE, FAILED };
 
@@ -32,8 +33,8 @@ class Calibration {
   // button press: confirm current step
   void press() {
     switch (state_) {
-      case CState::ZERO_WAIT: raw_[0] = s_->rawBar(); ref_[0] = 0; i_ = 1; pumpTo(); break;
-      case CState::ENTER:     ref_[i_] = entry_; if (++i_ < N) pumpTo(); else finish(); break;
+      case CState::ZERO_WAIT: raw_[0] = s_->rawBar(); ref_[0] = 0; logPoint(0); i_ = 1; pumpTo(); break;
+      case CState::ENTER:     ref_[i_] = entry_; logPoint(i_); if (++i_ < N) pumpTo(); else finish(); break;
       case CState::DONE: case CState::FAILED: state_ = CState::OFF; break;
       default: break;
     }
@@ -42,7 +43,7 @@ class Calibration {
   void update() {
     const uint32_t now = millis();
     if (state_ == CState::PUMPING) {
-      if (s_->fault() || now - t0_ > 180000UL) { relay(false); state_ = CState::FAILED; return; }
+      if (s_->fault() || now - t0_ > 180000UL) { relay(false); state_ = CState::FAILED; wlog::ev("CAL_FAIL", "reason=sensor_or_timeout;"); return; }
       if (now - t0_ > DEAD_AFTER_MS && s_->rawBar() < DEAD_BAR) { relay(false); state_ = CState::FAILED; return; }  // wire broken
       // stop a bit before the point using the raw line minus the default offset
       if (s_->rawBar() - DEFAULT_OFFSET >= points[i_] - 0.05f || s_->rawBar() > TARGET_MAX + 0.6f) {
@@ -56,18 +57,20 @@ class Calibration {
   }
 
  private:
-  void relay(bool on) { digitalWrite(PIN_K1, on ? HIGH : LOW); }
+  void relay(bool on) { if (on && PIN_K4 >= 0) digitalWrite(PIN_K4, LOW); digitalWrite(PIN_K1, on ? HIGH : LOW); }
+  void logPoint(int k) { wlog::ev("CAL_POINT", wlog::kv("n", (float)k, 0) + wlog::kv("raw", raw_[k]) + wlog::kv("gauge", ref_[k], 2)); }
   void pumpTo() { relay(true); state_ = CState::PUMPING; t0_ = millis(); }
   void finish() {
     float sx = 0, sy = 0, sxx = 0, sxy = 0;
     for (int k = 0; k < N; k++) { sx += raw_[k]; sy += ref_[k]; sxx += raw_[k] * raw_[k]; sxy += raw_[k] * ref_[k]; }
     const float d = N * sxx - sx * sx;
-    if (fabsf(d) < 1e-6f) { state_ = CState::FAILED; return; }
+    if (fabsf(d) < 1e-6f) { state_ = CState::FAILED; wlog::ev("CAL_FAIL", "reason=flat;"); return; }
     const float a = (N * sxy - sx * sy) / d;
     const float b = (sy - a * sx) / N;
-    if (a < 0.7f || a > 1.3f || fabsf(b) > 0.5f) { state_ = CState::FAILED; return; }  // implausible
+    if (a < 0.7f || a > 1.3f || fabsf(b) > 0.5f) { state_ = CState::FAILED; wlog::ev("CAL_FAIL", wlog::kv("a", a, 4) + wlog::kv("b", b)); return; }  // implausible
     fitErr_ = 0;
     for (int k = 0; k < N; k++) fitErr_ = max(fitErr_, fabsf(a * raw_[k] + b - ref_[k]));
+    wlog::ev("CAL_DONE", wlog::mv("calA", st_->calA, a, 4) + wlog::mv("calB", st_->calB, b) + wlog::kv("fit_err", fitErr_));
     st_->calA = a; st_->calB = b; st_->save();
     state_ = CState::DONE;
   }

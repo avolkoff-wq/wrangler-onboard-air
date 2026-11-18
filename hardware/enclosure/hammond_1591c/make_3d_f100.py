@@ -44,12 +44,14 @@ t = t.replace("label=NAMES[o.name]||''", "label=lbl(o.name)", 1)
 if CUST:
     adc = TAG == "cust_adc"
     t = t.replace("<title>Box F100 3D</title>", f"<title>Snap Box {'ADC' if adc else 'Direct'} 3D</title>")
-    t = re.sub(r"<h1>.*?</h1>", f"<h1>Wrangler Air, own printed box {'60' if adc else '54'}×100×36 with snap lid, " + ("schematic B (ADC)" if adc else "schematic A (no ADC)") + "</h1>", t, count=1, flags=re.S)
+    dfl = TAG == "cust_def"
+    t = re.sub(r"<h1>.*?</h1>", "<h1>Wrangler Air, own printed box 60×100×36 with snap lid, " + ("schematic B (ADC)" if adc else "schematic C (Unit 2Relay + deflate valve)" if dfl else "schematic A (no ADC)") + "</h1>", t, count=1, flags=re.S)
     t = re.sub(r'<span class="sub">.*?</span>', '<span class="sub">Printed box, walls 2 mm, flat 2 mm lid on four snap hooks. DinMeter in the upper end wall, '
                'two M12 cable glands in the lower end wall. ' + ('Relay left, ADC right (Grove 5 cm and 10 cm); right gland: sensor wires orange, blue, yellow to the ADC and the violet ARB wire, left gland: power.'
-               if adc else 'Relay along on the left, Grove 5 cm from PORT.B; left gland: 2 m Grove to the sensor and the violet ARB wire, right gland: power.')
+               if adc else 'Unit 2Relay along the left wall, Grove 5 cm from PORT.B (yellow = channel 1 compressor, white = channel 2 valve); left gland: 2 m Grove to the sensor and the violet ARB wire, right gland: power and the orange valve wire.'
+               if dfl else 'Relay along on the left, Grove 5 cm from PORT.B; left gland: 2 m Grove to the sensor and the violet ARB wire, right gland: power.')
                + ' Hover or tap a part for its name. For scale: Galaxy Z Fold7 folded and a cigarette pack (photo: Wikimedia Commons, AKS.9955, CC BY-SA 4.0).</span>', t, count=1, flags=re.S)
     t = t.replace("Box base, black ABS 100×68×36 (window and gland holes cut)", "Printed box, walls 2 mm").replace("Clear PC lid, 14 mm", "Lid 2 mm on 4 snap hooks")
-    t = t.replace('relay_NO_to_ARB:"Relay NO', 'W2_grove_PORT_A_to_ADC:"W2 Grove 10 cm, PORT.A to ADC",sensor_GND_to_ADC:"Sensor ground to ADC GND, blue",sensor_signal_to_ADC:"Sensor signal to ADC IN, yellow",sensor_5V_to_X4:"Sensor +5 V, orange, soldered onto the red conductor of W2 (-X4)",relay_NO_to_ARB:"Relay NO', 1)
+    t = t.replace('relay_NO_to_ARB:"Relay NO', 'W2_grove_PORT_A_to_ADC:"W2 Grove 10 cm, PORT.A to ADC",sensor_GND_to_ADC:"Sensor ground to ADC GND, blue",sensor_signal_to_ADC:"Sensor signal to ADC IN, yellow",sensor_5V_to_X4:"Sensor +5 V, orange, soldered onto the red conductor of W2 (-X4)",relay_K2_NO_to_valve:"2Relay channel 2 NO to the deflate valve, orange 20 AWG",jumper_COM1_COM2:"Jumper COM1 to COM2, red 20 AWG",relay_1:"2Relay channel 1 (compressor)",relay_2:"2Relay channel 2 (deflate valve)",terminal_K1:"Channel 1 terminal: COM red, NO violet",terminal_K2:"Channel 2 terminal: COM red jumper, NO orange",relay_NO_to_ARB:"Relay NO', 1)
 open(f"box_{TAG}_3d.html", "w", encoding="utf-8").write(t)
 print(len(t))

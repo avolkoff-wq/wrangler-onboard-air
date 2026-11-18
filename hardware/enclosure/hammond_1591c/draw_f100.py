@@ -62,7 +62,7 @@ o = []
 # ---------------- top view, lid off (x right, y up: DinMeter end at the top) ----------------
 OX, OY = 110 + L.W / 2 * k, 90 + (L.L / 2 + 3) * k
 P = lambda x, y: (OX + x * k, OY - y * k)
-o.append(T(OX, 40, ("Вид сверху, крышка снята" + (", реле поперёк" if L.REL_ACROSS else ", реле вдоль")) if not L.SNAP else (f"Своя коробка {L.W:g}×{L.L:g}×{L.HB + L.HL:g}, " + ("с ADC (схема B)" if L.TAG == "cust_adc" else "без ADC (схема A)")), "ttl"))
+o.append(T(OX, 40, ("Вид сверху, крышка снята" + (", реле поперёк" if L.REL_ACROSS else ", реле вдоль")) if not L.SNAP else (f"Своя коробка {L.W:g}×{L.L:g}×{L.HB + L.HL:g}, " + ({"cust_adc": "с ADC (схема B)", "cust_def": "2Relay + клапан спуска (схема C)"}.get(L.TAG, "без ADC (схема A)"))), "ttl"))
 a, b = P(-L.W / 2, L.L / 2), P(L.W / 2, -L.L / 2); o.append(R(*a, *b, "part", 6 * k / 5))
 a, b = P(-L.IN_W / 2, L.IN_L / 2), P(L.IN_W / 2, -L.IN_L / 2); o.append(R(*a, *b, "inner", 6))
 for sx in ((-1, 1) if L.BOSS_D else ()):
@@ -91,10 +91,17 @@ for xx in (-11.7, -18.0):
 a, b = P(-15.1 - 4.4, L.DB), P(-15.1 + 4.4, L.DB - 10); o.append(R(*a, *b, "term"))
 o.append(T(P(-11.7, 0)[0] + 18, P(0, L.DB - 5)[1], "A", "lab", "start")); o.append(T(P(-18, 0)[0] - 8, P(0, L.DB - 5)[1], "B", "lab", "end"))
 # relay (schematic A: no ADC)
-for key, cls in (("case", "mod"), ("plug", "plug"), ("term", "term")):
+for key, cls in (("case", "mod"), ("plug", "plug"), ("term", "term"), ("term2", "term"), ("relay1", "din"), ("relay2", "din")):
+    if key not in L.REL_FOOT:
+        continue
     x0, y0, x1, y1 = L.REL_FOOT[key]; a, b = P(x0, y1), P(x1, y0); o.append(R(*a, *b, cls, 3 if key == "case" else 0))
 cx0, cy0, cx1, cy1 = L.REL_FOOT["case"]
-o.append(T(P((cx0 + cx1) / 2, 0)[0], P(0, (cy0 + cy1) / 2)[1] + 4, "Relay"))
+if L.REL2:
+    for key, t in (("relay1", "K1"), ("relay2", "K2")):
+        x0, y0, x1, y1 = L.REL_FOOT[key]; o.append(T(P((x0 + x1) / 2, 0)[0], P(0, (y0 + y1) / 2)[1] + 4, t, "labw"))
+    o.append(T(P((cx0 + cx1) / 2, 0)[0], P(0, cy0)[1] + 16, "2Relay", "lab"))
+else:
+    o.append(T(P((cx0 + cx1) / 2, 0)[0], P(0, (cy0 + cy1) / 2)[1] + 4, "Relay"))
 # cables from cables_<box>.json (top view)
 import json
 COLS = {"black": "#111", "red": "#d42020", "yellow": "#e0a800", "white": "#9aa0a6", "violet": "#7b2cbf", "blue": "#1f5fd6", "orange": "#f07a00"}
@@ -107,11 +114,12 @@ try:
 except FileNotFoundError:
     pass
 # two M12 cable glands in the lower end wall: lock nut inside, body and dome nut outside
-for gx, gz in L.GLANDS:
-    a, b = P(gx - 9, -L.Y_IN + 5), P(gx + 9, -L.Y_IN); o.append(R(*a, *b, "plug"))           # lock nut
+for gi, (gx, gz) in enumerate(L.GLANDS):
+    nr = 11 if (L.GLAND_D_LIST and L.GLAND_D_LIST[gi] > 13) else 9
+    a, b = P(gx - nr, -L.Y_IN + 5), P(gx + nr, -L.Y_IN); o.append(R(*a, *b, "plug"))           # lock nut
     a, b = P(gx - 8, -L.TOP_Y), P(gx + 8, -L.TOP_Y - 4); o.append(R(*a, *b, "post"))         # hex
     a, b = P(gx - 6.5, -L.TOP_Y - 4), P(gx + 6.5, -L.TOP_Y - 16); o.append(R(*a, *b, "post", 6))  # dome nut
-o.append(T(P(L.GLANDS[L.GLAND_POWER][0], 0)[0], P(0, -L.TOP_Y - 16)[1] + 16, "питание", "note"))
+o.append(T(P(L.GLANDS[L.GLAND_POWER][0], 0)[0], P(0, -L.TOP_Y - 16)[1] + 16, ("питание + клапан" if L.REL2 else "питание"), "note"))
 o.append(T(P(L.GLANDS[L.GLAND_SENSOR][0], 0)[0], P(0, -L.TOP_Y - 16)[1] + 16, "датчик + ARB", "note"))
 # dims
 o.append(dim_h(*[P(x, 0)[0] for x in (-L.W / 2, L.W / 2)], P(0, L.TOP_Y)[1] - 28, f"{L.W:g}"))
@@ -167,7 +175,7 @@ a, b = S(ry0, F + 8), S(ry1, F); o.append(R(*a, *b, "mod", 2))
 a, b = S(ty0, F + 20), S(ty1, F + 8); o.append(R(*a, *b, "term"))
 if not L.REL_ACROSS:
     a, b = S(py0, F + 6.3), S(py1, F + 1.7); o.append(R(*a, *b, "plug"))
-o.append(T(S((ry0 + ry1) / 2, 0)[0], S(0, F + 4)[1] + 4, "Relay"))
+o.append(T(S((ry0 + ry1) / 2, 0)[0], S(0, F + 4)[1] + 4, "2Relay" if L.REL2 else "Relay"))
 gz = L.GLANDS[0][1]
 a, b = S(-L.Y_IN, gz + 9), S(-L.Y_IN + 5, gz - 9); o.append(R(*a, *b, "plug"))
 a, b = S(-L.TOP_Y - 4, gz + 8), S(-L.TOP_Y, gz - 8); o.append(R(*a, *b, "post"))
@@ -182,9 +190,13 @@ G = lambda x, z: (GX0 + (x + L.W / 2) * k, GZ - z * k)
 o.append(T(OX, GZ - (L.HB + L.HL) * k - 22, "Нижний торец, вид снаружи: 2 ввода M12", "ttl"))
 a, b = G(-L.W / 2, L.HB), G(L.W / 2, 0); o.append(R(*a, *b, "part", 4))
 a, b = G(-L.W / 2, L.HB + L.HL), G(L.W / 2, L.HB); o.append(R(*a, *b, "lid", 4))
-for gx, gz in L.GLANDS:
-    o.append(C(*G(gx, gz), 9 * k, "hid")); o.append(C(*G(gx, gz), L.GLAND_D / 2 * k, "win"))
-o.append(T(G(0, 0)[0], G(0, L.GLANDS[0][1])[1] + 4, "Ø12", "dt"))
+for gi, (gx, gz) in enumerate(L.GLANDS):
+    gd = L.GLAND_D_LIST[gi] if L.GLAND_D_LIST else L.GLAND_D
+    o.append(C(*G(gx, gz), (11 if gd > 13 else 9) * k, "hid")); o.append(C(*G(gx, gz), gd / 2 * k, "win"))
+    if L.GLAND_D_LIST:
+        o.append(T(G(gx, 0)[0], G(0, gz)[1] + gd / 2 * k + 16, f"Ø{gd:.1f}", "dt"))
+if not L.GLAND_D_LIST:
+    o.append(T(G(0, 0)[0], G(0, L.GLANDS[0][1])[1] + 4, "Ø12", "dt"))
 o.append(dim_h(G(-L.W / 2, 0)[0], G(L.GLANDS[0][0], 0)[0], G(0, 0)[1] + 22, f"{L.W/2 + L.GLANDS[0][0]:.0f}", above=False))
 o.append(dim_h(G(L.GLANDS[0][0], 0)[0], G(L.GLANDS[1][0], 0)[0], G(0, 0)[1] + 22, f"{L.GLANDS[1][0]-L.GLANDS[0][0]:.0f}", above=False))
 o.append(dim_v(G(-L.W / 2, 0)[0] - 14, G(0, L.GLANDS[0][1])[1], G(0, 0)[1], f"{L.GLANDS[0][1]:.0f}"))

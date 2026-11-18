@@ -19,11 +19,14 @@ TAG = os.environ.get("WA_BOX", "1591s")
 PCB_BOSS = None
 GLANDS = None          # (x, z) of round M12 cable gland holes in the lower end wall, instead of the slot
 GLAND_D = 12.2
+GLAND_D_LIST = None   # per-gland hole size, default GLAND_D for all
+REL2 = False
 SNAP = False
-if TAG in ("cust", "cust_adc"):
+if TAG in ("cust", "cust_adc", "cust_def"):
     # Own printed box (PETG/ASA), made to fit: cust = schematic A (no ADC), cust_adc = schematic B (ADC v1.1 next to the relay).
     # Walls and floor 2 mm, flat lid 2 mm held by 4 snap hooks. DinMeter in the upper end wall, two M12 glands in the lower one.
     ADC_IN = TAG == "cust_adc"
+    REL2 = TAG == "cust_def"           # schematic C: one M5 Unit 2Relay (compressor + deflate valve) instead of the Mini 3A
     IN_W = 56.0                       # one printed box for both schematics (A leaves the ADC place empty)
     IN_L, FLOOR, WALL = 96.0, 2.0, 2.0
     W, L, HB, HL = IN_W + 2 * WALL, IN_L + 2 * WALL, 34.0, 2.0
@@ -34,7 +37,7 @@ if TAG in ("cust", "cust_adc"):
     SLOT_X, SLOT_Z = 8.0, 18.0
     GLANDS = ((-12.0, 18.0), (12.0, 18.0))
     GLAND_SENSOR, GLAND_POWER = (1, 0) if ADC_IN else (0, 1)
-    RXC, RY0, AXC, AY0 = -15.5, -34.0, 15.5, -18.0
+    RXC, RY0, AXC, AY0 = -15.5, (-42.0 if REL2 else -34.0), 15.5, -18.0
     REL_ACROSS = False
     CH_X = 0.0
     SNAP = True
@@ -136,8 +139,9 @@ box = box.cut(cq.Workplane("XY").box(CUT_W, 10, CUT_H).translate((DIN_X, TOP_Y -
 # ---------- wire slot in the lower end wall ----------
 SLOT_L, SLOT_H = 14.0, 8.0
 if GLANDS:
-    for gx, gz in GLANDS:
-        box = box.cut(cq.Workplane("XZ").workplane(offset=TOP_Y - 5).center(gx, gz).circle(GLAND_D / 2).extrude(8))
+    for i, (gx, gz) in enumerate(GLANDS):
+        gd = GLAND_D_LIST[i] if GLAND_D_LIST else GLAND_D
+        box = box.cut(cq.Workplane("XZ").workplane(offset=TOP_Y - 5).center(gx, gz).circle(gd / 2).extrude(8))
 else:
     box = box.cut(cq.Workplane("XZ").workplane(offset=TOP_Y - 5).center(SLOT_X, SLOT_Z).slot2D(SLOT_L, SLOT_H, 0).extrude(8))
 
@@ -164,20 +168,37 @@ def rw(lx, ly):
 def rbx(slx, sly, sz, lx, ly, cz):
     x, y = rw(lx, ly)
     return bx(sly, slx, sz, x, y, cz) if REL_ACROSS else bx(slx, sly, sz, x, y, cz)
-rel = cq.Assembly(name="mini_relay")
-rel.add(rbx(24, 48, 8, 0, 24, Z0 + 4), name="case", color=cq.Color(0.93, 0.94, 0.95))
-rel.add(rbx(10.5, 15.2, 6, 0, 17.6, Z0 + 8 + 3), name="relay", color=cq.Color(0.98, 0.55, 0.10))
-rel.add(rbx(12, 10, 12, 0, 5, Z0 + 8 + 6), name="terminal_COM_NO_NC", color=cq.Color(0.98, 0.45, 0.15))
-rel.add(rbx(9.9, 6.5, 4.6, 0, 48 + 3.25, Z0 + 4), name="grove_plug", color=cq.Color(0.97, 0.97, 0.97))
-REL_GROVE = (*rw(0, 48 + 6.5), Z0 + 4)              # where the Grove cable leaves the relay plug
+REL_LEN = 56.0 if REL2 else 48.0
+if REL2:
+    # M5 Unit 2Relay 56 x 24 x 19 (shop.m5stack.com): channel 1 (YE, G2) next to the Grove plug, channel 2 (WH, G1) at the far end,
+    # each relay with its own VH3.96-4P terminal on the long side towards the box middle. Plug and terminal sides: check on the real unit.
+    rel = cq.Assembly(name="unit_2relay")
+    rel.add(rbx(24, 56, 6, 0, 28, Z0 + 3), name="case", color=cq.Color(0.93, 0.94, 0.95))
+    for ch, ly in ((1, 42.0), (2, 14.0)):
+        rel.add(rbx(13, 19, 13, -4.5, ly, Z0 + 6 + 6.5), name=f"relay_{ch}", color=cq.Color(0.10, 0.10, 0.11))
+        rel.add(rbx(8, 16, 10, 7.5, ly, Z0 + 6 + 5), name=f"terminal_K{ch}", color=cq.Color(0.98, 0.45, 0.15))
+    rel.add(rbx(9.9, 6.5, 4.6, 0, 56 + 3.25, Z0 + 4), name="grove_plug", color=cq.Color(0.97, 0.97, 0.97))
+else:
+    rel = cq.Assembly(name="mini_relay")
+    rel.add(rbx(24, 48, 8, 0, 24, Z0 + 4), name="case", color=cq.Color(0.93, 0.94, 0.95))
+    rel.add(rbx(10.5, 15.2, 6, 0, 17.6, Z0 + 8 + 3), name="relay", color=cq.Color(0.98, 0.55, 0.10))
+    rel.add(rbx(12, 10, 12, 0, 5, Z0 + 8 + 6), name="terminal_COM_NO_NC", color=cq.Color(0.98, 0.45, 0.15))
+    rel.add(rbx(9.9, 6.5, 4.6, 0, 48 + 3.25, Z0 + 4), name="grove_plug", color=cq.Color(0.97, 0.97, 0.97))
+REL_GROVE = (*rw(0, REL_LEN + 6.5), Z0 + 4)              # where the Grove cable leaves the relay plug
 REL_GROVE_DIR = (-1, 0, 0) if REL_ACROSS else (0, 1, 0)   # direction the cable leaves the plug
 REL_PIN = {k: (*rw(lx, 0), Z0 + 15) for k, lx in (("COM", -3.96), ("NO", 0.0), ("NC", 3.96))}
+if REL2:   # wire entries on top of the VH3.96 plugs: COM and NO of each channel, 3.96 apart along the module
+    REL_PIN = {f"{p}{ch}": (*rw(9.0, ly + d), Z0 + 17) for ch, ly in ((1, 42.0), (2, 14.0)) for p, d in (("COM", 1.98), ("NO", -1.98))}
+    REL_PIN["COM"], REL_PIN["NO"] = REL_PIN["COM1"], REL_PIN["NO1"]
 REL_PIN_DIR = (1, 0, 0) if REL_ACROSS else (0, -1, 0)     # direction a wire leaves the terminal
 # footprints for the 2D drawing: (x0, y0, x1, y1)
 def rfoot(slx, sly, lx, ly):
     (xa, ya), (xb, yb) = rw(lx - slx / 2, ly - sly / 2), rw(lx + slx / 2, ly + sly / 2)
     return (min(xa, xb), min(ya, yb), max(xa, xb), max(ya, yb))
 REL_FOOT = {"case": rfoot(24, 48, 0, 24), "term": rfoot(12, 10, 0, 5), "plug": rfoot(9.9, 6.5, 0, 51.25)}
+if REL2:
+    REL_FOOT = {"case": rfoot(24, 56, 0, 28), "term": rfoot(8, 16, 7.5, 42), "term2": rfoot(8, 16, 7.5, 14), "plug": rfoot(9.9, 6.5, 0, 59.25),
+                "relay1": rfoot(13, 19, -4.5, 42), "relay2": rfoot(13, 19, -4.5, 14)}
 
 # ---------- Unit ADC v1.1 flat on the box bottom, long side along y: Grove plug up, terminal down ----------
 adc = cq.Assembly(name="adc_v11")
@@ -199,15 +220,16 @@ asm.add(lid, name=f"{NAME}_lid", color=cq.Color(0.30, 0.32, 0.35))
 if boss_cut is not None:
     asm.add(boss_cut, name="boss_part_to_cut_off", color=cq.Color(0.90, 0.10, 0.10, 0.55))
 asm.add(din); asm.add(rel)
-if not TAG.startswith("f100") and TAG != "cust":   # f100 / cust = schematic A: sensor straight on PORT.A, no ADC
+if not TAG.startswith("f100") and TAG not in ("cust", "cust_def"):   # f100 / cust = schematic A: sensor straight on PORT.A, no ADC
     asm.add(adc)
 if GLANDS:                # M12 cable glands: lock nut inside, hex and dome nut outside
     for i, (gx, gz) in enumerate(GLANDS):
-        g = (cq.Workplane("XZ").workplane(offset=-(-Y_IN + 5)).center(gx, gz).polygon(6, 18).extrude(5)
-             .union(cq.Workplane("XZ").workplane(offset=TOP_Y).center(gx, gz).polygon(6, 17).extrude(4))
-             .union(cq.Workplane("XZ").workplane(offset=TOP_Y + 4).center(gx, gz).circle(6.5).extrude(10)))
+        big = bool(GLAND_D_LIST) and GLAND_D_LIST[i] > 13
+        g = (cq.Workplane("XZ").workplane(offset=-(-Y_IN + 5)).center(gx, gz).polygon(6, 22 if big else 18).extrude(5)
+             .union(cq.Workplane("XZ").workplane(offset=TOP_Y).center(gx, gz).polygon(6, 21 if big else 17).extrude(4))
+             .union(cq.Workplane("XZ").workplane(offset=TOP_Y + 4).center(gx, gz).circle(8.5 if big else 6.5).extrude(12 if big else 10)))
         g = g.cut(cq.Workplane("XZ").workplane(offset=-(-Y_IN + 6)).center(gx, gz).circle(3.3).extrude(40))
-        asm.add(g, name=f"gland_M12_{'power' if i == GLAND_POWER else 'sensor_ARB'}", color=cq.Color(0.10, 0.10, 0.11))
+        asm.add(g, name=f"gland_M{16 if big else 12}_{'power' if i == GLAND_POWER else 'sensor_ARB'}", color=cq.Color(0.10, 0.10, 0.11))
 
 if __name__ == "__main__":
     import itertools
@@ -220,7 +242,7 @@ if __name__ == "__main__":
         for c in a.children:
             walk(c, l)
     walk(asm)
-    ok = {(f"{NAME}_body", "housing"), (f"{NAME}_body", "bezel"), ("relay", "case"), ("terminal_COM_NO_NC", "case"),
+    ok = {(f"{NAME}_body", "housing"), (f"{NAME}_body", "bezel"), ("relay", "case"), ("terminal_COM_NO_NC", "case"), ("relay_1", "case"), ("relay_2", "case"), ("terminal_K1", "case"), ("terminal_K2", "case"),
           (f"{NAME}_body", "case"), ("bezel", "screen")}
     bad = [(round(s1.intersect(s2).Volume(), 2), n1, n2) for (n1, s1), (n2, s2) in itertools.combinations(items, 2)
            if (n1, n2) not in ok and (n2, n1) not in ok and s1.intersect(s2).Volume() > 0.01]

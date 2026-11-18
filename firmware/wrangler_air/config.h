@@ -3,10 +3,15 @@
 #pragma once
 #include <Arduino.h>
 
-#if SENSOR_DIRECT
-#define FW_VERSION "0.3.0-stage1-direct"
+#ifndef DEFLATE
+#define DEFLATE 0       // 1 = schematic C: Unit 2Relay, channel 2 (PORT.B white, G1) opens the deflate valve. Only with SENSOR_DIRECT
+#endif
+#if SENSOR_DIRECT && DEFLATE
+#define FW_VERSION "0.4.0-deflate"
+#elif SENSOR_DIRECT
+#define FW_VERSION "0.4.0-direct"
 #else
-#define FW_VERSION "0.3.0-stage1"
+#define FW_VERSION "0.4.0-stage1"
 #endif
 
 // ---------- sensor variant ----------
@@ -21,7 +26,11 @@
 constexpr int PIN_K1       = 2;   // G2, PORT.B yellow: M5 Mini Relay (DIN) / K1 -> compressor
 #if SENSOR_DIRECT
 constexpr int PIN_SENSOR   = 13;  // G13, PORT.A yellow: sensor output 0-3.3 V (ADC2: not read while Wi-Fi is on, OTA only)
+#if DEFLATE
+constexpr int PIN_K4       = 1;   // G1, PORT.B white: Unit 2Relay channel 2 -> deflate valve -Y1 (schematic C)
+#else
 constexpr int PIN_K4       = -1;  // PORT.A is taken by the sensor: no deflate output in this build
+#endif
 #define SENSOR_PIN_NAME "G13"
 #else
 constexpr int PIN_SENSOR   = 1;   // G1, PORT.B: sensor through 10k/20k divider
@@ -56,7 +65,22 @@ constexpr float    DEAD_BAR      = 0.10f;  // ...and the sensor still reads belo
 
 // ---------- control ----------
 constexpr float TARGET_MAX       = 3.0f;   // bar, hard cap for the program
+constexpr float TARGET_MIN       = DEFLATE ? 0.5f : 0.0f;   // bar, lowest target (deflate build: 0.5)
+constexpr float TARGET_LOW_WARN  = 0.8f;   // below this the screen shows LOW: bead may come off without beadlocks
+constexpr float START_BAND       = 0.10f;  // at start: within +/-0.1 bar of the target nothing is done
 constexpr float TARGET_STEP      = 0.1f;
+// Typical pressures: the knob steps through these instead of 0.1 bar. Latin names only (screen font).
+// 255/75R17 without beadlocks. Below 0.8 bar the screen shows LOW.
+struct Preset { const char* name; float bar; };
+constexpr Preset PRESETS[] = {      // owner's list, 18.11.2026
+  {"ROAD",     2.3f},   // 33 psi
+  {"GRAVEL",   1.5f},   // 22 psi: gravel, dirt roads, washboard
+  {"TRAIL",    1.2f},   // 17 psi: trails, mud, snow
+  {"ROCK",     1.0f},   // 15 psi: rocks, slow crawling
+  {"SAND",     0.8f},   // 12 psi: sand, dunes
+  {"RECOVERY", 0.5f},   //  7 psi: stuck in soft sand, walking pace only
+};
+constexpr int N_PRESETS = sizeof(PRESETS) / sizeof(PRESETS[0]);
 constexpr float STOP_MARGIN      = 0.10f;  // stop margin before anything is learned
 constexpr float MARGIN_MIN       = 0.03f;  // adaptive margin limits
 constexpr float MARGIN_MAX       = 0.15f;
@@ -77,9 +101,35 @@ constexpr float    TOPUP_MIN_S   = 0.6f;
 constexpr float    TOPUP_MAX_S   = 20.0f;
 constexpr float    LEARN_ALPHA   = 0.3f;   // new = 0.7*old + 0.3*measured
 
+// ---------- air model: start values from the tyre size, then the learning takes over ----------
+// Two tyre sizes, picked in the menu (TYRE). Air volume ~ annulus x width x fill factor: 255/75R17 ~52 L, 285/70R17 ~62 L each.
+struct TyreSize { const char* name; float w, ar, rim; };
+constexpr TyreSize TYRES[] = { {"255/75R17", 255, 75, 17}, {"285/70R17", 285, 70, 17} };
+constexpr int   N_TYRE_SIZES = sizeof(TYRES) / sizeof(TYRES[0]);
+constexpr int   N_TYRES     = 4;
+constexpr float TYRE_FILL   = 0.55f;                       // torus shape vs the full annulus box
+constexpr float airVL(int i) {                             // all 4 tyres, litres
+  return N_TYRES * TYRE_FILL * 3.14159f / 4 *
+         (((TYRES[i].rim * 25.4f + 2 * TYRES[i].w * TYRES[i].ar / 100) / 1000) * ((TYRES[i].rim * 25.4f + 2 * TYRES[i].w * TYRES[i].ar / 100) / 1000)
+          - (TYRES[i].rim * 25.4f / 1000) * (TYRES[i].rim * 25.4f / 1000)) * (TYRES[i].w / 1000) * 1000;
+}
+constexpr float AIR_V_L     = airVL(0);                    // default size, ~210 L
+// ARB CKMTA12: 174.3 L/min free air at 0 bar, 131.7 L/min at 2 bar (ARB data), linear in between
+constexpr float ARB_Q0_LPM  = 174.3f, ARB_Q2_LPM = 131.7f;
+constexpr float P_ATM       = 1.013f;                      // bar
+constexpr float inflRate(float p, float vL) { return (ARB_Q0_LPM + (ARB_Q2_LPM - ARB_Q0_LPM) * p / 2) / 60 * P_ATM / vL; }  // bar/s
+// Deflate: 4 valve cores in parallel and the 4 mm valve in series, choked flow -> p_abs(t) = p_abs0 * exp(-t / tau)
+constexpr float DEFL_AREA_MM2 = 5.9f;                      // effective flow area (cores ~8 mm2 with the valve ~8.8 mm2 in series)
+constexpr float tauModel(float vL) { return (vL / 1000) / (0.0404f * DEFL_AREA_MM2 * 1e-6f * 287 * 17.12f); }   // s
+constexpr float TAU_D_DEFAULT = tauModel(AIR_V_L);         // ~170 s for 4 x 255/75R17
+constexpr float VENT_FIRST_FRAC = 0.6f;    // first vent before anything is learned: only 60 % of the drop
+constexpr float VENT_MIN_S    = 0.3f;
+constexpr float VENT_MAX_S    = 90.0f;     // one valve opening never longer than this
+constexpr int   MAX_VENTS     = 4;
+
 // defaults until the first run teaches better values (4 tyres at once)
 constexpr float DEFAULT_OFFSET = 0.40f;    // bar, dynamic minus static
-constexpr float DEFAULT_RATE   = 0.05f;    // bar/s
+constexpr float DEFAULT_RATE   = inflRate(1.5f, AIR_V_L);   // bar/s, ~0.011 from the air model
 
 // ---------- bench simulation ----------
 // 1 = no sensor needed: a virtual 4-tyre system answers K1. For desk testing only.
@@ -91,9 +141,12 @@ constexpr float SIM_START_BAR = 1.0f;   // tyres at power-up
 constexpr float SIM_RATE      = 0.07f;  // bar/s at 0 bar with full flow, 4 tyres
 constexpr float SIM_PMAX      = 7.5f;   // flow falls linearly to zero at this pressure
 constexpr float SIM_C         = 7.0f;   // flow offset = SIM_C * rise rate (hose + valve cores)
+constexpr float SIM_TAU_D     = 140.0f; // virtual deflate time constant (differs from the model on purpose: learning test)
+constexpr float SIM_C_D       = 25.0f;  // sensor reads low while venting: tyres - SIM_C_D * fall rate
 constexpr float SIM_SPINUP_S  = 0.7f;   // compressor spin-up / run-down time constant
 constexpr float SIM_NOISE     = 0.004f; // sensor noise, bar
 
 // ---------- OTA access point ----------
 #define OTA_SSID "WranglerAir"
 #define OTA_PASS "jeepjeep"
+constexpr size_t LOG_MAX_BYTES = 200000;  // log.csv is moved to log_old.csv at this size (flash partition, survives power-off)

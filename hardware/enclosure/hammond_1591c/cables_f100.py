@@ -89,18 +89,34 @@ if not L.REL_ACROSS and L.TAG != "cust_adc":
     # W2 Grove 2 m: PORT.A straight down over the relay into the left gland
     gx = sx + 1.2
     w2 = [A, (A[0], A[1] - 4, A[2]), (-8.0, 8.0, 24.0), (-8.0, -35.5, 24.0), (gx, -39.0, 20.0), (gx, YIN, sz), (gx, YOUT, sz)]
-    # violet: relay NO straight down into the left gland, beside the Grove
-    vx = sx - 3.6
-    w("relay_NO_to_ARB", [NO, (NO[0], NO[1] - 3, NO[2]), (vx, -38.0, 17.5), (vx, YIN, sz), (vx, YOUT, sz)],
-      "violet", "relay NO", "left gland, on to V1 and the ARB violet wire (-X3)")
+    if L.TAG == "cust_def":
+        # schematic C: Unit 2Relay, terminals on the side towards the middle. Left gland M12: Grove 2 m + violet (K1 NO); right: power + orange (K2 NO)
+        w2 = [A, (A[0], A[1] - 4, A[2]), (-8.0, 8.0, 25.0), (-8.0, -35.5, 25.0), (sx - 1.0, -39.0, 20.0), (sx - 1.0, YIN, sz), (sx - 1.0, YOUT, sz)]
+        C1, N1, C2, N2 = (L.REL_PIN[k] for k in ("COM1", "NO1", "COM2", "NO2"))
+        w("relay_NO_to_ARB", [N1, (N1[0], N1[1], N1[2] + 4), (0.0, N1[1], 23.0), (0.0, -34.0, 23.0), (sx + 2.6, -40.0, sz),
+                              (sx + 2.6, YIN, sz), (sx + 2.6, YOUT, sz)], "violet", "2Relay K1 NO", "left gland, on to V1 and the ARB violet wire (-X3)")
+        # orange to the valve leaves with the power wires (right gland M12: BK, RD, RD, OG ~4.5 mm bundle)
+        w("relay_K2_NO_to_valve", [N2, (N2[0], N2[1], N2[2] + 4), (4.0, N2[1], 21.0), (px - 3.0, -38.0, 19.0),
+                                   (px - 2.5, YIN, pz + 1.5), (px - 2.5, YOUT, pz + 1.5)], "orange", "2Relay K2 NO", "right gland, to the deflate valve -Y1 (+)")
+        w("jumper_COM1_COM2", [C1, (C1[0], C1[1], C1[2] + 2.5), (-2.0, C1[1], C1[2] + 2.5), (-2.0, C2[1], C2[2] + 2.5), (C2[0], C2[1], C2[2] + 2.5), C2],
+          "red", "2Relay K1 COM", "2Relay K2 COM")
+    else:
+        # violet: relay NO straight down into the left gland, beside the Grove
+        vx = sx - 3.6
+        w("relay_NO_to_ARB", [NO, (NO[0], NO[1] - 3, NO[2]), (vx, -38.0, 17.5), (vx, YIN, sz), (vx, YOUT, sz)],
+          "violet", "relay NO", "left gland, on to V1 and the ARB violet wire (-X3)")
     # power from the right gland: black and red up the free right half to the DinMeter terminal,
     # red to COM low along the end wall, under the Grove and the violet
     w("GND_to_DinMeter_minus", [(px - 2, YOUT, pz - 1.5), (px - 2, YIN, pz - 1.5), (8.0, -30.0, 26.0), (2.0, 12.0, 28.0),
                                 (DM[0], DM[1] - 5, DM[2]), DM], "black", "right gland", "DinMeter terminal -")
     w("12V_to_DinMeter_plus", [(px, YOUT, pz + 1.5), (px, YIN, pz + 1.5), (10.0, -30.0, 27.0), (4.0, 12.0, 29.0),
                                (DP[0], DP[1] - 5, DP[2]), DP], "red", "right gland", "DinMeter terminal +")
-    w("12V_to_relay_COM", [(px + 2, YOUT, pz - 1.5), (px + 2, YIN, pz - 1.5), (8.0, -38.5, 12.0), (COM[0], -38.5, 12.0),
-                           (COM[0], COM[1] - 3, COM[2]), COM], "red", "right gland", "relay COM")
+    if L.TAG == "cust_def":
+        w("12V_to_relay_COM", [(px + 2, YOUT, pz - 1.5), (px + 2, YIN, pz - 1.5), (9.0, -30.0, 24.0), (5.0, COM[1] + 4, 25.0),
+                               (COM[0], COM[1] + 4, COM[2] + 5), COM], "red", "right gland", "2Relay K1 COM")
+    else:
+        w("12V_to_relay_COM", [(px + 2, YOUT, pz - 1.5), (px + 2, YIN, pz - 1.5), (8.0, -38.5, 12.0), (COM[0], -38.5, 12.0),
+                               (COM[0], COM[1] - 3, COM[2]), COM], "red", "right gland", "relay COM")
 elif L.TAG == "cust_adc":
     # ---- own box with ADC (schematic B): relay left, ADC right. Left gland = power, right gland = sensor (OG BU YE) + violet ----
     w1 = fit_loop(B, down, Bb, (0, -1, 0),
@@ -149,7 +165,7 @@ else:
                            (COM[0] + 3, COM[1], COM[2]), COM], "red", "left gland", "relay COM")
 
 w2n = ("W2_grove_PORT_A_to_ADC", "ADC v1.1", w2_stock) if L.TAG == "cust_adc" else ("W2_grove_PORT_A_to_sensor", "sensor (via gland, 2 m)", 2000)
-for name, pts, frm, to, stock in (("W1_grove_PORT_B_to_relay", w1, "DinMeter PORT.B", "Mini 3A Relay", w1_stock),
+for name, pts, frm, to, stock in (("W1_grove_PORT_B_to_relay", w1, "DinMeter PORT.B", "Unit 2Relay" if L.TAG == "cust_def" else "Mini 3A Relay", w1_stock),
                                   (w2n[0], w2, "DinMeter PORT.A", w2n[1], w2n[2])):
     cables.append({"name": name, "from": frm, "to": to, "pts": pts, "route": round(length(pts), 1), "stock": stock,
                    "wires": ribbon(pts, [(1, 0, 0)] * len(pts) if name.startswith("W2") or not L.REL_ACROSS
@@ -173,7 +189,7 @@ if __name__ == "__main__":
         for ch in a.children:
             walk(ch, l)
     walk(asm)
-    cab = [p for p in parts if p[0].startswith(("W1_", "W2_", "GND_", "12V_", "relay_NO", "sensor_"))]
+    cab = [p for p in parts if p[0].startswith(("W1_", "W2_", "GND_", "12V_", "relay_NO", "relay_K2", "jumper_", "sensor_"))]
     solid = [p for p in parts if p not in cab and p[0] != f"{L.NAME}_lid" and not p[0].startswith("gland")]
     for c in cables:
         print(f"  {c['name']}: route {c['route']} mm, free ribbon {c['stock'] - 2 * PLUG:.0f}")

@@ -6,6 +6,7 @@
 #include <WebServer.h>
 #include <Update.h>
 #include "config.h"
+#include "log.h"
 
 class Ota {
  public:
@@ -18,8 +19,31 @@ class Ota {
       server_.send(200, "text/html",
         "<meta name=viewport content='width=device-width'>"
         "<h3>Wrangler Air " FW_VERSION "</h3>"
+        "<p><a href=/log>Download log (CSV, " + String(wlog::size() / 1024) + " kB)</a></p>"
+        "<form method=POST action=/clear onsubmit=\"return confirm('Clear the log?')\"><input type=submit value='Clear log'></form><hr>"
         "<form method=POST action=/update enctype=multipart/form-data>"
         "<input type=file name=fw accept=.bin><br><br><input type=submit value=Update></form>");
+    });
+    // both files in one download: the older part first
+    server_.on("/log", HTTP_GET, [this]() {
+      server_.sendHeader("Content-Disposition", "attachment; filename=wrangler_air_log.csv");
+      server_.setContentLength(CONTENT_LENGTH_UNKNOWN);
+      server_.send(200, "text/csv", "");
+      bool header = false;
+      for (const char* p : {"/log_old.csv", "/log.csv"}) {
+        File f = LittleFS.open(p, "r");
+        if (!f) continue;
+        String first = f.readStringUntil('\n');               // the header line goes out once
+        if (!header) { server_.sendContent(first + "\n"); header = true; }
+        uint8_t buf[512];
+        while (f.available()) { const size_t n = f.read(buf, sizeof buf); server_.sendContent((const char*)buf, n); }
+        f.close();
+      }
+      server_.sendContent("");
+    });
+    server_.on("/clear", HTTP_POST, [this]() {
+      wlog::clear(); wlog::ev("LOG", "cleared=1;");
+      server_.sendHeader("Location", "/"); server_.send(303);
     });
     server_.on("/update", HTTP_POST,
       [this]() {

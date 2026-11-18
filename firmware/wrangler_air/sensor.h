@@ -48,8 +48,12 @@ class Sensor {
     simFlow += ((on ? 1.0f : 0.0f) - simFlow) * min(1.0f, dt / SIM_SPINUP_S);
     const float rise = SIM_RATE * simFlow * max(0.0f, 1.0f - simP / SIM_PMAX);
     simP += rise * dt;
+    // deflate valve (K4): choked outflow, absolute pressure falls exponentially; the line reads low while it flows
+    const bool vent = PIN_K4 >= 0 && digitalRead(PIN_K4) == HIGH;
+    const float fall = vent ? (simP + P_ATM) / SIM_TAU_D : 0;
+    simP = max(0.0f, simP - fall * dt);
     const float noise = SIM_NOISE * ((float)random(-1000, 1000) / 1000.0f);
-    const float reading = simP + SIM_C * rise + noise;
+    const float reading = max(0.0f, simP + SIM_C * rise - SIM_C_D * fall) + noise;
     return (reading / SENSOR_FS * SENSOR_SPAN + SENSOR_V0) / DIVIDER;
   }
 #endif

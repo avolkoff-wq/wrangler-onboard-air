@@ -1,8 +1,12 @@
 // Wrangler Onboard Air - M5Stack DinMeter controller for the ARB Twin compressor
 // Stage 1: K1 (G2) switches the compressor relay K2. Measuring pauses = compressor off.
+// Deflate build (schematic C, pio env dinmeter-deflate): K4 (G1) opens the deflate valve; one target, the controller
+// measures first and then pumps or vents by itself. Within +/-0.1 bar of the target it does nothing.
+// Every build keeps a log on the flash: menu UPDATE -> Wi-Fi WranglerAir -> http://192.168.4.1/log
 //
 // Controls
-//   turn            set target (0.1 bar steps, max 3.0 bar)
+//   turn            pick a typical pressure: ROAD 2.3, GRAVEL 1.5, TRAIL 1.2, ROCK 1.0, SAND 0.8, RECOVERY 0.5 bar
+//                   (config.h PRESETS); LOW shown below 0.8
 //   press           start / stop
 //   long press      menu: CALIBRATE, SENSOR (live volts for the bench), UNITS, OFFSET, SETTLE, SCREEN, RESET LEARNING, UPDATE, VERSION, EXIT
 //   SCREEN: press to turn the picture 90 degrees (WIDE, PORTRAIT, WIDE 180, PORTRAIT 180)
@@ -18,6 +22,7 @@
 #include "pump.h"
 #include "calibration.h"
 #include "ota.h"
+#include "log.h"
 #include "input.h"
 
 Settings settings;
@@ -30,8 +35,8 @@ M5Canvas canvas(&M5.Display);
 enum class Screen { MAIN, MENU, EDIT, CAL, OTA, VERSION, SENSOR };
 Screen screen = Screen::MAIN;
 int menuPos = 0;
-enum MenuItem { M_CAL, M_SENSOR, M_UNITS, M_OFFSET, M_SETTLE, M_SCREEN, M_RESET, M_UPDATE, M_VERSION, M_EXIT };
-const char* MENU[] = {"CALIBRATE", "SENSOR", "UNITS", "OFFSET", "SETTLE", "SCREEN", "RESET LEARNING", "UPDATE", "VERSION", "EXIT"};
+enum MenuItem { M_CAL, M_SENSOR, M_UNITS, M_TYRE, M_OFFSET, M_SETTLE, M_SCREEN, M_RESET, M_UPDATE, M_VERSION, M_EXIT };
+const char* MENU[] = {"CALIBRATE", "SENSOR", "UNITS", "TYRE", "OFFSET", "SETTLE", "SCREEN", "RESET LEARNING", "WIFI: UPDATE + LOG", "VERSION", "EXIT"};
 constexpr int MENU_N = sizeof(MENU) / sizeof(MENU[0]);
 
 // ---------- helpers ----------
@@ -133,18 +138,25 @@ void drawMain() {
   const bool est = pump.estimating();
   const float shown = (st == PState::IDLE) ? sensor.bar(settings.calA, settings.calB)
                                            : (est ? pump.estimate() : pump.staticBar());
-  const int top = (st != PState::IDLE) ? drawTopBar(mmss(pump.runMs()) + "  starts " + String(pump.starts())) : 0;
+  String bar = mmss(pump.runMs()) + "  starts " + String(pump.starts());
+  if (DEFLATE) bar = (pump.mode() == Mode::DEF ? "DEF " : pump.mode() == Mode::INF ? "INF " : "") + bar + "  vents " + String(pump.vents());
+  const int top = (st != PState::IDLE) ? drawTopBar(bar) : 0;
 
   const String tm = phaseTimer(pump.phaseMs(), pump.phaseLenMs());
   String line; uint16_t col = TFT_WHITE;
   switch (st) {
-    case PState::IDLE:      line = "SET " + fmt(settings.target) + "  press: start"; break;
+    case PState::IDLE:
+      line = String(PRESETS[settings.preset].name) + " " + fmt(settings.target) + (settings.target < TARGET_LOW_WARN ? "  LOW" : "");
+      if (settings.target < TARGET_LOW_WARN) col = TFT_ORANGE;
+      break;
     case PState::SETTLE:    line = "SETTLING -> " + fmt(settings.target); col = TFT_CYAN; break;
     case PState::MEASURE:   line = "MEASURING -> " + fmt(settings.target); col = TFT_CYAN; break;
     case PState::CAL_PULSE: line = "LEARNING " + tm; col = TFT_ORANGE; break;
     case PState::MAIN:      line = "PUMP -> " + fmt(settings.target) + "  " + tm; col = TFT_ORANGE; break;
     case PState::TOPUP:     line = "TOP-UP " + tm; col = TFT_ORANGE; break;
-    case PState::DONE:      line = "DONE " + fmt(pump.staticBar()) + "  " + mmss(pump.runMs()); col = TFT_GREEN; break;
+    case PState::VENT:      line = "VENT -> " + fmt(settings.target) + "  " + tm; col = TFT_SKYBLUE; break;
+    case PState::DONE:
+      line = pump.inBand() ? "OK, WITHIN 0.1" : "DONE " + fmt(pump.staticBar()) + "  " + mmss(pump.runMs()); col = TFT_GREEN; break;
     case PState::ERROR:
       col = TFT_RED;
       switch (pump.error()) {
@@ -162,6 +174,7 @@ void drawMain() {
     drawLines({ {sensor.fault() ? "--.-" : fmt(max(0.0f, shown)), F_DIGIT, sensor.fault() ? TFT_RED : TFT_GREENYELLOW},
                 {String(est ? "~ " : "") + unitName(), F_TEXT, TFT_LIGHTGREY}, {line, F_TEXT, col} }, top);
   if (pump.compressorOn()) canvas.fillCircle(W() - 10, 10, 6, TFT_ORANGE);
+  if (pump.valveOpen())    canvas.fillCircle(W() - 10, 10, 6, TFT_SKYBLUE);
   canvas.pushSprite(0, 0);
 }
 
@@ -183,6 +196,7 @@ void drawMenu() {
     canvas.setTextColor(TFT_WHITE);
     String t = MENU[i];
     if (i == M_UNITS)  t += String(": ") + unitName();
+    if (i == M_TYRE)   t += String(": ") + TYRES[settings.tyre].name;
     if (i == M_OFFSET) t += ": " + offText(offIdx());
     if (i == M_SETTLE) t += ": " + setText(setIdx());
     if (i == M_SCREEN) t += ": " + rotName();
@@ -242,7 +256,7 @@ void drawCal() {
 void drawOta() {
   canvas.fillSprite(TFT_BLACK);
   drawLines({ {"UPDATE MODE", F_TEXT, TFT_CYAN}, {"WiFi " OTA_SSID, F_TEXT, TFT_WHITE}, {"pass " OTA_PASS, F_TEXT, TFT_WHITE},
-              {"192.168.4.1", F_TEXT, TFT_WHITE},
+              {"192.168.4.1  (log: /log)", F_TEXT, TFT_WHITE, F_SMALL},
               {ota.progress() ? String(ota.progress() / 1024) + " kB received" : "long press: exit", F_SMALL, TFT_LIGHTGREY} });
   canvas.pushSprite(0, 0);
 }
@@ -254,6 +268,8 @@ void drawVersion() {
               {"rate " + String(settings.rate, 3) + "  top " + String(settings.kTop, 3), F_SMALL, TFT_LIGHTGREY},
               {"bias " + String(settings.bias, 2) + "  dev " + String(settings.dev, 2), F_SMALL, TFT_LIGHTGREY},
               {"settle " + String(settings.settleLearn, 1) + "s  starts " + String(pump.starts()), F_SMALL, TFT_LIGHTGREY},
+              {String(TYRES[settings.tyre].name) + "  air " + String(settings.airL(), 0) + " L", F_SMALL, TFT_LIGHTGREY},
+              {DEFLATE ? "tauD " + String(settings.tauD, 0) + "s " + (settings.learnedD ? "learned" : "model") : "", F_SMALL, TFT_LIGHTGREY},
               {settings.learned ? "learned" : "not learned yet", F_SMALL, TFT_LIGHTGREY} });
   canvas.pushSprite(0, 0);
 }
@@ -287,6 +303,13 @@ void setup() {
   M5.begin(cfg);
   M5.Display.setBrightness(160);
   settings.load();
+  settings.bootN++; settings.save();
+  wlog::begin(settings.bootN);
+  wlog::ev("BOOT", wlog::kv("fw", FW_VERSION) + wlog::kv("tyre", String(TYRES[settings.tyre].name)) + wlog::kv("air_L", settings.airL(), 0) + wlog::kv("target", settings.target, 2) +
+                   wlog::kv("offset", settings.offset) + wlog::kv("c", settings.c, 2) + wlog::kv("rate", settings.rate, 4) +
+                   wlog::kv("kTop", settings.kTop, 4) + wlog::kv("bias", settings.bias) + wlog::kv("dev", settings.dev) +
+                   wlog::kv("learned", settings.learned ? "1" : "0") + wlog::kv("tauD", settings.tauD, 1) +
+                   wlog::kv("learnedD", settings.learnedD ? "1" : "0") + wlog::kv("calA", settings.calA, 4) + wlog::kv("calB", settings.calB));
   applyRotation();     // WIDE / PORTRAIT, chosen in the menu
   sensor.begin();
   pump.begin(&sensor, &settings);
@@ -307,8 +330,10 @@ void loop() {
   switch (screen) {
     case Screen::MAIN: {
       if (steps && !pump.busy()) {
-        settings.target = constrain(settings.target + steps * TARGET_STEP, 0.0f, TARGET_MAX);
-        settings.target = roundf(settings.target * 10) / 10.0f;
+        // the knob steps through the typical pressures (config.h PRESETS), clockwise = higher
+        int i = constrain((int)settings.preset - steps, 0, N_PRESETS - 1);
+        while (PRESETS[i].bar < TARGET_MIN && i > 0) i--;      // inflate-only builds keep all; deflate build stops at 0.5
+        settings.preset = i; settings.target = PRESETS[i].bar;
         pump.clearResult();
       }
       static bool dirty = false; static uint32_t lastTurn = 0;
@@ -338,11 +363,17 @@ void loop() {
           case M_CAL:     cal.start(); screen = Screen::CAL; break;
           case M_SENSOR:  screen = Screen::SENSOR; break;
           case M_UNITS:   settings.psi = !settings.psi; settings.save(); break;
+          case M_TYRE: {  // press: next size; learned values are scaled by the air volume
+            const uint8_t old = settings.tyre;
+            settings.setTyre((settings.tyre + 1) % N_TYRE_SIZES);
+            wlog::ev("TYRE", wlog::kv("from", String(TYRES[old].name)) + wlog::kv("to", String(TYRES[settings.tyre].name)) +
+                             wlog::kv("air_L", settings.airL(), 0) + wlog::kv("rate", settings.rate, 4) + wlog::kv("tauD", settings.tauD, 1));
+          } break;
           case M_OFFSET:  editItem = M_OFFSET; editIdx = offIdx(); screen = Screen::EDIT; break;
           case M_SETTLE:  editItem = M_SETTLE; editIdx = setIdx(); screen = Screen::EDIT; break;
           case M_SCREEN:  settings.rot = (settings.rot + 1) % 4; settings.save(); applyRotation(); break;
           case M_RESET:   // two presses within 3 s, so a stray click cannot wipe what was learned
-            if (resetArm && millis() - resetArm < 3000) { settings.resetLearning(); beep(); resetArm = 0; }
+            if (resetArm && millis() - resetArm < 3000) { settings.resetLearning(); wlog::ev("RESET_LEARNING", ""); beep(); resetArm = 0; }
             else resetArm = millis();
             break;
           case M_UPDATE:  ota.start(); screen = Screen::OTA; break;
