@@ -16,7 +16,21 @@ import os
 import cadquery as cq
 
 TAG = os.environ.get("WA_BOX", "1591s")
-if TAG == "1591c":
+PCB_BOSS = None
+if TAG == "f100":
+    # AliExpress IP65 box F-100x68x50, black ABS base 36 + clear PC lid 14 (seller drawing). Inner sizes, wall, floor and
+    # the corner posts are measured off the seller drawing (scale 0.35 mm/px): to be checked on the real box.
+    W, L, HB, HL = 68.0, 100.0, 36.0, 14.0
+    IN_W, IN_L, FLOOR = 63.0, 95.0, 2.5
+    BOSS_X, BOSS_Y, BOSS_D, BOSS_HOLE = 57.6, 88.2, 7.7, 3.0     # corner posts with brass inserts for the lid screws
+    RIB_D = None
+    PCB_BOSS = (43.0, 75.0, 6.0, 5.0)                            # floor PCB bosses: pitch x, pitch y, dia, height (estimated)
+    DIN_X, DIN_Z = 0.0, 19.0          # housing bottom at 7.9 clears the floor PCB bosses near the DinMeter end
+    BOSS_CUT_Z = None
+    SLOT_X, SLOT_Z = 8.0, 18.0
+    RXC, RY0, AXC, AY0 = -14.5, -34.0, 15.5, -18.0
+    CH_X = 0.0
+elif TAG == "1591c":
     W, L, HB, HL = 65.0, 120.0, 36.0, 4.0
     IN_W, IN_L, FLOOR = 58.53, 113.53, 2.0
     BOSS_X, BOSS_Y, BOSS_D, BOSS_HOLE = 42.35, 97.35, 7.6, 2.5
@@ -56,11 +70,16 @@ for sx in (-1, 1):
             b = b.cut(low)
         box = box.union(b)
         box = box.cut(cq.Workplane("XY").workplane(offset=HB - 12).center(*c).circle(BOSS_HOLE / 2).extrude(12))
-n = int((IN_L - 24) / RIB_PITCH)
+n = int((IN_L - 24) / RIB_PITCH) if RIB_D else -1
 for i in range(n + 1):
     y = -(n * RIB_PITCH) / 2 + i * RIB_PITCH
     for sx in (-1, 1):
         box = box.union(cq.Workplane("XY").box(RIB_D, RIB_W, RIB_H).translate((sx * (X_IN - RIB_D / 2), y, HB - RIB_H / 2)))
+if PCB_BOSS:
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            box = box.union(cq.Workplane("XY").workplane(offset=FLOOR).center(sx * PCB_BOSS[0] / 2, sy * PCB_BOSS[1] / 2)
+                            .circle(PCB_BOSS[2] / 2).circle(1.2).extrude(PCB_BOSS[3]))
 lid = cq.Workplane("XY").rect(W, L).extrude(HL).edges("|Z").fillet(5.0).faces(">Z").edges().fillet(1.0).translate((0, 0, HB))
 
 # ---------- DinMeter in the upper end wall ----------
