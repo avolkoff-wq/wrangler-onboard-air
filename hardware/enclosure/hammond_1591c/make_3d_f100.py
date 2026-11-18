@@ -7,6 +7,8 @@ import re
 
 TAG = os.environ.get("WA_BOX", "f100")
 ACROSS = TAG == "f100x"
+CUST = TAG.startswith("cust")
+PFX = "box" if CUST else "hammond"
 
 t = open("hammond_1591c_3d.html", encoding="utf-8").read()
 glb = base64.b64encode(open(f"wrangler_air_{TAG}.glb", "rb").read()).decode()
@@ -25,8 +27,8 @@ t = re.sub(r'<span class="sub">.*?</span>',
            + 'Power: black GND, red +12 V to the DinMeter and red +12 V to relay COM (silicone 20 AWG). No ADC. '
            'Hover or tap a part for its name. For scale: Galaxy Z Fold7 folded and a cigarette pack (photo: Wikimedia Commons, AKS.9955, CC BY-SA 4.0).</span>',
            t, count=1, flags=re.S)
-t = t.replace('hammond_1591c_lid', f'hammond_{TAG}_lid').replace('hammond_1591c_body', f'hammond_{TAG}_body').replace('wrangler_air_1591c', f'wrangler_air_{TAG}')
-t = re.sub(r"const NAMES=\{.*?\};", f"""const NAMES={{hammond_{TAG}_body:"Box base, black ABS 100×68×36 (window and gland holes cut)",hammond_{TAG}_lid:"Clear PC lid, 14 mm",
+t = t.replace('hammond_1591c_lid', f'{PFX}_{TAG}_lid').replace('hammond_1591c_body', f'{PFX}_{TAG}_body').replace('wrangler_air_1591c', f'wrangler_air_{TAG}')
+t = re.sub(r"const NAMES=\{.*?\};", f"""const NAMES={{{PFX}_{TAG}_body:"Box base, black ABS 100×68×36 (window and gland holes cut)",{PFX}_{TAG}_lid:"Clear PC lid, 14 mm",
 bezel:"DinMeter",screen:"DinMeter screen",knob:"DinMeter knob",housing:"DinMeter",grove_plug_port_A:"Grove plug in PORT.A (sensor)",grove_plug_port_B:"Grove plug in PORT.B (relay)",
 power_terminal_plug:"DinMeter 6-36 V terminal",relay:"Mini 3A Relay",case:"Mini 3A Relay",terminal_COM_NO_NC:"Relay terminal: COM red, NO violet, NC unused",
 gland_M12_power:"M12 gland: power (black, red, red)",gland_M12_sensor_ARB:"M12 gland: sensor Grove 2 m and violet ARB wire",
@@ -35,9 +37,19 @@ GND_to_DinMeter_minus:"GND to DinMeter -, black 20 AWG",'12V_to_DinMeter_plus':"
 relay_NO_to_ARB:"Relay NO to the ARB (through V1), violet 20 AWG"}};""", t, count=1, flags=re.S)
 # clear lid: see-through by default
 t = t.replace("addPhotos(); addScale();",
-              "addPhotos(); addScale();\n  if(parts.hammond_"+TAG+"_lid)parts.hammond_"+TAG+"_lid.traverse(m=>{if(m.isMesh){m.material.color.set(0xbfe3ff);m.material.transparent=true;m.material.opacity=.28;m.material.depthWrite=false}});", 1)
+              "addPhotos(); addScale();\n  if(parts."+PFX+"_"+TAG+"_lid)parts."+PFX+"_"+TAG+"_lid.traverse(m=>{if(m.isMesh){m.material.color.set(0xbfe3ff);m.material.transparent=true;m.material.opacity=.28;m.material.depthWrite=false}});", 1)
 # names of wire meshes carry the colour suffix: look the prefix up too
 t = t.replace("function pick(e){", "function lbl(n){if(!n)return '';if(NAMES[n]!==undefined)return NAMES[n];for(const k in NAMES)if(n.startsWith(k))return NAMES[k];return ''}\nfunction pick(e){", 1)
 t = t.replace("label=NAMES[o.name]||''", "label=lbl(o.name)", 1)
+if CUST:
+    adc = TAG == "cust_adc"
+    t = t.replace("<title>Box F100 3D</title>", f"<title>Snap Box {'ADC' if adc else 'Direct'} 3D</title>")
+    t = re.sub(r"<h1>.*?</h1>", f"<h1>Wrangler Air, own printed box {'60' if adc else '54'}×100×36 with snap lid, " + ("schematic B (ADC)" if adc else "schematic A (no ADC)") + "</h1>", t, count=1, flags=re.S)
+    t = re.sub(r'<span class="sub">.*?</span>', '<span class="sub">Printed box, walls 2 mm, flat 2 mm lid on four snap hooks. DinMeter in the upper end wall, '
+               'two M12 cable glands in the lower end wall. ' + ('Relay left, ADC right (Grove 5 cm and 10 cm); right gland: sensor wires orange, blue, yellow to the ADC and the violet ARB wire, left gland: power.'
+               if adc else 'Relay along on the left, Grove 5 cm from PORT.B; left gland: 2 m Grove to the sensor and the violet ARB wire, right gland: power.')
+               + ' Hover or tap a part for its name. For scale: Galaxy Z Fold7 folded and a cigarette pack (photo: Wikimedia Commons, AKS.9955, CC BY-SA 4.0).</span>', t, count=1, flags=re.S)
+    t = t.replace("Box base, black ABS 100×68×36 (window and gland holes cut)", "Printed box, walls 2 mm").replace("Clear PC lid, 14 mm", "Lid 2 mm on 4 snap hooks")
+    t = t.replace('relay_NO_to_ARB:"Relay NO', 'W2_grove_PORT_A_to_ADC:"W2 Grove 10 cm, PORT.A to ADC",sensor_GND_to_ADC:"Sensor ground to ADC GND, blue",sensor_signal_to_ADC:"Sensor signal to ADC IN, yellow",sensor_5V_to_X4:"Sensor +5 V, orange, soldered onto the red conductor of W2 (-X4)",relay_NO_to_ARB:"Relay NO', 1)
 open(f"box_{TAG}_3d.html", "w", encoding="utf-8").write(t)
 print(len(t))

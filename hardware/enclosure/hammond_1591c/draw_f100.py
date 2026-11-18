@@ -20,6 +20,7 @@ svg{font-family:Inter,system-ui,sans-serif;font-size:13px}
 .post{fill:#55585e;stroke:#111;stroke-width:1}
 .ins{fill:#c9a04a;stroke:#7a5a18;stroke-width:.8}
 .pcb{fill:none;stroke:#888;stroke-width:1;stroke-dasharray:3 2}
+.snap{fill:#2f80ed;stroke:#1b4f9c;stroke-width:1}
 .cut{fill:#ffb3b3;stroke:#c00;stroke-width:1;stroke-dasharray:3 2}
 .hid{fill:none;stroke:#888;stroke-width:1;stroke-dasharray:4 3}
 .win{fill:#fff;stroke:#c00;stroke-width:1.6}
@@ -61,16 +62,27 @@ o = []
 # ---------------- top view, lid off (x right, y up: DinMeter end at the top) ----------------
 OX, OY = 110 + L.W / 2 * k, 90 + (L.L / 2 + 3) * k
 P = lambda x, y: (OX + x * k, OY - y * k)
-o.append(T(OX, 40, "Вид сверху, крышка снята" + (", реле поперёк" if L.REL_ACROSS else ", реле вдоль"), "ttl"))
+o.append(T(OX, 40, ("Вид сверху, крышка снята" + (", реле поперёк" if L.REL_ACROSS else ", реле вдоль")) if not L.SNAP else (f"Своя коробка {L.W:g}×{L.L:g}×{L.HB + L.HL:g}, " + ("с ADC (схема B)" if L.TAG == "cust_adc" else "без ADC (схема A)")), "ttl"))
 a, b = P(-L.W / 2, L.L / 2), P(L.W / 2, -L.L / 2); o.append(R(*a, *b, "part", 6 * k / 5))
 a, b = P(-L.IN_W / 2, L.IN_L / 2), P(L.IN_W / 2, -L.IN_L / 2); o.append(R(*a, *b, "inner", 6))
-for sx in (-1, 1):
+for sx in ((-1, 1) if L.BOSS_D else ()):
     for sy in (-1, 1):
         c = P(sx * L.BOSS_X / 2, sy * L.BOSS_Y / 2)
         q = P(sx * L.BOSS_X / 2 + sx * 4, sy * L.BOSS_Y / 2 + sy * 4)
         o.append(R(c[0], c[1], q[0], q[1], "post")); o.append(C(*c, L.BOSS_D / 2 * k, "post")); o.append(C(*c, 1.6 * k / 2 * 1.4, "ins"))
         cut = L.REL_ACROSS and sy < 0
         o.append(C(*P(sx * L.PCB_BOSS[0] / 2, sy * L.PCB_BOSS[1] / 2), L.PCB_BOSS[2] / 2 * k, "cut" if cut else "pcb"))
+if L.SNAP:   # snap hooks of the lid and the wall pockets
+    for sx in (-1, 1):
+        for y in L.SNAP_Y:
+            a, b = P(sx * (L.IN_W / 2 - 1.4), y + 4), P(sx * (L.IN_W / 2 + 1.0), y - 4); o.append(R(*a, *b, "snap"))
+    o.append(T(P(L.IN_W / 2 + 1, 0)[0] + 8, P(0, L.SNAP_Y[1])[1] + 4, "защёлка", "note", "start"))
+if L.TAG == "cust_adc":
+    x0, y0 = L.AXC - 12, L.AY0
+    a, b = P(x0, y0 + 32), P(x0 + 24, y0); o.append(R(*a, *b, "mod", 3))
+    a, b = P(L.AXC - 4.95, y0 + 38.5), P(L.AXC + 4.95, y0 + 32); o.append(R(*a, *b, "plug"))
+    a, b = P(L.AXC - 4.5, y0 + 9), P(L.AXC + 4.5, y0); o.append(R(*a, *b, "term"))
+    o.append(T(P(L.AXC, 0)[0], P(0, y0 + 20)[1], "ADC"))
 # DinMeter
 a, b = P(-26.5, L.TOP_Y + 2.5), P(26.5, L.TOP_Y); o.append(R(*a, *b, "bezel"))
 a, b = P(-22.8, L.TOP_Y), P(22.8, L.DB); o.append(R(*a, *b, "din")); o.append(T(OX, P(0, L.DB + 11)[1], "DinMeter"))
@@ -85,7 +97,7 @@ cx0, cy0, cx1, cy1 = L.REL_FOOT["case"]
 o.append(T(P((cx0 + cx1) / 2, 0)[0], P(0, (cy0 + cy1) / 2)[1] + 4, "Relay"))
 # cables from cables_<box>.json (top view)
 import json
-COLS = {"black": "#111", "red": "#d42020", "yellow": "#e0a800", "white": "#9aa0a6", "violet": "#7b2cbf"}
+COLS = {"black": "#111", "red": "#d42020", "yellow": "#e0a800", "white": "#9aa0a6", "violet": "#7b2cbf", "blue": "#1f5fd6", "orange": "#f07a00"}
 try:
     D = json.load(open(f"cables_{L.TAG}.json"))
     for c in D["cables"]:
@@ -102,12 +114,13 @@ for gx, gz in L.GLANDS:
 o.append(T(P(L.GLANDS[L.GLAND_POWER][0], 0)[0], P(0, -L.TOP_Y - 16)[1] + 16, "питание", "note"))
 o.append(T(P(L.GLANDS[L.GLAND_SENSOR][0], 0)[0], P(0, -L.TOP_Y - 16)[1] + 16, "датчик + ARB", "note"))
 # dims
-o.append(dim_h(*[P(x, 0)[0] for x in (-L.W / 2, L.W / 2)], P(0, L.TOP_Y)[1] - 28, "68"))
-o.append(dim_h(*[P(x, 0)[0] for x in (-L.IN_W / 2, L.IN_W / 2)], P(0, -L.TOP_Y)[1] + 115, "≈63 внутри", above=False))
-o.append(dim_v(P(-L.W / 2, 0)[0] - 30, *[P(0, y)[1] for y in (L.TOP_Y, -L.TOP_Y)], "100"))
-o.append(dim_v(P(L.W / 2, 0)[0] + 22, *[P(0, y)[1] for y in (L.Y_IN, -L.Y_IN)], "≈95", left=False))
-o.append(dim_h(P(22.8, 0)[0], P(L.BOSS_X / 2 - L.BOSS_D / 2, 0)[0], P(0, L.BOSS_Y / 2)[1], ""))
-o.append(T(P(L.BOSS_X / 2, 0)[0], P(0, L.DB - 6)[1], "зазор 2.1", "dt"))
+o.append(dim_h(*[P(x, 0)[0] for x in (-L.W / 2, L.W / 2)], P(0, L.TOP_Y)[1] - 28, f"{L.W:g}"))
+o.append(dim_h(*[P(x, 0)[0] for x in (-L.IN_W / 2, L.IN_W / 2)], P(0, -L.TOP_Y)[1] + 115, (f"{L.IN_W:g} внутри" if L.SNAP else "≈63 внутри"), above=False))
+o.append(dim_v(P(-L.W / 2, 0)[0] - 30, *[P(0, y)[1] for y in (L.TOP_Y, -L.TOP_Y)], f"{L.L:g}"))
+o.append(dim_v(P(L.W / 2, 0)[0] + 22, *[P(0, y)[1] for y in (L.Y_IN, -L.Y_IN)], (f"{L.IN_L:g}" if L.SNAP else "≈95"), left=False))
+gap = (L.BOSS_X / 2 - L.BOSS_D / 2) if L.BOSS_D else L.IN_W / 2
+o.append(dim_h(P(22.8, 0)[0], P(gap, 0)[0], P(0, L.DB + 4)[1], ""))
+o.append(T(P(gap, 0)[0], P(0, L.DB - 6)[1], f"зазор {gap - 22.8:.1f}", "dt"))
 if not L.REL_ACROSS:
     o.append(dim_v(P(L.RXC + 7, 0)[0], P(0, L.RY0)[1], P(0, -L.Y_IN)[1], f"{L.RY0 + L.Y_IN:.1f}", left=False))
 else:
@@ -119,20 +132,21 @@ E = lambda x, z: (EX + (x + L.W / 2) * k, EZ - z * k)
 o.append(T(E(0, 0)[0], 40, "Торец с DinMeter, вид снаружи", "ttl"))
 a, b = E(-L.W / 2, L.HB), E(L.W / 2, 0); o.append(R(*a, *b, "part", 4))
 a, b = E(-L.W / 2, L.HB + L.HL), E(L.W / 2, L.HB); o.append(R(*a, *b, "lid", 4))
-o.append(T(E(0, 0)[0], E(0, L.HB + L.HL / 2)[1] + 4, "прозрачная крышка 14", "lab"))
-for sx in (-1, 1):
+o.append(T(E(0, 0)[0], E(0, L.HB + L.HL / 2)[1] + 4, "прозрачная крышка 14" if not L.SNAP else "", "lab"))
+if L.SNAP: o.append(T(E(L.W / 2, 0)[0] + 40, E(0, L.HB + L.HL)[1] + 4, f"крышка {L.HL:g} на защёлках", "dt", "start"))
+for sx in ((-1, 1) if L.BOSS_D else ()):
     a, b = E(sx * (L.BOSS_X / 2 - L.BOSS_D / 2), L.HB), E(sx * (L.BOSS_X / 2 + L.BOSS_D / 2), L.FLOOR); o.append(R(*a, *b, "hid"))
 a, b = E(-26.5, L.DIN_Z + 15), E(26.5, L.DIN_Z - 15); o.append(R(*a, *b, "hid", 4 * k))
 a, b = E(-L.CUT_W / 2, L.DIN_Z + L.CUT_H / 2), E(L.CUT_W / 2, L.DIN_Z - L.CUT_H / 2); o.append(R(*a, *b, "win"))
 o.append(T(E(0, 0)[0], E(0, L.DIN_Z)[1] + 4, "окно 46 × 22.8", "dt"))
-o.append(T(E(0, 0)[0], E(0, L.FLOOR)[1] + 2, "чёрное основание 36", "labw"))
+o.append(T(E(0, 0)[0], E(0, L.FLOOR)[1] + 2, (f"корпус {L.HB:g}, стенка 2" if L.SNAP else "чёрное основание 36"), "labw"))
 o.append(dim_v(E(-L.W / 2, 0)[0] - 14, E(0, L.DIN_Z - L.CUT_H / 2)[1], E(0, 0)[1], f"{L.DIN_Z - L.CUT_H/2:.1f}"))
 o.append(dim_v(E(-L.W / 2, 0)[0] - 14, E(0, L.HB)[1], E(0, L.DIN_Z + L.CUT_H / 2)[1], f"{L.HB - L.DIN_Z - L.CUT_H/2:.1f}"))
-o.append(dim_v(E(L.W / 2, 0)[0] + 14, E(0, L.HB)[1], E(0, 0)[1], "36", left=False))
-o.append(dim_v(E(L.W / 2, 0)[0] + 14, E(0, L.HB + L.HL)[1], E(0, L.HB)[1], "14", left=False))
+o.append(dim_v(E(L.W / 2, 0)[0] + 14, E(0, L.HB)[1], E(0, 0)[1], f"{L.HB:g}", left=False))
+o.append(dim_v(E(L.W / 2, 0)[0] + 14, E(0, L.HB + L.HL)[1], E(0, L.HB)[1], f"{L.HL:g}", left=False))
 o.append(dim_h(E(-L.W / 2, 0)[0], E(-L.CUT_W / 2, 0)[0], E(0, 0)[1] + 22, f"{L.W/2 - L.CUT_W/2:.0f}", above=False))
 o.append(dim_h(E(-L.CUT_W / 2, 0)[0], E(L.CUT_W / 2, 0)[0], E(0, 0)[1] + 22, "46", above=False))
-o.append(T(E(0, 0)[0], E(0, 0)[1] + 58, "пунктир: стойки винтов крышки за стенкой и рамка DinMeter 53×30", "note"))
+o.append(T(E(0, 0)[0], E(0, 0)[1] + 58, ("пунктир: рамка DinMeter 53×30" if L.SNAP else "пунктир: стойки винтов крышки за стенкой и рамка DinMeter 53×30"), "note"))
 
 # ---------------- side section (y right = towards DinMeter, z up) ----------------
 SX0, SZ = EX - 40, EZ + 150 + (L.HB + L.HL) * k
@@ -158,9 +172,9 @@ gz = L.GLANDS[0][1]
 a, b = S(-L.Y_IN, gz + 9), S(-L.Y_IN + 5, gz - 9); o.append(R(*a, *b, "plug"))
 a, b = S(-L.TOP_Y - 4, gz + 8), S(-L.TOP_Y, gz - 8); o.append(R(*a, *b, "post"))
 a, b = S(-L.TOP_Y - 16, gz + 6.5), S(-L.TOP_Y - 4, gz - 6.5); o.append(R(*a, *b, "post", 6))
-o.append(dim_v(S(L.TOP_Y, 0)[0] + 30, S(0, L.HB + L.HL - 2.5)[1], S(0, F)[1], "≈45", left=False))
+o.append(dim_v(S(L.TOP_Y, 0)[0] + 30, S(0, L.HB + L.HL - 2.5)[1], S(0, F)[1], (f"{L.HB - L.FLOOR:g}" if L.SNAP else "≈45"), left=False))
 o.append(dim_h(S(L.DB, 0)[0], S(L.TOP_Y, 0)[0], S(0, L.HB + L.HL)[1] - 14, "20.4"))
-o.append(T(S(0, 0)[0], SZ + 30, "Над модулями ≈ 25 мм до крышки: место под петли Grove", "note"))
+o.append(T(S(0, 0)[0], SZ + 30, ("Над модулями ≈ 10 мм до крышки" if L.SNAP else "Над модулями ≈ 25 мм до крышки: место под петли Grove"), "note"))
 
 # ---------------- lower end wall, view from outside: two M12 holes ----------------
 GX0, GZ = OX - L.W / 2 * k, OY + L.L / 2 * k + 220 + (L.HB + L.HL) * k
@@ -176,11 +190,11 @@ o.append(dim_h(G(L.GLANDS[0][0], 0)[0], G(L.GLANDS[1][0], 0)[0], G(0, 0)[1] + 22
 o.append(dim_v(G(-L.W / 2, 0)[0] - 14, G(0, L.GLANDS[0][1])[1], G(0, 0)[1], f"{L.GLANDS[0][1]:.0f}"))
 o.append(T(G(0, 0)[0], G(0, 0)[1] + 58, "пунктир: гайка Ø18 изнутри", "note"))
 
-W_SVG = int(EX + L.W * k + 190)
+W_SVG = int(EX + L.W * k + 190 + (L.L - L.W) * k * 0 + (60 if L.SNAP else 0))
 H_SVG = int(max(SZ + 60, GZ + 80))
 svg = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W_SVG} {H_SVG}" width="{W_SVG}" height="{H_SVG}">'
        f'<style>{CSS}</style><defs><marker id="a" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">'
        f'<path d="M0 0 L10 5 L0 10 z" fill="#c00"/></marker></defs><rect width="100%" height="100%" fill="#fff"/>' + "".join(o) + "</svg>")
 open(f"box_{L.TAG}.svg", "w").write(svg)
-open(f"box_{L.TAG}.html", "w").write('<!doctype html><meta charset="utf-8"><title>Box F-100x68x50</title><body style="margin:0;background:#fff">' + svg)
+open(f"box_{L.TAG}.html", "w").write('<!doctype html><meta charset="utf-8"><title>Box ' + L.TAG + '</title><body style="margin:0;background:#fff">' + svg)
 print(W_SVG, H_SVG)

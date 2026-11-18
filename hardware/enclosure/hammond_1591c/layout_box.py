@@ -19,7 +19,26 @@ TAG = os.environ.get("WA_BOX", "1591s")
 PCB_BOSS = None
 GLANDS = None          # (x, z) of round M12 cable gland holes in the lower end wall, instead of the slot
 GLAND_D = 12.2
-if TAG in ("f100", "f100x"):
+SNAP = False
+if TAG in ("cust", "cust_adc"):
+    # Own printed box (PETG/ASA), made to fit: cust = schematic A (no ADC), cust_adc = schematic B (ADC v1.1 next to the relay).
+    # Walls and floor 2 mm, flat lid 2 mm held by 4 snap hooks. DinMeter in the upper end wall, two M12 glands in the lower one.
+    ADC_IN = TAG == "cust_adc"
+    IN_W = 56.0 if ADC_IN else 50.0
+    IN_L, FLOOR, WALL = 96.0, 2.0, 2.0
+    W, L, HB, HL = IN_W + 2 * WALL, IN_L + 2 * WALL, 34.0, 2.0
+    BOSS_X = BOSS_Y = BOSS_D = BOSS_HOLE = None
+    RIB_D = None
+    DIN_X, DIN_Z = 0.0, 19.0          # same height as in F100: the Grove 5 cm fold under the DinMeter plugs works; frame 4..34
+    BOSS_CUT_Z = None
+    SLOT_X, SLOT_Z = 8.0, 18.0
+    GLANDS = ((-12.0, 18.0), (12.0, 18.0))
+    GLAND_SENSOR, GLAND_POWER = (1, 0) if ADC_IN else (0, 1)
+    RXC, RY0, AXC, AY0 = (-15.5 if ADC_IN else -12.5), -34.0, 15.5, -18.0
+    REL_ACROSS = False
+    CH_X = 0.0
+    SNAP = True
+elif TAG in ("f100", "f100x"):
     # f100: relay along the box; f100x: same box, relay turned 90 degrees, across the box next to the glands.
     # AliExpress IP65 box F-100x68x50, black ABS base 36 + clear PC lid 14 (seller drawing). Inner sizes, wall, floor and
     # the corner posts are measured off the seller drawing (scale 0.35 mm/px): to be checked on the real box.
@@ -58,14 +77,14 @@ else:
     SLOT_X, SLOT_Z = -16.0, 20.0
     RXC, RY0, AXC, AY0 = -23.5, -36.0, 18.0, -22.0
     CH_X = -7.0
-NAME = f"hammond_{TAG}"
+NAME = f"box_{TAG}" if TAG.startswith("cust") else f"hammond_{TAG}"
 X_IN, Y_IN = IN_W / 2, IN_L / 2
 TOP_Y = L / 2
 
 box = (cq.Workplane("XY").rect(W, L).extrude(HB).edges("|Z").fillet(5.0).faces("<Z").edges().fillet(1.0))
 box = box.cut(cq.Workplane("XY").workplane(offset=FLOOR).rect(IN_W, IN_L).extrude(HB).edges("|Z").fillet(2.0))
 boss_cut = None
-for sx in (-1, 1):
+for sx in ((-1, 1) if BOSS_D else ()):
     for sy in (-1, 1):
         c = (sx * BOSS_X / 2, sy * BOSS_Y / 2)
         b = (cq.Workplane("XY").workplane(offset=FLOOR).center(*c).circle(BOSS_D / 2).extrude(HB - FLOOR)
@@ -91,6 +110,22 @@ if PCB_BOSS:
             box = box.union(cq.Workplane("XY").workplane(offset=FLOOR).center(sx * PCB_BOSS[0] / 2, sy * PCB_BOSS[1] / 2)
                             .circle(PCB_BOSS[2] / 2).circle(1.2).extrude(PCB_BOSS[3]))
 lid = cq.Workplane("XY").rect(W, L).extrude(HL).edges("|Z").fillet(5.0).faces(">Z").edges().fillet(1.0).translate((0, 0, HB))
+SNAP_Y = (-28.0, 28.0)                 # snap hooks on both long sides at these y
+if SNAP:
+    # lid: plate + locating lip 1.5 mm inside the walls (0.2 mm play), 4 cantilever hooks with a 0.8 mm catch;
+    # the walls get matching blind pockets 1 mm deep. Lift the box off the lid with a flat screwdriver in the notch.
+    lip = (cq.Workplane("XY").workplane(offset=HB - 3.5).rect(IN_W - 0.4, IN_L - 0.4).extrude(3.5).edges("|Z").fillet(1.8)
+           .cut(cq.Workplane("XY").workplane(offset=HB - 3.5).rect(IN_W - 3.4, IN_L - 3.4).extrude(3.5).edges("|Z").fillet(0.5)))
+    for sx in (-1, 1):
+        for y in SNAP_Y:
+            lip = lip.cut(cq.Workplane("XY").box(3.0, 10.0, 4.0).translate((sx * (IN_W / 2 - 1.5), y, HB - 2)))
+            x0 = sx * (IN_W / 2 - 0.2 - 0.6)
+            hook = cq.Workplane("XY").box(1.2, 8.0, 8.0).translate((x0, y, HB - 4))
+            catch = cq.Workplane("XY").box(0.8, 8.0, 1.6).translate((x0 + sx * 1.0, y, HB - 7.2))
+            lid = lid.union(hook).union(catch)
+            box = box.cut(cq.Workplane("XY").box(1.0, 9.0, 2.2).translate((sx * (IN_W / 2 + 0.5), y, HB - 7.2)))
+    lid = lid.union(lip)
+    lid = lid.cut(cq.Workplane("XY").box(8.0, 2.0, 1.0).translate((0, -L / 2 + 1.0, HB + HL - 0.5)))   # pry notch
 if TAG.startswith("f100"):    # clear lid is a 14 mm deep shell: the space above the units is usable
     lid = lid.cut(cq.Workplane("XY").workplane(offset=HB).rect(IN_W, IN_L).extrude(HL - 2.5).edges("|Z").fillet(2.0))
 
@@ -164,7 +199,7 @@ asm.add(lid, name=f"{NAME}_lid", color=cq.Color(0.30, 0.32, 0.35))
 if boss_cut is not None:
     asm.add(boss_cut, name="boss_part_to_cut_off", color=cq.Color(0.90, 0.10, 0.10, 0.55))
 asm.add(din); asm.add(rel)
-if not TAG.startswith("f100"):   # f100 = schematic A: sensor straight on PORT.A, no ADC
+if not TAG.startswith("f100") and TAG != "cust":   # f100 / cust = schematic A: sensor straight on PORT.A, no ADC
     asm.add(adc)
 if GLANDS:                # M12 cable glands: lock nut inside, hex and dome nut outside
     for i, (gx, gz) in enumerate(GLANDS):
@@ -197,6 +232,6 @@ if __name__ == "__main__":
         I.setdefault(n, []).append(s)
     body = I[f"{NAME}_body"][0]
     print("din housing - box (bosses)", d(I["housing"][0], body), "| relay grove plug - box", d(I["grove_plug"][0], body))
-    print("adc - din plugs", min(d(I["case"][1], I[k][0]) for k in ("grove_plug_port_A", "grove_plug_port_B", "power_terminal_plug")),
+    if len(I["case"]) > 1: print("adc - din plugs", min(d(I["case"][1], I[k][0]) for k in ("grove_plug_port_A", "grove_plug_port_B", "power_terminal_plug")),
           "| adc - relay", d(I["case"][1], I["case"][0]), "| relay - box (bosses)", d(I["case"][0], body))
 
