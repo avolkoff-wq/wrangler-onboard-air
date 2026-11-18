@@ -20,6 +20,7 @@ svg{font-family:Inter,system-ui,sans-serif;font-size:13px}
 .post{fill:#55585e;stroke:#111;stroke-width:1}
 .ins{fill:#c9a04a;stroke:#7a5a18;stroke-width:.8}
 .pcb{fill:none;stroke:#888;stroke-width:1;stroke-dasharray:3 2}
+.cut{fill:#ffb3b3;stroke:#c00;stroke-width:1;stroke-dasharray:3 2}
 .hid{fill:none;stroke:#888;stroke-width:1;stroke-dasharray:4 3}
 .win{fill:#fff;stroke:#c00;stroke-width:1.6}
 .dim{stroke:#c00;stroke-width:.9;fill:none}
@@ -60,7 +61,7 @@ o = []
 # ---------------- top view, lid off (x right, y up: DinMeter end at the top) ----------------
 OX, OY = 110 + L.W / 2 * k, 90 + (L.L / 2 + 3) * k
 P = lambda x, y: (OX + x * k, OY - y * k)
-o.append(T(OX, 40, "Вид сверху, крышка снята", "ttl"))
+o.append(T(OX, 40, "Вид сверху, крышка снята" + (", реле поперёк" if L.REL_ACROSS else ", реле вдоль"), "ttl"))
 a, b = P(-L.W / 2, L.L / 2), P(L.W / 2, -L.L / 2); o.append(R(*a, *b, "part", 6 * k / 5))
 a, b = P(-L.IN_W / 2, L.IN_L / 2), P(L.IN_W / 2, -L.IN_L / 2); o.append(R(*a, *b, "inner", 6))
 for sx in (-1, 1):
@@ -68,7 +69,8 @@ for sx in (-1, 1):
         c = P(sx * L.BOSS_X / 2, sy * L.BOSS_Y / 2)
         q = P(sx * L.BOSS_X / 2 + sx * 4, sy * L.BOSS_Y / 2 + sy * 4)
         o.append(R(c[0], c[1], q[0], q[1], "post")); o.append(C(*c, L.BOSS_D / 2 * k, "post")); o.append(C(*c, 1.6 * k / 2 * 1.4, "ins"))
-        o.append(C(*P(sx * L.PCB_BOSS[0] / 2, sy * L.PCB_BOSS[1] / 2), L.PCB_BOSS[2] / 2 * k, "pcb"))
+        cut = L.REL_ACROSS and sy < 0
+        o.append(C(*P(sx * L.PCB_BOSS[0] / 2, sy * L.PCB_BOSS[1] / 2), L.PCB_BOSS[2] / 2 * k, "cut" if cut else "pcb"))
 # DinMeter
 a, b = P(-26.5, L.TOP_Y + 2.5), P(26.5, L.TOP_Y); o.append(R(*a, *b, "bezel"))
 a, b = P(-22.8, L.TOP_Y), P(22.8, L.DB); o.append(R(*a, *b, "din")); o.append(T(OX, P(0, L.DB + 11)[1], "DinMeter"))
@@ -76,19 +78,31 @@ for xx in (-11.7, -18.0):
     a, b = P(xx - 2.3, L.DB), P(xx + 2.3, L.DB - 8); o.append(R(*a, *b, "plug"))
 a, b = P(-15.1 - 4.4, L.DB), P(-15.1 + 4.4, L.DB - 10); o.append(R(*a, *b, "term"))
 o.append(T(P(-11.7, 0)[0] + 18, P(0, L.DB - 5)[1], "A", "lab", "start")); o.append(T(P(-18, 0)[0] - 8, P(0, L.DB - 5)[1], "B", "lab", "end"))
-# relay and ADC
-for xc, y0, ln, name, ty in ((L.RXC, L.RY0, 48, "Relay", 10), (L.AXC, L.AY0, 32, "ADC", 8.5)):
-    a, b = P(xc - 12, y0 + ln), P(xc + 12, y0); o.append(R(*a, *b, "mod", 3))
-    a, b = P(xc - 4.95, y0 + ln + 6.5), P(xc + 4.95, y0 + ln); o.append(R(*a, *b, "plug"))
-    a, b = P(xc - 6, y0 + ty), P(xc + 6, y0); o.append(R(*a, *b, "term"))
-    o.append(T(P(xc, 0)[0], P(0, y0 + ln / 2)[1], name))
+# relay (schematic A: no ADC)
+for key, cls in (("case", "mod"), ("plug", "plug"), ("term", "term")):
+    x0, y0, x1, y1 = L.REL_FOOT[key]; a, b = P(x0, y1), P(x1, y0); o.append(R(*a, *b, cls, 3 if key == "case" else 0))
+cx0, cy0, cx1, cy1 = L.REL_FOOT["case"]
+o.append(T(P((cx0 + cx1) / 2, 0)[0], P(0, (cy0 + cy1) / 2)[1] + 4, "Relay"))
+# cables from cables_<box>.json (top view)
+import json
+COLS = {"black": "#111", "red": "#d42020", "yellow": "#e0a800", "white": "#9aa0a6", "violet": "#7b2cbf"}
+try:
+    D = json.load(open(f"cables_{L.TAG}.json"))
+    for c in D["cables"]:
+        o.append('<polyline fill="none" stroke="#555" stroke-width="7" stroke-linejoin="round" stroke-opacity=".35" points="' + " ".join(f"{P(p[0], p[1])[0]:.1f},{P(p[0], p[1])[1]:.1f}" for p in c["pts"]) + '"/>')
+        for k, col in enumerate(("black", "red", "yellow", "white")):
+            pass
+    for x in D["wires"]:
+        o.append(f'<polyline fill="none" stroke="{COLS[x["color"]]}" stroke-width="3" stroke-linejoin="round" points="' + " ".join(f"{P(p[0], p[1])[0]:.1f},{P(p[0], p[1])[1]:.1f}" for p in x["pts"]) + '"/>')
+except FileNotFoundError:
+    pass
 # two M12 cable glands in the lower end wall: lock nut inside, body and dome nut outside
 for gx, gz in L.GLANDS:
     a, b = P(gx - 9, -L.Y_IN + 5), P(gx + 9, -L.Y_IN); o.append(R(*a, *b, "plug"))           # lock nut
     a, b = P(gx - 8, -L.TOP_Y), P(gx + 8, -L.TOP_Y - 4); o.append(R(*a, *b, "post"))         # hex
     a, b = P(gx - 6.5, -L.TOP_Y - 4), P(gx + 6.5, -L.TOP_Y - 16); o.append(R(*a, *b, "post", 6))  # dome nut
-o.append(T(P(L.GLANDS[0][0], 0)[0], P(0, -L.TOP_Y - 16)[1] + 16, "питание", "note"))
-o.append(T(P(L.GLANDS[1][0], 0)[0], P(0, -L.TOP_Y - 16)[1] + 16, "датчик + ARB", "note"))
+o.append(T(P(L.GLANDS[L.GLAND_POWER][0], 0)[0], P(0, -L.TOP_Y - 16)[1] + 16, "питание", "note"))
+o.append(T(P(L.GLANDS[L.GLAND_SENSOR][0], 0)[0], P(0, -L.TOP_Y - 16)[1] + 16, "датчик + ARB", "note"))
 # dims
 o.append(dim_h(*[P(x, 0)[0] for x in (-L.W / 2, L.W / 2)], P(0, L.TOP_Y)[1] - 28, "68"))
 o.append(dim_h(*[P(x, 0)[0] for x in (-L.IN_W / 2, L.IN_W / 2)], P(0, -L.TOP_Y)[1] + 115, "≈63 внутри", above=False))
@@ -96,7 +110,10 @@ o.append(dim_v(P(-L.W / 2, 0)[0] - 30, *[P(0, y)[1] for y in (L.TOP_Y, -L.TOP_Y)
 o.append(dim_v(P(L.W / 2, 0)[0] + 22, *[P(0, y)[1] for y in (L.Y_IN, -L.Y_IN)], "≈95", left=False))
 o.append(dim_h(P(22.8, 0)[0], P(L.BOSS_X / 2 - L.BOSS_D / 2, 0)[0], P(0, L.BOSS_Y / 2)[1], ""))
 o.append(T(P(L.BOSS_X / 2, 0)[0], P(0, L.DB - 6)[1], "зазор 2.1", "dt"))
-o.append(dim_v(P(L.RXC + 7, 0)[0], P(0, L.RY0)[1], P(0, -L.Y_IN)[1], "13.5", left=False))
+if not L.REL_ACROSS:
+    o.append(dim_v(P(L.RXC + 7, 0)[0], P(0, L.RY0)[1], P(0, -L.Y_IN)[1], f"{L.RY0 + L.Y_IN:.1f}", left=False))
+else:
+    o.append(T(P(0, 0)[0], P(0, -10)[1], "свободно ≈ 40 мм", "note"))
 
 # ---------------- end view from outside, DinMeter end ----------------
 EX, EZ = 200 + L.W * k + 170, 90 + (L.HB + L.HL) * k
@@ -133,10 +150,12 @@ o.append(T(S((L.DB + L.TOP_Y) / 2, 0)[0], S(0, L.DIN_Z)[1] + 4, "DinMeter"))
 a, b = S(L.DB - 8, L.DIN_Z + 2), S(L.DB, L.DIN_Z - 8); o.append(R(*a, *b, "plug"))
 a, b = S(L.DB - 10, L.DIN_Z + 11.1), S(L.DB, L.DIN_Z + 4.1); o.append(R(*a, *b, "term"))
 F = L.FLOOR
-a, b = S(L.RY0, F + 8), S(L.RY0 + 48, F); o.append(R(*a, *b, "mod", 2))
-a, b = S(L.RY0, F + 20), S(L.RY0 + 10, F + 8); o.append(R(*a, *b, "term"))
-a, b = S(L.RY0 + 48, F + 6.3), S(L.RY0 + 54.5, F + 1.7); o.append(R(*a, *b, "plug"))
-o.append(T(S(L.RY0 + 30, 0)[0], S(0, F + 4)[1] + 4, "Relay (ADC рядом)"))
+_, ry0, _, ry1 = L.REL_FOOT["case"]; _, ty0, _, ty1 = L.REL_FOOT["term"]; _, py0, _, py1 = L.REL_FOOT["plug"]
+a, b = S(ry0, F + 8), S(ry1, F); o.append(R(*a, *b, "mod", 2))
+a, b = S(ty0, F + 20), S(ty1, F + 8); o.append(R(*a, *b, "term"))
+if not L.REL_ACROSS:
+    a, b = S(py0, F + 6.3), S(py1, F + 1.7); o.append(R(*a, *b, "plug"))
+o.append(T(S((ry0 + ry1) / 2, 0)[0], S(0, F + 4)[1] + 4, "Relay"))
 gz = L.GLANDS[0][1]
 a, b = S(-L.Y_IN, gz + 9), S(-L.Y_IN + 5, gz - 9); o.append(R(*a, *b, "plug"))
 a, b = S(-L.TOP_Y - 4, gz + 8), S(-L.TOP_Y, gz - 8); o.append(R(*a, *b, "post"))
@@ -164,6 +183,6 @@ H_SVG = int(max(SZ + 60, GZ + 80))
 svg = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W_SVG} {H_SVG}" width="{W_SVG}" height="{H_SVG}">'
        f'<style>{CSS}</style><defs><marker id="a" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">'
        f'<path d="M0 0 L10 5 L0 10 z" fill="#c00"/></marker></defs><rect width="100%" height="100%" fill="#fff"/>' + "".join(o) + "</svg>")
-open("box_f100.svg", "w").write(svg)
-open("box_f100.html", "w").write('<!doctype html><meta charset="utf-8"><title>Box F-100x68x50</title><body style="margin:0;background:#fff">' + svg)
+open(f"box_{L.TAG}.svg", "w").write(svg)
+open(f"box_{L.TAG}.html", "w").write('<!doctype html><meta charset="utf-8"><title>Box F-100x68x50</title><body style="margin:0;background:#fff">' + svg)
 print(W_SVG, H_SVG)
