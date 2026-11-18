@@ -295,46 +295,53 @@ def power_svg_iec():
             o.append(f'<line x1="{x-6}" y1="{y+6}" x2="{x+6}" y2="{y-6}" stroke="#111" stroke-width="1.5"/>')
             lab(x, y - 9, str(n), "c")
 
-    # enclosure and terminal strip -X1 (the 14 x 8 mm slot: every car wire passes here)
+    # enclosure; -X1 = the car wires at the two M12 cable glands, -X5 = the sensor Grove cable through the right gland
     o.append('<rect x="290" y="40" width="550" height="580" class="box"/>')
-    lab(296, 34, "-A0  коробка Hammond 1591C", "d", "start")
-    T = {1: 100, 2: 140, 3: 180, 4: 300, 5: 480, 6: 520, 7: 560}
-    o.append(f'<rect x="270" y="{T[1]-16}" width="40" height="{T[7]-T[1]+32}" class="b"/>')
+    lab(296, 34, "-A0  коробка F-100×68×50, 2 ввода M12", "d", "start")
+    T = {1: 100, 2: 140, 3: 180, 4: 300}
+    o.append(f'<rect x="270" y="{T[1]-16}" width="40" height="{T[4]-T[1]+32}" class="b"/>')
     lab(264, T[1] - 22, "-X1", "d", "end")
-    lab(264, T[7] + 34, "паз 14×8", "c", "end")
     for k, y in T.items():
         o.append(f'<circle cx="270" cy="{y}" r="3" class="t"/><circle cx="310" cy="{y}" r="3" class="t"/>')
         lab(290, y + 4, str(k), "n")
 
-    # outside: supply, ground, compressor, sensor
-    # -X1:1 ground, -X1:2 +12 V to the DinMeter, -X1:3 +12 V to the relay COM
+    # outside: supply, ground, compressor
     lab(20, T[1] + 4, "Масса", "d", "start"); L((80, T[1]), (267, T[1]), c="BK")
     L((80, T[1]), (80, T[1] + 10), c="BK"); ground(80, T[1] + 10); lab(94, T[1] + 22, "31", "c", "start")
-    lab(200, T[1] - 6, "BK 0.25", "c", "start")
+    lab(200, T[1] - 6, "BK 0.5", "c", "start")
     lab(20, T[2] + 4, "AUX1", "d", "start"); L((60, T[2]), (267, T[2]), c="RD")
     fuse_h(110, T[2], "", ""); lab(110, T[2] + 24, "-F1 3 A", "d")
     dot(170, T[2]); L((170, T[2]), (170, T[3]), (267, T[3]), c="RD")
     lab(170, T[2] - 12, "-X2", "c")
-    lab(200, T[2] - 6, "RD 0.25", "c", "start"); lab(200, T[3] - 6, "RD 0.25", "c", "start")
+    lab(200, T[2] - 6, "RD 0.5", "c", "start"); lab(200, T[3] - 6, "RD 0.5", "c", "start")
     lab(20, 244, "AUX2", "d", "start"); L((60, 240), (170, 240), (170, T[4]), c="VT")
     diode_v(170, 268, "-V2")
     comp(20, 270, 100, 60, "-M1", "ARB CKMTA12", "")
     pinl(120, T[4], "VT", "r")
     L((170, T[4]), (267, T[4]), c="VT"); L((123, T[4]), (170, T[4]), c="VT"); dot(170, T[4])
     diode_h(220, T[4], "-V1")
-    lab(170, T[4] + 18, "-X3", "c"); lab(20, 384, "-X3: катоды -V1 и -V2 вместе", "c", "start"); lab(20, 398, "+ фиолетовый, один соединитель", "c", "start"); lab(262, T[4] + 18, "VT 0.25", "c", "end")
+    lab(170, T[4] + 18, "-X3", "c"); lab(20, 384, "-X3: катоды -V1 и -V2 вместе", "c", "start"); lab(20, 398, "+ фиолетовый, один соединитель", "c", "start"); lab(262, T[4] + 18, "VT 0.5", "c", "end")
     lab(20, 352, "внутри: реле давления,", "c", "start"); lab(20, 366, "2 реле 12 В 40 А", "c", "start")
 
-    comp(20, 420, 100, 160, "-B1", "датчик", "0.5–4.5 В")
-    for k, t, c in ((5, "+5 V", "OG"), (6, "GND", "BU"), (7, "OUT", "YE")):
-        pinl(120, T[k], t, "r")
-        L((123, T[k]), (267, T[k]), c=c)
-    lab(140, T[5] - 6, "OG 0.25", "c", "start"); lab(140, T[6] - 6, "BU 0.25", "c", "start"); lab(140, T[7] - 6, "YE 0.25", "c", "start")
+    # sensor: straight on a 2 m Grove cable from PORT.A, connector -X6 at the sensor, no ADC, no divider
+    S = {"+5V": 495, "GND": 525, "OUT": 555}
+    comp(20, 440, 100, 140, "-B1", "датчик", "0–3,3 В")
+    for t, y in S.items():
+        pinl(120, y, t, "r")
+    o.append('<rect x="176" y="475" width="22" height="100" class="b"/>'); lab(187, 469, "-X6", "d")
+    lab(187, 590, "", "c")
+    lab(130, 600, "JWPF 3P", "c", "end")
+    L((123, S["+5V"]), (176, S["+5V"]), c="RD"); L((123, S["GND"]), (176, S["GND"]), c="BK"); L((123, S["OUT"]), (176, S["OUT"]), c="YE")
+    grove4([(720, 236), (720, 520), (204, 520)])
+    o.append('<rect x="284" y="506" width="12" height="28" fill="#555"/>'); lab(300, 552, "-X5 ввод M12", "c", "start")
+    lab(330, 512, "-W2 Grove 2 м (PORT.A)", "c", "start")
+    lab(204, 600, "WH не подключён", "c", "start")
 
     # inside
     comp(600, 70, 200, 160, "-A1", "M5Stack DinMeter", "12 В → 5 В")
     pinl(600, T[1], "GND"); pinl(600, T[2], "+12 V")
     pinl(650, 230, "PORT.B"); pinl(720, 230, "PORT.A")
+    lab(728, 250, "G13 = сигнал (АЦП)", "c", "start")
     L((313, T[1]), (597, T[1]), c="BK"); L((313, T[2]), (597, T[2]), c="RD")
     o.append('<rect x="390" y="165" width="120" height="190" class="b"/>')
     lab(396, 159, "-K1", "d", "start"); lab(450, 330, "Mini Relay", "d"); lab(450, 346, "3 A", "c")
@@ -345,14 +352,7 @@ def power_svg_iec():
     lab(398, T[3] - 6, "COM", "n", "start"); lab(398, T[4] - 6, "NO", "n", "start")
     L((313, T[3]), (387, T[3]), c="RD"); L((313, T[4]), (387, T[4]), c="VT")
     o.append('<circle cx="510" cy="245" r="3" class="t"/>')
-    grove4([(650, 236), (650, 245), (516, 245)]); lab(530, 268, "-W1 Grove 10 см", "c", "start")
-    comp(620, 400, 160, 180, "-A2", "ADC v1.1", "ADS1110, I²C")
-    o.append('<circle cx="720" cy="400" r="3" class="t"/>')
-    grove4([(720, 236), (720, 394)], ("WH", "YE", "BK", "RD")); lab(736, 320, "-W2 Grove 10 см", "c", "start")
-    pinl(620, T[6], "GND"); pinl(620, T[7], "IN")
-    L((313, T[6]), (617, T[6]), c="BU"); L((313, T[7]), (617, T[7]), c="YE")
-    L((313, T[5]), (560, T[5]), (560, 360), (726, 360), c="OG"); dot(726, 360)
-    lab(736, 364, "-X4 пайка на красную жилу W2", "c", "start")
+    grove4([(650, 236), (650, 245), (516, 245)]); lab(530, 268, "-W1 Grove 5 см", "c", "start")
 
     # title block
     o.append('<rect x="640" y="630" width="350" height="44" class="b"/>')
