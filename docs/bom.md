@@ -53,13 +53,14 @@ Grove: реле на 5 см, ADC на 10 см (расстояние до PORT.A 
 |---|---|---|
 | 3M VHB | 10.80 | [Galaxus](https://www.galaxus.ch/en/search?q=3M%20VHB) |
 
-## Второй заказ (в корзине AliExpress 18.11.2026, не оформлен, ~CHF 59 + доставка Grove от M5Stack CHF 4.44)
+## Второй заказ (в корзине AliExpress 18.11.2026, не оформлен, ~CHF 74 вместе с доставкой Grove от M5Stack)
 
 | Позиция | Кол-во | Вариант | Цена | Ссылка |
 |---|---|---|---|---|
 | Датчик давления 5 V, **G1/8 (BSPP)**, керамика, кабель | 1+1 | 0-1.2Mpa, output 0-3.3V (основной) и output 0.5-4.5V (запасной, через ADC) | 15.28 + 15.32 | [item](https://www.aliexpress.com/item/1005004559608411.html) |
 | Grove кабель 2 м, PORT.A → датчик | 1 | 200cm-1pcs | 2.56 | [item](https://www.aliexpress.com/item/1005003297438723.html) |
-| Разъём 3-pin JWPF влагозащищённый, пара с проводами 15 см 22AWG | 5 пар | 5Pairs, 15CM, 3P | 4.73 | [item](https://www.aliexpress.com/item/1005013090546413.html) |
+| Разъём JST JWPF 3P, корпуса + пины + уплотнители, обжим самому | 10 комплектов | 3P whole set | 7.63 | [item](https://www.aliexpress.com/item/1005009147794864.html) |
+| Клещи IWISS IWS-2820 для открытых пинов AWG 28-20 (JWPF, JST, Dupont) | 1 | IWS-2820 | 17.19 | [item](https://www.aliexpress.com/item/1005004251797726.html) |
 | Шайба бондовая (Dowty) 1/8 BSP | 20 шт | 1/8 inch BSP | 2.63 | [item](https://www.aliexpress.com/item/1005010400290817.html) |
 | Клещи для гильз HSC8 6-6A с набором гильз | 1 | 400PCs | 14.04 | [item](https://www.aliexpress.com/item/1005008064207855.html) |
 | Кольцевые наконечники с припоем и термоусадкой, M5-M10 | 1 | 40PCS Kit | 5.19 | [item](https://www.aliexpress.com/item/1005007516527222.html) |
