@@ -356,7 +356,146 @@ def power_svg_iec():
 
     # title block
     o.append('<rect x="640" y="630" width="350" height="44" class="b"/>')
-    lab(650, 648, "Wrangler Air · схема электрическая", "d", "start")
+    lab(650, 648, "Wrangler Air · схема электрическая, вариант A (прямо)", "d", "start")
+    lab(650, 666, "IEC 60617 / IEC 61082 · цвета IEC 60757 · лист 1/1", "c", "start")
+    o.append("</svg>")
+    return "".join(o)
+
+
+def power_svg_iec_adc():
+    """Variant B, sensor 0.5-4.5 V through the ADC v1.1 on PORT.A. Circuit diagram in IEC 60617 / IEC 61082 style: black orthogonal wiring on a 10 px grid, signal flow left to right,
+    designators (-F1, -K1, -A1 ...), wire colour codes per IEC 60757 (RD, BK, YE, VT) with cross-section, junction dots,
+    multi-conductor cables drawn as one line with a stroke and the conductor count, the box entry as terminal strip -X1."""
+    W = 2
+    o = ['<svg viewBox="0 0 1000 680" style="color:var(--fg);max-width:1000px;margin:0 auto;background:#fff;border-radius:8px">',
+         '<style>.d{font:700 12px var(--f);fill:#111}.n{font:12px var(--f);fill:#333}.c{font:11px var(--f);fill:#555}'
+         '.w{stroke:#111;stroke-width:2;fill:none;stroke-linejoin:miter}.b{fill:#fff;stroke:#111;stroke-width:1.5}'
+         '.box{fill:none;stroke:#111;stroke-width:1.2;stroke-dasharray:10 4 2 4}.t{fill:#fff;stroke:#111;stroke-width:1.5}</style>']
+
+    CC = {"RD": "#d42020", "BK": "#111111", "YE": "#e0a800", "VT": "#7b2cbf", "WH": "#a7adb4", "OG": "#ff7a00", "BU": "#1f5fd6"}
+
+    def L(*pts, c="BK", w=2.5):
+        o.append(f'<polyline fill="none" stroke="{CC[c]}" stroke-width="{w}" stroke-linejoin="miter" points="' + " ".join(f"{x},{y}" for x, y in pts) + '"/>')
+
+    def grove4(pts, order=("BK", "RD", "YE", "WH")):
+        """Grove cable: four conductors side by side, in their real colours."""
+        for i, c in enumerate(order):
+            off = (i - 1.5) * 4
+            q = []
+            for k, (x, y) in enumerate(pts):
+                nb = [pts[j] for j in (k - 1, k + 1) if 0 <= j < len(pts)]
+                vert = any(n[0] == x for n in nb); hor = any(n[1] == y for n in nb)
+                q.append((x + (off if vert else 0), y + (off if hor else 0)))
+            L(*q, c=c, w=2)
+
+    def dot(x, y):
+        o.append(f'<circle cx="{x}" cy="{y}" r="4" fill="#111"/>')
+
+    def lab(x, y, t, cls="c", anchor="middle"):
+        o.append(f'<text x="{x}" y="{y}" class="{cls}" text-anchor="{anchor}">{t}</text>')
+
+    def comp(x, y, w, h, des, name, sub=""):
+        o.append(f'<rect x="{x}" y="{y}" width="{w}" height="{h}" class="b"/>')
+        lab(x + 6, y - 6, des, "d", "start")
+        lab(x + w / 2, y + 18, name, "d")
+        if sub:
+            lab(x + w / 2, y + 34, sub, "c")
+
+    def pinl(x, y, t, side="l"):
+        o.append(f'<circle cx="{x}" cy="{y}" r="3" class="t"/>')
+        lab(x + (8 if side == "l" else -8), y + 4, t, "n", "start" if side == "l" else "end")
+
+    def diode_h(x, y, des):            # current to the left
+        o.append(f'<polygon points="{x+8},{y-8} {x+8},{y+8} {x-6},{y}" class="b"/><line x1="{x-7}" y1="{y-9}" x2="{x-7}" y2="{y+9}" stroke="#111" stroke-width="2.5"/>')
+        lab(x, y - 14, des, "d")
+
+    def diode_v(x, y, des):            # current downwards
+        o.append(f'<polygon points="{x-8},{y-8} {x+8},{y-8} {x},{y+6}" class="b"/><line x1="{x-9}" y1="{y+7}" x2="{x+9}" y2="{y+7}" stroke="#111" stroke-width="2.5"/>')
+        lab(x + 14, y + 4, des, "d", "start")
+
+    def fuse_h(x, y, des, val):
+        o.append(f'<rect x="{x-16}" y="{y-7}" width="32" height="14" class="b"/><line x1="{x-16}" y1="{y}" x2="{x+16}" y2="{y}" stroke="#111" stroke-width="1.5"/>')
+        lab(x, y - 14, f"{des} {val}", "d")
+
+    def ground(x, y):
+        o.append(f'<line x1="{x-10}" y1="{y}" x2="{x+10}" y2="{y}" stroke="#111" stroke-width="2"/>'
+                 f'<line x1="{x-6}" y1="{y+5}" x2="{x+6}" y2="{y+5}" stroke="#111" stroke-width="2"/>'
+                 f'<line x1="{x-2}" y1="{y+10}" x2="{x+2}" y2="{y+10}" stroke="#111" stroke-width="2"/>')
+
+    def cable(x1, y1, x2, y2, n, name, lx, ly):
+        L((x1, y1), (x2, y2)) if (x1 == x2 or y1 == y2) else None
+        lab(lx, ly, name, "c", "start")
+
+    def slash(x, y, n, vertical):      # multi-conductor marking: one stroke and the conductor count
+        if vertical:
+            o.append(f'<line x1="{x-6}" y1="{y+6}" x2="{x+6}" y2="{y-6}" stroke="#111" stroke-width="1.5"/>')
+            lab(x + 9, y - 4, str(n), "c", "start")
+        else:
+            o.append(f'<line x1="{x-6}" y1="{y+6}" x2="{x+6}" y2="{y-6}" stroke="#111" stroke-width="1.5"/>')
+            lab(x, y - 9, str(n), "c")
+
+    # enclosure and terminal strip -X1 (the 14 x 8 mm slot: every car wire passes here)
+    o.append('<rect x="290" y="40" width="550" height="580" class="box"/>')
+    lab(296, 34, "-A0  коробка F-100×68×50, 2 ввода M12", "d", "start")
+    T = {1: 100, 2: 140, 3: 180, 4: 300, 5: 480, 6: 520, 7: 560}
+    o.append(f'<rect x="270" y="{T[1]-16}" width="40" height="{T[7]-T[1]+32}" class="b"/>')
+    lab(264, T[1] - 22, "-X1", "d", "end")
+    lab(264, T[7] + 34, "вводы M12", "c", "end")
+    for k, y in T.items():
+        o.append(f'<circle cx="270" cy="{y}" r="3" class="t"/><circle cx="310" cy="{y}" r="3" class="t"/>')
+        lab(290, y + 4, str(k), "n")
+
+    # outside: supply, ground, compressor, sensor
+    # -X1:1 ground, -X1:2 +12 V to the DinMeter, -X1:3 +12 V to the relay COM
+    lab(20, T[1] + 4, "Масса", "d", "start"); L((80, T[1]), (267, T[1]), c="BK")
+    L((80, T[1]), (80, T[1] + 10), c="BK"); ground(80, T[1] + 10); lab(94, T[1] + 22, "31", "c", "start")
+    lab(200, T[1] - 6, "BK 0.5", "c", "start")
+    lab(20, T[2] + 4, "AUX1", "d", "start"); L((60, T[2]), (267, T[2]), c="RD")
+    fuse_h(110, T[2], "", ""); lab(110, T[2] + 24, "-F1 3 A", "d")
+    dot(170, T[2]); L((170, T[2]), (170, T[3]), (267, T[3]), c="RD")
+    lab(170, T[2] - 12, "-X2", "c")
+    lab(200, T[2] - 6, "RD 0.5", "c", "start"); lab(200, T[3] - 6, "RD 0.5", "c", "start")
+    lab(20, 244, "AUX2", "d", "start"); L((60, 240), (170, 240), (170, T[4]), c="VT")
+    diode_v(170, 268, "-V2")
+    comp(20, 270, 100, 60, "-M1", "ARB CKMTA12", "")
+    pinl(120, T[4], "VT", "r")
+    L((170, T[4]), (267, T[4]), c="VT"); L((123, T[4]), (170, T[4]), c="VT"); dot(170, T[4])
+    diode_h(220, T[4], "-V1")
+    lab(170, T[4] + 18, "-X3", "c"); lab(20, 384, "-X3: катоды -V1 и -V2 вместе", "c", "start"); lab(20, 398, "+ фиолетовый, один соединитель", "c", "start"); lab(262, T[4] + 18, "VT 0.5", "c", "end")
+    lab(20, 352, "внутри: реле давления,", "c", "start"); lab(20, 366, "2 реле 12 В 40 А", "c", "start")
+
+    comp(20, 420, 100, 160, "-B1", "датчик", "0,5–4,5 В")
+    for k, t, c in ((5, "+5 V", "OG"), (6, "GND", "BU"), (7, "OUT", "YE")):
+        pinl(120, T[k], t, "r")
+        L((123, T[k]), (267, T[k]), c=c)
+    lab(140, T[5] - 6, "OG 0.5", "c", "start"); lab(140, T[6] - 6, "BU 0.5", "c", "start"); lab(140, T[7] - 6, "YE 0.5", "c", "start")
+
+    # inside
+    comp(600, 70, 200, 160, "-A1", "M5Stack DinMeter", "12 В → 5 В")
+    pinl(600, T[1], "GND"); pinl(600, T[2], "+12 V")
+    pinl(650, 230, "PORT.B"); pinl(720, 230, "PORT.A")
+    L((313, T[1]), (597, T[1]), c="BK"); L((313, T[2]), (597, T[2]), c="RD")
+    o.append('<rect x="390" y="165" width="120" height="190" class="b"/>')
+    lab(396, 159, "-K1", "d", "start"); lab(450, 330, "Mini Relay", "d"); lab(450, 346, "3 A", "c")
+    # relay contact inside -K1, normally open: COM blade, NO fixed contact
+    o.append(f'<line x1="393" y1="{T[3]}" x2="440" y2="{T[3]}" stroke="#111" stroke-width="2"/><line x1="440" y1="{T[3]}" x2="466" y2="{T[3]+48}" stroke="#111" stroke-width="2"/>'
+             f'<line x1="393" y1="{T[4]}" x2="472" y2="{T[4]}" stroke="#111" stroke-width="2"/><line x1="472" y1="{T[4]}" x2="472" y2="{T[3]+56}" stroke="#111" stroke-width="2"/>')
+    o.append(f'<circle cx="390" cy="{T[3]}" r="3" class="t"/><circle cx="390" cy="{T[4]}" r="3" class="t"/>')
+    lab(398, T[3] - 6, "COM", "n", "start"); lab(398, T[4] - 6, "NO", "n", "start")
+    L((313, T[3]), (387, T[3]), c="RD"); L((313, T[4]), (387, T[4]), c="VT")
+    o.append('<circle cx="510" cy="245" r="3" class="t"/>')
+    grove4([(650, 236), (650, 245), (516, 245)]); lab(530, 268, "-W1 Grove 5 см", "c", "start")
+    comp(620, 400, 160, 180, "-A2", "ADC v1.1", "ADS1110, I²C")
+    o.append('<circle cx="720" cy="400" r="3" class="t"/>')
+    grove4([(720, 236), (720, 394)], ("WH", "YE", "BK", "RD")); lab(736, 320, "-W2 Grove 10 см", "c", "start")
+    pinl(620, T[6], "GND"); pinl(620, T[7], "IN")
+    L((313, T[6]), (617, T[6]), c="BU"); L((313, T[7]), (617, T[7]), c="YE")
+    L((313, T[5]), (560, T[5]), (560, 360), (726, 360), c="OG"); dot(726, 360)
+    lab(736, 364, "-X4 пайка на красную жилу W2", "c", "start")
+
+    # title block
+    o.append('<rect x="640" y="630" width="350" height="44" class="b"/>')
+    lab(650, 648, "Wrangler Air · схема электрическая, вариант B (ADC)", "d", "start")
     lab(650, 666, "IEC 60617 / IEC 61082 · цвета IEC 60757 · лист 1/1", "c", "start")
     o.append("</svg>")
     return "".join(o)
