@@ -94,6 +94,8 @@ int setIdx() { return settings.settleAuto ? 0 : constrain((int)roundf((settings.
 String offText(int i) { return i == 0 ? "AUTO" : String(offVal(i), 2) + " bar"; }
 String setText(int i) { return i == 0 ? "AUTO" : String(setVal(i), 1) + " s"; }
 
+constexpr uint32_t DONE_BEEP_MS = 1500;   // long beep when a run reaches its target
+
 void beep(int n = 1) {
   for (int i = 0; i < n; i++) { M5.Speaker.tone(3500, 120); delay(180); }
 }
@@ -1088,7 +1090,10 @@ void loop() {
       if (b == input::Btn::LONG && !pump.busy()) { disarm("LONG"); screen = Screen::MENU; menuPos = 0; }
       static PState prev = PState::IDLE;
       if (pump.state() != prev) {
-        if (pump.state() == PState::DONE)  beep(2);
+        if (pump.state() == PState::DONE) {
+          if (pump.inBand()) beep(2);                                  // nothing to do, already there
+          else M5.Speaker.tone(3500, DONE_BEEP_MS);                    // target reached: one long beep, non-blocking
+        }
         if (pump.state() == PState::ERROR) beep(4);
         prev = pump.state();
       }
