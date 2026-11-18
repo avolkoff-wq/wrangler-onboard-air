@@ -8,13 +8,15 @@
 //   turn            pick a typical pressure: HIGHWAY 2.5, ROUGH ROAD 1.8, GRAVEL 1.5, TRAIL 1.2, ROCK 1.0, SAND 0.8,
 //                   RECOVERY 0.5 bar, CUSTOM x.x (config.h PRESETS); LOW shown below 0.8
 //   press           (released within 0.5 s) two-press start: the first press arms (only when the screen says INFLATE
-//                   or DEFLATE): "PRESS AGAIN TO START" with a 3 s bar; a second press within 3 s starts. A turn, a
+//                   or DEFLATE): "PRESS AGAIN: START" with a 3 s bar (INFLATE also "ENGINE ON?", a reminder only); a second press within 3 s starts. A turn, a
 //                   long press or 3 s without a press disarm (log ARM_CANCEL). While running one press stops at once.
 //                   On CUSTOM the first press opens the value: turn 0.1 bar steps, press OK = save and arm,
 //                   long press = cancel (one look at the value before every custom run)
 //   long press      held 2.0 s (from 0.3 s a "HOLD FOR MENU" bar fills along the bottom; released 0.5..2.0 s = nothing):
 //                   menu: CALIBRATE, LEARN, SENSOR (live volts for the bench), UNITS, TYRE, OFFSET, SETTLE, SCREEN,
-//                   RESET LEARNING, UPDATE, VERSION, EXIT. Not while running.
+//                   RESET LEARNING, UPDATE, VERSION, HOURS, EXIT. Not while running.
+//   HOURS: compressor hours, hours since the last filter service, valve hours (h:mm); hold 2 s, then hold 2 s again
+//          on the confirmation = FILTERS CLEANED (log FILTER_RESET). After FILTER_SERVICE_H (10 h) idle shows CLEAN FILTERS.
 //   LEARN: LEARN INFLATE (compressor 15 s) / LEARN DEFLATE (valve 20 s, builds with the valve, needs >= 1.5 bar) / BACK;
 //          needs > 0.15 bar; confirm with a press (long: back). Measure, one fixed pulse, measure: INFLATE learns like
 //          the first-run pulse, DEFLATE sets tauD = 20 / ln(p_before_abs / p_after_abs). Press aborts. Log LEARN_*_TEST.
@@ -51,11 +53,11 @@ Ota ota;
 M5Canvas canvas(&M5.Display);
 
 enum IdleDir { D_UP, D_DOWN, D_OK, D_ABOVE, D_DEAD };   // what a start would do from the idle screen
-enum class Screen { MAIN, MENU, EDIT, CAL, OTA, VERSION, SENSOR, CUSTOM, LEARN_PICK, LEARN_CONF, LEARN_MSG };
+enum class Screen { MAIN, MENU, EDIT, CAL, OTA, VERSION, SENSOR, CUSTOM, LEARN_PICK, LEARN_CONF, LEARN_MSG, HOURS, HOURS_CONF };
 Screen screen = Screen::MAIN;
 int menuPos = 0;
-enum MenuItem { M_CAL, M_LEARN, M_SENSOR, M_UNITS, M_TYRE, M_OFFSET, M_SETTLE, M_SCREEN, M_RESET, M_UPDATE, M_VERSION, M_EXIT };
-const char* MENU[] = {"CALIBRATE", "LEARN", "SENSOR", "UNITS", "TYRE", "OFFSET", "SETTLE", "SCREEN", "RESET LEARNING", "WIFI: UPDATE + LOG", "VERSION", "EXIT"};
+enum MenuItem { M_CAL, M_LEARN, M_SENSOR, M_UNITS, M_TYRE, M_OFFSET, M_SETTLE, M_SCREEN, M_RESET, M_UPDATE, M_VERSION, M_HOURS, M_EXIT };
+const char* MENU[] = {"CALIBRATE", "LEARN", "SENSOR", "UNITS", "TYRE", "OFFSET", "SETTLE", "SCREEN", "RESET LEARNING", "WIFI: UPDATE + LOG", "VERSION", "HOURS", "EXIT"};
 constexpr int MENU_N = sizeof(MENU) / sizeof(MENU[0]);
 
 // ---------- helpers ----------
@@ -487,6 +489,8 @@ void drawIdle(bool edit) {
       canvas.fillRect(20, H() - 3, (int)((W() - 40) * left), 3, TFT_WHITE);
       return;
     }
+    // portrait has no free row: the filter note takes the hint line every other 1.5 s
+    if (portrait() && filtersDue() && (millis() / 1500) % 2) { drawHint("CLEAN FILTERS", TFT_ORANGE); return; }
     drawHint(hint && !dead ? "turn: mode  press: start  hold: menu" : "turn: mode  hold: menu");
   };
   iconDim = dead;
@@ -495,10 +499,15 @@ void drawIdle(bool edit) {
     iconDim = false;
     bigValue(fmt(bar), false, W() - 8, 2, numc, 1);
     textAt(unitName(), W() - 8, 56, F_TEXT, unitc, top_right);
+    if (!edit && filtersDue()) {   // small, not blocking: left of the unit, right of the icon
+      canvas.setFont(F_TEXT); const int uw = canvas.textWidth(unitName());
+      textAt("CLEAN FILTERS", W() - 8 - uw - 6, 58, &fonts::Font2, dead ? dim : TFT_ORANGE, top_right);
+    }
     textAt(name + (low && !edit ? "  LOW" : ""), W() / 2, 72, F_MID, namec, top_center, F_TEXT, W() - 8);
     if (!edit) {
       canvas.fillRect(10, 94, W() - 20, 2, dead ? dim : dc);
       if (dead) textAt("CONNECT SYSTEM", W() / 2, 99, F_TEXT, C_LGREY, top_center);
+      else if (armed && dir == D_UP) textAt("ENGINE ON?", W() / 2, 99, F_TEXT, TFT_ORANGE, top_center);   // compressor ahead: reminder only
       else dirLine(99, false);
     }
     idleHint();
@@ -513,6 +522,10 @@ void drawIdle(bool edit) {
       if (dead) {
         textAt("CONNECT", W() / 2, 173, F_TEXT, C_LGREY, top_center);
         textAt("SYSTEM", W() / 2, 190, F_TEXT, C_LGREY, top_center);
+      } else if (armed && dir == D_UP) {   // compressor ahead: reminder only, no hardware check
+        dirLine(173, true);
+        canvas.fillRect(0, 189, W(), 17, TFT_BLACK);
+        textAt("ENGINE ON?", W() / 2, 190, F_TEXT, TFT_ORANGE, top_center);
       } else dirLine(173, true);
     }
     idleHint();
@@ -667,6 +680,7 @@ void drawLearnConf() {
   const bool def = learnSel == Mode::DEF;
   drawLines({ {def ? "LEARN DEFLATE:" : "LEARN INFLATE:", F_TEXT, def ? TFT_SKYBLUE : TFT_ORANGE},
               {def ? "valve " + String(LEARN_DEF_MS / 1000) + " s." : "compressor " + String(CAL_PULSE_MS / 1000) + " s.", F_TEXT, TFT_WHITE},
+              {def ? "" : "ENGINE ON?", F_TEXT, TFT_ORANGE},
               {"Measure, pulse, measure.", F_SMALL, C_LGREY} }, 0, H() - 18);
   drawHint("press: start  hold: back");
   canvas.pushSprite(0, 0);
@@ -750,6 +764,39 @@ void drawVersion() {
 }
 
 // live sensor check for the bench: what the sensor sends, what the input pin sees (after the divider if any), and the pressure
+// ---------- hour meter ----------
+// every second the compressor (run, LEARN, calibration) or the valve is on; saved when a run or calibration ends
+void countHours() {
+  static uint32_t last = millis(), cmpMs = 0, ventMs = 0;
+  static bool wasActive = false;
+  const uint32_t now = millis(), dt = now - last; last = now;
+  if (pump.compressorOn() || cal.state() == CState::PUMPING) cmpMs += dt;
+  if (pump.valveOpen()) ventMs += dt;
+  settings.cmpSec += cmpMs / 1000; cmpMs %= 1000;
+  settings.ventSec += ventMs / 1000; ventMs %= 1000;
+  const bool active = pump.busy() || cal.active();
+  if (wasActive && !active) settings.save();             // not every second: once per run
+  wasActive = active;
+}
+String hmm(uint32_t sec) { char b[16]; snprintf(b, sizeof b, "%lu:%02lu", (unsigned long)(sec / 3600), (unsigned long)(sec / 60 % 60)); return b; }
+bool filtersDue() { return settings.svcHours() >= FILTER_SERVICE_H; }
+void drawHours(bool confirm) {
+  canvas.fillSprite(TFT_BLACK);
+  const uint32_t svc = settings.cmpSec - settings.svcSec;
+  if (!confirm) {
+    drawLines({ {"HOURS", F_TEXT, TFT_CYAN},
+                {"compressor " + hmm(settings.cmpSec), F_TEXT, TFT_WHITE},
+                {"since filter service " + hmm(svc), F_TEXT, filtersDue() ? TFT_ORANGE : TFT_WHITE, F_SMALL},
+                {DEFLATE ? "valve " + hmm(settings.ventSec) : "", F_TEXT, TFT_WHITE} }, 0, H() - 18);
+    drawHint("press: back  hold: filters cleaned");
+  } else {
+    drawLines({ {"FILTERS CLEANED?", F_TEXT, TFT_ORANGE},
+                {"since service " + hmm(svc), F_TEXT, TFT_WHITE, F_SMALL} }, 0, H() - 18);
+    drawHint("hold 2 s: reset service  press: back");
+  }
+  canvas.pushSprite(0, 0);
+}
+
 void drawSensor() {
   canvas.fillSprite(TFT_BLACK);
   const float vg = sensor.vG1(), vs = vg * DIVIDER;
@@ -777,7 +824,7 @@ void setup() {
 
   auto cfg = M5.config();
   M5.begin(cfg);
-  M5.Display.setBrightness(160);
+  M5.Display.setBrightness(255);   // always full brightness (sunlight)
   settings.load();
   settings.bootN++; settings.save();
   wlog::begin(settings.bootN);
@@ -785,7 +832,9 @@ void setup() {
                    wlog::kv("offset", settings.offset) + wlog::kv("c", settings.c, 2) + wlog::kv("rate", settings.rate, 4) +
                    wlog::kv("kTop", settings.kTop, 4) + wlog::kv("bias", settings.bias) + wlog::kv("dev", settings.dev) +
                    wlog::kv("learned", settings.learned ? "1" : "0") + wlog::kv("tauD", settings.tauD, 1) +
-                   wlog::kv("learnedD", settings.learnedD ? "1" : "0") + wlog::kv("calA", settings.calA, 4) + wlog::kv("calB", settings.calB));
+                   wlog::kv("learnedD", settings.learnedD ? "1" : "0") + wlog::kv("calA", settings.calA, 4) + wlog::kv("calB", settings.calB) +
+                   wlog::kv("cmp_h", settings.cmpSec / 3600.0f, 2) + wlog::kv("vent_h", settings.ventSec / 3600.0f, 2) +
+                   wlog::kv("svc_h", settings.svcHours(), 2));
   applyRotation();     // WIDE / PORTRAIT, chosen in the menu
   sensor.begin();
   pump.begin(&sensor, &settings);
@@ -798,6 +847,7 @@ void loop() {
   sensor.update();
   pump.update();
   cal.update();
+  countHours();
   ota.update();
 
   int steps = input::takeSteps();
@@ -862,6 +912,7 @@ void loop() {
             break;
           case M_UPDATE:  ota.start(); screen = Screen::OTA; break;
           case M_VERSION: screen = Screen::VERSION; break;
+          case M_HOURS:   screen = Screen::HOURS; break;
           default: screen = Screen::MAIN; break;
         }
       }
@@ -935,6 +986,21 @@ void loop() {
     case Screen::VERSION:
       if (b == input::Btn::SHORT || b == input::Btn::LONG) screen = Screen::MENU;
       else drawVersion();
+      break;
+
+    case Screen::HOURS:
+      if (b == input::Btn::SHORT) screen = Screen::MENU;
+      if (b == input::Btn::LONG) screen = Screen::HOURS_CONF;
+      if (screen == Screen::HOURS) drawHours(false);
+      break;
+
+    case Screen::HOURS_CONF:   // hold 2 s again: the filter service counter starts from zero
+      if (b == input::Btn::SHORT) screen = Screen::HOURS;
+      if (b == input::Btn::LONG) {
+        wlog::ev("FILTER_RESET", wlog::kv("svc_h", settings.svcHours(), 2) + wlog::kv("cmp_h", settings.cmpSec / 3600.0f, 2));
+        settings.svcSec = settings.cmpSec; settings.save(); beep(); screen = Screen::HOURS;
+      }
+      if (screen == Screen::HOURS_CONF) drawHours(true);
       break;
 
     case Screen::SENSOR:

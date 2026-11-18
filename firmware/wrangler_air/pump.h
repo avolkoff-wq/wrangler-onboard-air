@@ -197,7 +197,8 @@ class Pump {
   void logEnd(const String& res) {
     wlog::ev("END", wlog::kv("result", res) + wlog::kv("mode", modeName()) + wlog::kv("target", st_->target, 2) +
                     wlog::kv("p0", p0_, 3) + wlog::kv("p", pStatic_, 3) + wlog::kv("starts", (float)starts_, 0) +
-                    wlog::kv("vents", (float)vents_, 0) + wlog::kv("run_s", runMs() / 1000.0f, 1));
+                    wlog::kv("vents", (float)vents_, 0) + wlog::kv("run_s", runMs() / 1000.0f, 1) +
+                    wlog::kv("cmp_h", st_->cmpSec / 3600.0f, 2) + wlog::kv("vent_h", st_->ventSec / 3600.0f, 2));
   }
   String modeName() const { return mode_ == Mode::INF ? "INF" : mode_ == Mode::DEF ? "DEF" : "-"; }
   void goSettle(Phase ph) { phase_ = ph; state_ = PState::SETTLE; t0_ = millis(); tS_ = t0_; sS_ = -99; slope_ = 99; }

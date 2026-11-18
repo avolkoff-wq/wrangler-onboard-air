@@ -26,7 +26,7 @@ code{font:12px Menlo,Consolas,monospace;background:#eef0f2;color:#333;border-rad
  <div class="a"><span>⇄</span>&gt; 0,15 bar 1 с<br>&lt; 0,05 bar</div>
  <div class="b dark"><b>Главный экран</b><span class="k" style="color:#ddd;border-color:#777">поворот</span> режим:<br>HIGHWAY 2.5 · ROUGH ROAD 1.8<br>GRAVEL 1.5 · TRAIL 1.2 · ROCK 1.0<br>SAND 0.8 · RECOVERY 0.5 · CUSTOM<br>actual x.x · INFLATE / DEFLATE / OK<br><code>turn: mode  press: start  hold: menu</code></div>
  <div class="a"><span>→</span>нажатие<br>(INFLATE / DEFLATE)</div>
- <div class="b dark"><b>ARMED</b>PRESS AGAIN: START<br>полоска 3 с<br>поворот, hold, 3 с: отмена<br><code>PRESS AGAIN: START  turn: cancel</code></div>
+ <div class="b dark"><b>ARMED</b>PRESS AGAIN: START<br><span style="color:#ffa500">ENGINE ON?</span> (подкачка, напоминание)<br>полоска 3 с<br>поворот, hold, 3 с: отмена<br><code>PRESS AGAIN: START  turn: cancel</code></div>
  <div class="a"><span>→</span>2-е нажатие<br>за 3 с</div>
  <div class="b amb"><b>Работа</b>замер → подкачка<br>или <span style="color:#87ceeb">спуск</span> → замер …<br>фон янтарный / синий<br><code>press: STOP</code> (одно нажатие)</div>
  <div class="a"><span>→</span></div>
@@ -42,7 +42,7 @@ code{font:12px Menlo,Consolas,monospace;background:#eef0f2;color:#333;border-rad
 <div class="menu">
  <div class="mh">МЕНЮ</div>
  <div class="mi">CALIBRATE</div><div class="md">4 точки по манометру: 0 (шланг открыт), ~1, ~2, ~3 bar. Качает сам до точки, ждёт, ты вводишь показание манометра поворотом и нажатием. Итог: наклон датчика, ноль, точность. Нажатие во время качки: отмена, hold: отмена. Подсказки: <code>press when ready: next  hold: abort</code>, <code>press: abort</code>, <code>turn + press: next  hold: abort</code>.</div>
- <div class="mi">LEARN</div><div class="md">LEARN INFLATE (компрессор 15 с) · LEARN DEFLATE (клапан 20 с, только с клапаном) · BACK. Нужно &gt; 0,15 bar (иначе CONNECT SYSTEM), для спуска ≥ 1,5 bar (иначе PUMP UP TO 1.5 FIRST). Подтверждение <code>press: start  hold: back</code>. Замер, импульс, замер; спуск ставит τ сразу, подкачка учится как первый импульс. Экран как в работе, статус LEARN 12.3s, <code>press: STOP</code>. Итог: τ или rate, <code>press: back</code>.</div>
+ <div class="mi">LEARN</div><div class="md">LEARN INFLATE (компрессор 15 с) · LEARN DEFLATE (клапан 20 с, только с клапаном) · BACK. Нужно &gt; 0,15 bar (иначе CONNECT SYSTEM), для спуска ≥ 1,5 bar (иначе PUMP UP TO 1.5 FIRST). Подтверждение <code>press: start  hold: back</code>, для LEARN INFLATE оранжевое ENGINE ON?. Замер, импульс, замер; спуск ставит τ сразу, подкачка учится как первый импульс. Экран как в работе, статус LEARN 12.3s, <code>press: STOP</code>. Итог: τ или rate, <code>press: back</code>.</div>
  <div class="mi">SENSOR</div><div class="md">Живые вольты датчика и пина, давление. Для стенда. <code>press: back</code>.</div>
  <div class="mi">UNITS: bar / psi</div><div class="md">Нажатие переключает. Режимы, CUSTOM и давление показываются в выбранных единицах.</div>
  <div class="mi">TYRE: 255/75R17 / 285/70R17</div><div class="md">Нажатие переключает. Объём воздуха 210 / 248 л; выученные поправки пересчитываются по объёму, обучение не сбрасывается.</div>
@@ -52,6 +52,7 @@ code{font:12px Menlo,Consolas,monospace;background:#eef0f2;color:#333;border-rad
  <div class="mi">RESET LEARNING</div><div class="md">Нажать 2 раза за 3 с (первое нажатие: PRESS AGAIN). Сбрасывает обучение подкачки и спуска, калибровка по манометру остаётся.</div>
  <div class="mi">WIFI: UPDATE + LOG</div><div class="md">DinMeter поднимает Wi-Fi <b>WranglerAir</b>, пароль <b>jeepjeep</b>. В браузере 192.168.4.1: залить прошивку .bin, скачать лог CSV, очистить лог. Компрессор и клапан выключены. <code>hold: exit</code>.</div>
  <div class="mi">VERSION</div><div class="md">Версия, шина и объём воздуха, выученные поправки подкачки, τ спуска. <code>press: back</code>.</div>
+ <div class="mi">HOURS</div><div class="md">Моточасы ч:мм: компрессор всего, с последней чистки фильтров, клапан. <code>press: back  hold: filters cleaned</code>, затем подтверждение <code>hold 2 s: reset service  press: back</code>. После 10 ч с чистки на главном экране оранжевое CLEAN FILTERS (не блокирует).</div>
  <div class="mi">EXIT</div><div class="md">Назад на главный экран.</div>
 </div>
 </div>

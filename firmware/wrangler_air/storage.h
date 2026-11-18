@@ -33,6 +33,9 @@ struct Settings {
   bool  learnedD = false;         // false -> the first vent only goes 60 % of the way
   uint32_t bootN = 0;             // power-up counter, first column of the log
   uint8_t tyre  = 0;              // index into TYRES (config.h)
+  // hour meter: compressor (K1) and valve (K4) seconds, compressor seconds at the last filter service (menu HOURS)
+  uint32_t cmpSec = 0, ventSec = 0, svcSec = 0;
+  float svcHours() const { return (cmpSec - svcSec) / 3600.0f; }
   float airL() const { return airVL(tyre); }
   float presetBar(int i) const { return i == P_CUSTOM ? custom : PRESETS[i].bar; }
 
@@ -62,6 +65,9 @@ struct Settings {
     learnedD     = p.getBool ("lrnD", learnedD);
     bootN        = p.getUInt ("boot", bootN);
     tyre         = p.getUChar("tyre", tyre); if (tyre >= N_TYRE_SIZES) tyre = 0;
+    cmpSec       = p.getUInt ("cmpSec", cmpSec);
+    ventSec      = p.getUInt ("ventSec", ventSec);
+    svcSec       = p.getUInt ("svcSec", svcSec); if (svcSec > cmpSec) svcSec = cmpSec;
     p.end();
     if (target > TARGET_MAX) target = TARGET_MAX;
     if (target < TARGET_MIN) target = TARGET_MIN;
@@ -92,6 +98,9 @@ struct Settings {
     p.putBool ("lrnD", learnedD);
     p.putUInt ("boot", bootN);
     p.putUChar("tyre", tyre);
+    p.putUInt ("cmpSec", cmpSec);
+    p.putUInt ("ventSec", ventSec);
+    p.putUInt ("svcSec", svcSec);
     p.end();
   }
   // other tyre size: everything learned is scaled by the air volume, so the learning carries over
