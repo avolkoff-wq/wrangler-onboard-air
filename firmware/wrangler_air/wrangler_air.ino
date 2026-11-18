@@ -7,9 +7,17 @@
 // Controls
 //   turn            pick a typical pressure: HIGHWAY 2.5, ROUGH ROAD 1.8, GRAVEL 1.5, TRAIL 1.2, ROCK 1.0, SAND 0.8,
 //                   RECOVERY 0.5 bar, CUSTOM x.x (config.h PRESETS); LOW shown below 0.8
-//   press           start / stop; on CUSTOM it first opens the value: turn 0.1 bar steps, press OK = save and start,
+//   press           (released within 0.5 s) two-press start: the first press arms (only when the screen says INFLATE
+//                   or DEFLATE): "PRESS AGAIN TO START" with a 3 s bar; a second press within 3 s starts. A turn, a
+//                   long press or 3 s without a press disarm (log ARM_CANCEL). While running one press stops at once.
+//                   On CUSTOM the first press opens the value: turn 0.1 bar steps, press OK = save and arm,
 //                   long press = cancel (one look at the value before every custom run)
-//   long press      menu: CALIBRATE, SENSOR (live volts for the bench), UNITS, TYRE, OFFSET, SETTLE, SCREEN, RESET LEARNING, UPDATE, VERSION, EXIT
+//   long press      held 2.0 s (from 0.3 s a "HOLD FOR MENU" bar fills along the bottom; released 0.5..2.0 s = nothing):
+//                   menu: CALIBRATE, LEARN, SENSOR (live volts for the bench), UNITS, TYRE, OFFSET, SETTLE, SCREEN,
+//                   RESET LEARNING, UPDATE, VERSION, EXIT. Not while running.
+//   LEARN: LEARN INFLATE (compressor 15 s) / LEARN DEFLATE (valve 20 s, builds with the valve, needs >= 1.5 bar) / BACK;
+//          needs > 0.15 bar; confirm with a press (long: back). Measure, one fixed pulse, measure: INFLATE learns like
+//          the first-run pulse, DEFLATE sets tauD = 20 / ln(p_before_abs / p_after_abs). Press aborts. Log LEARN_*_TEST.
 //   SCREEN: press to turn the picture 90 degrees (WIDE, PORTRAIT, WIDE 180, PORTRAIT 180)
 //   OFFSET / SETTLE: press to edit, turn: AUTO or a fixed value, press to save
 // Screen (layout: docs/screen/screen_mockup.py, screen_mockup_idle_direction.py, scenery: sim2.py)
@@ -42,11 +50,12 @@ Calibration cal;
 Ota ota;
 M5Canvas canvas(&M5.Display);
 
-enum class Screen { MAIN, MENU, EDIT, CAL, OTA, VERSION, SENSOR, CUSTOM };
+enum IdleDir { D_UP, D_DOWN, D_OK, D_ABOVE, D_DEAD };   // what a start would do from the idle screen
+enum class Screen { MAIN, MENU, EDIT, CAL, OTA, VERSION, SENSOR, CUSTOM, LEARN_PICK, LEARN_CONF, LEARN_MSG };
 Screen screen = Screen::MAIN;
 int menuPos = 0;
-enum MenuItem { M_CAL, M_SENSOR, M_UNITS, M_TYRE, M_OFFSET, M_SETTLE, M_SCREEN, M_RESET, M_UPDATE, M_VERSION, M_EXIT };
-const char* MENU[] = {"CALIBRATE", "SENSOR", "UNITS", "TYRE", "OFFSET", "SETTLE", "SCREEN", "RESET LEARNING", "WIFI: UPDATE + LOG", "VERSION", "EXIT"};
+enum MenuItem { M_CAL, M_LEARN, M_SENSOR, M_UNITS, M_TYRE, M_OFFSET, M_SETTLE, M_SCREEN, M_RESET, M_UPDATE, M_VERSION, M_EXIT };
+const char* MENU[] = {"CALIBRATE", "LEARN", "SENSOR", "UNITS", "TYRE", "OFFSET", "SETTLE", "SCREEN", "RESET LEARNING", "WIFI: UPDATE + LOG", "VERSION", "EXIT"};
 constexpr int MENU_N = sizeof(MENU) / sizeof(MENU[0]);
 
 // ---------- helpers ----------
@@ -348,6 +357,35 @@ void textAt(const String& t, int x, int y, Font f, uint16_t c, textdatum_t d, Fo
   if (alt && maxW && canvas.textWidth(t) > maxW) canvas.setFont(alt);
   canvas.setTextColor(c); canvas.setTextDatum(d); canvas.drawString(t, x, y);
 }
+// bottom hint: what the knob and the button do right now ("hold" = the 2 s long press). Font2, wraps to 2 lines
+// (portrait); if it still does not fit, the 8 px Font0. Returns the top of the hint; hintTop keeps it for the hold bar.
+int hintTop = 0;
+int drawHint(const String& t, uint16_t c = 0, int bottom = -1) {
+  if (!c) c = C_GREY;
+  if (bottom < 0) bottom = H();
+  // wrap at the double spaces between the "control: action" groups, so a group is never split
+  auto wrapGroups = [&](String* out) {
+    int n = 0; String cur; int i = 0;
+    while (i <= (int)t.length() && n < 3) {
+      int j = t.indexOf("  ", i); if (j < 0) j = t.length();
+      const String g = t.substring(i, j), cand = cur.length() ? cur + "  " + g : g;
+      if (cur.length() && canvas.textWidth(cand) > W() - 4) { out[n++] = cur; cur = g; } else cur = cand;
+      i = j + 2;
+    }
+    if (cur.length() && n < 3) out[n++] = cur;
+    return n;
+  };
+  String parts[3]; Font f = &fonts::Font2;
+  canvas.setFont(f);
+  int n = wrapGroups(parts);
+  if (n > 2) { f = &fonts::Font0; canvas.setFont(f); n = wrapGroups(parts); }
+  const int lh = f == &fonts::Font0 ? 9 : 16;
+  const int top = bottom - n * lh;
+  for (int q = 0; q < n; q++) textAt(parts[q], W() / 2, top + q * lh, f, c, top_center);
+  hintTop = top;
+  return top;
+}
+
 // big value in Font7 digits; "~" (estimate) in a text font in front of it. align: 0 = centre at x, 1 = right edge at x
 void bigValue(const String& v, bool tilde, int x, int y, uint16_t c, int align) {
   canvas.setFont(F_DIGIT); const int wv = canvas.textWidth(v);
@@ -373,6 +411,34 @@ void updateNoAir() {
   }
 }
 
+// what a start would do from the idle screen (IdleDir is declared at the top)
+IdleDir idleDir(float bar) {
+  const float now = sensor.bar(settings.calA, settings.calB);
+  if (noAir) return D_DEAD;                                            // hoses not connected / no air
+  if (fabsf(now - bar) <= START_BAND) return D_OK;
+  if (now < bar) return D_UP;
+  return DEFLATE ? D_DOWN : D_ABOVE;                                   // inflate-only builds do nothing above the target
+}
+// two-press start: the first press arms, a second one within ARM_MS starts; knob, long press or timeout disarm
+constexpr uint32_t ARM_MS = 3000;
+bool armed = false; uint32_t armT = 0;
+void arm() {   // only when a start would inflate or deflate
+  const IdleDir d = idleDir(settings.target);
+  if (d == D_UP || d == D_DOWN) { armed = true; armT = millis(); } else beep();
+}
+void disarm(const char* why) { if (!armed) return; armed = false; wlog::ev("ARM_CANCEL", wlog::kv("reason", String(why))); }
+// hold-for-menu bar along the bottom edge: from 0.3 s of holding, full at the LONG press (2.0 s)
+constexpr uint32_t HOLD_SHOW_MS = 300;
+void drawHoldBar() {
+  const uint32_t h = input::heldMs();
+  if (h < HOLD_SHOW_MS) return;
+  const float f = constrain((float)(h - HOLD_SHOW_MS) / (input::BTN_LONG_MS - HOLD_SHOW_MS), 0.0f, 1.0f);
+  const int top = min(hintTop, H() - 20);
+  canvas.fillRect(0, top, W(), H() - top, TFT_BLACK);
+  textAt("HOLD FOR MENU", W() / 2, H() - 19, &fonts::Font2, TFT_WHITE, top_center);
+  canvas.fillRect(0, H() - 3, (int)(W() * f), 3, TFT_WHITE);
+}
+
 // idle screen and the CUSTOM value screen (edit = true): icon, big target value, unit, preset name and, below a
 // coloured rule, the live pressure and what a start would do (spec: docs/screen/screen_mockup_idle_direction.py)
 void drawIdle(bool edit) {
@@ -381,12 +447,7 @@ void drawIdle(bool edit) {
   const float bar = edit ? customEdit : settings.target;
   const bool low = bar < TARGET_LOW_WARN;
   const float now = sensor.bar(settings.calA, settings.calB);
-  // what a start would do
-  enum { D_UP, D_DOWN, D_OK, D_ABOVE, D_DEAD } dir;
-  if (noAir) dir = D_DEAD;                                             // hoses not connected / no air
-  else if (fabsf(now - bar) <= START_BAND) dir = D_OK;
-  else if (now < bar) dir = D_UP;
-  else dir = DEFLATE ? D_DOWN : D_ABOVE;                               // inflate-only builds do nothing above the target
+  const IdleDir dir = idleDir(bar);
   const bool dead = dir == D_DEAD && !edit;
   const char* word = dir == D_UP ? "INFLATE" : dir == D_DOWN ? "DEFLATE" : dir == D_OK ? "= OK" : "ABOVE";
   const uint16_t dc = dir == D_UP ? TFT_ORANGE : dir == D_DOWN ? TFT_SKYBLUE : dir == D_OK ? rgb(0, 220, 0) : C_GREY;
@@ -414,11 +475,20 @@ void drawIdle(bool edit) {
       const int x = (W() - (w1 + gap + w2)) / 2;
       textAt(nowT, x, y, F_TEXT, dc, top_left); part2(x + w1 + gap, y);
     } else {
-      textAt(nowT, W() / 2, y, F_TEXT, dc, top_center); part2((W() - w2) / 2, y + 18);
+      textAt(nowT, W() / 2, y, F_TEXT, dc, top_center); part2((W() - w2) / 2, y + 17);
     }
   };
   const bool hint = dir == D_UP || dir == D_DOWN;                      // "press to start" only when a start would do something
-  const Font F_HINT = &fonts::Font2;
+  auto idleHint = [&]() {
+    if (edit) { drawHint("turn: 0.1  press: OK  hold: cancel"); return; }
+    if (armed && !dead) {   // ARMED: white hint, a bar running out over ARM_MS under it
+      drawHint("PRESS AGAIN: START  turn: cancel", TFT_WHITE, H() - 4);
+      const float left = 1.0f - constrain((float)(millis() - armT) / ARM_MS, 0.0f, 1.0f);
+      canvas.fillRect(20, H() - 3, (int)((W() - 40) * left), 3, TFT_WHITE);
+      return;
+    }
+    drawHint(hint && !dead ? "turn: mode  press: start  hold: menu" : "turn: mode  hold: menu");
+  };
   iconDim = dead;
   if (!portrait()) {
     drawPresetIcon(p, 6, 6, 104);
@@ -426,38 +496,51 @@ void drawIdle(bool edit) {
     bigValue(fmt(bar), false, W() - 8, 2, numc, 1);
     textAt(unitName(), W() - 8, 56, F_TEXT, unitc, top_right);
     textAt(name + (low && !edit ? "  LOW" : ""), W() / 2, 72, F_MID, namec, top_center, F_TEXT, W() - 8);
-    if (edit) textAt("turn 0.1   press: OK + start", W() / 2, 110, F_SMALL, C_GREY, top_center);
-    else {
+    if (!edit) {
       canvas.fillRect(10, 94, W() - 20, 2, dead ? dim : dc);
-      if (dead) {
-        textAt("CONNECT SYSTEM", W() / 2, 99, F_TEXT, C_LGREY, top_center);
-        textAt(nowT + " " + unitName(), W() / 2, 119, F_HINT, C_GREY, top_center);
-      } else dirLine(99, false);
-      if (hint && !dead) textAt("press to start", W() / 2, 119, F_HINT, C_GREY, top_center);
+      if (dead) textAt("CONNECT SYSTEM", W() / 2, 99, F_TEXT, C_LGREY, top_center);
+      else dirLine(99, false);
     }
+    idleHint();
   } else {
     drawPresetIcon(p, 6, !strcmp(PRESETS[p].name, "ROCK") ? 14 : 8, 123);   // tilted ROCK SUV would touch the top edge
     iconDim = false;
-    textAt(name, W() / 2, 90, F_MID, namec, top_center, F_TEXT, W() - 6);
-    bigValue(fmt(bar), false, W() / 2, 110, numc, 0);
-    textAt(String(unitName()) + (low && !edit ? "  LOW" : ""), W() / 2, 164, F_TEXT, low && !edit && !dead ? TFT_ORANGE : unitc, top_center);
-    if (edit) textAt("turn 0.1, press OK", W() / 2, 200, F_SMALL, C_GREY, top_center);
-    else {
-      canvas.fillRect(10, 183, W() - 20, 2, dead ? dim : dc);
+    textAt(name, W() / 2, 84, F_MID, namec, top_center, F_TEXT, W() - 6);
+    bigValue(fmt(bar), false, W() / 2, 100, numc, 0);
+    textAt(String(unitName()) + (low && !edit ? "  LOW" : ""), W() / 2, 150, F_TEXT, low && !edit && !dead ? TFT_ORANGE : unitc, top_center);
+    if (!edit) {
+      canvas.fillRect(10, 169, W() - 20, 2, dead ? dim : dc);
       if (dead) {
-        textAt("CONNECT", W() / 2, 188, F_TEXT, C_LGREY, top_center);
-        textAt("SYSTEM", W() / 2, 206, F_TEXT, C_LGREY, top_center);
-        textAt(nowT, W() / 2, 224, F_HINT, C_GREY, top_center);
-      } else dirLine(188, true);
-      if (hint && !dead) textAt("press to start", W() / 2, 224, F_HINT, C_GREY, top_center);
+        textAt("CONNECT", W() / 2, 173, F_TEXT, C_LGREY, top_center);
+        textAt("SYSTEM", W() / 2, 190, F_TEXT, C_LGREY, top_center);
+      } else dirLine(173, true);
     }
+    idleHint();
   }
+  if (!edit) drawHoldBar();
+  canvas.pushSprite(0, 0);
+}
+
+// result of a menu LEARN test
+void drawLearnResult() {
+  canvas.fillSprite(TFT_BLACK);
+  const bool def = pump.testMode() == Mode::DEF;
+  if (pump.testOk())
+    drawLines({ {def ? "LEARN DEFLATE OK" : "LEARN INFLATE OK", F_TEXT, TFT_GREEN},
+                {def ? String(pump.testResult(), 0) : String(pump.testResult(), 3), F_DIGIT, TFT_GREENYELLOW},
+                {def ? "tau, s" : "rate, bar/s", F_TEXT, C_LGREY} }, 0, H() - 18);
+  else
+    drawLines({ {def ? "LEARN DEFLATE" : "LEARN INFLATE", F_TEXT, TFT_ORANGE}, {"NO RESULT", F_MID, TFT_ORANGE},
+                {"before " + fmt(pump.testBefore()) + "  after " + fmt(pump.staticBar()), F_SMALL, C_LGREY} }, 0, H() - 18);
+  drawHint("press: back");
   canvas.pushSprite(0, 0);
 }
 
 void drawMain() {
   const PState st = pump.state();
   if (st == PState::IDLE) { drawIdle(false); return; }
+  const bool test = pump.testMode() != Mode::NONE;
+  if (test && st == PState::DONE) { drawLearnResult(); return; }
   // background by phase: compressor pumping = dark amber, valve venting = dark blue, pauses and results = black
   canvas.fillSprite(pump.compressorOn() ? rgb(90, 38, 0) : pump.valveOpen() ? rgb(0, 40, 90) : TFT_BLACK);
   const bool est = pump.estimating();
@@ -468,10 +551,10 @@ void drawMain() {
   switch (st) {
     case PState::SETTLE:    line = "SETTLING " + pause; col = TFT_CYAN; break;
     case PState::MEASURE:   line = "MEASURING " + pause; col = TFT_CYAN; break;
-    case PState::CAL_PULSE: line = "LEARNING " + tm; col = TFT_ORANGE; break;
+    case PState::CAL_PULSE: line = (test ? "LEARN " : "LEARNING ") + tm; col = TFT_ORANGE; break;
     case PState::MAIN:      line = "PUMP " + tm; col = TFT_ORANGE; break;
     case PState::TOPUP:     line = "TOP-UP " + tm; col = TFT_ORANGE; break;
-    case PState::VENT:      line = "VENT " + tm; col = TFT_SKYBLUE; break;
+    case PState::VENT:      line = (test ? "LEARN " : "VENT ") + tm; col = TFT_SKYBLUE; break;
     case PState::DONE:
       line = pump.inBand() ? "OK, WITHIN 0.1" : "DONE " + fmt(pump.staticBar()) + "  " + mmss(pump.runMs()); col = TFT_GREEN; break;
     case PState::ERROR:
@@ -481,6 +564,7 @@ void drawMain() {
         case PErr::OVER:    line = "ERR OVER 3.0 BAR"; break;
         case PErr::LEAK:    line = "ERR NO RISE: LEAK?"; break;
         case PErr::TIMEOUT: line = "ERR TIMEOUT"; break;
+        case PErr::LOW_P:   line = "PUMP UP TO " + fmt(LEARN_DEF_MIN_BAR) + " FIRST"; break;
         default:            line = "ERR"; break;
       }
       break;
@@ -495,28 +579,37 @@ void drawMain() {
     textAt((DEFLATE ? mode : "") + mmss(pump.runMs()) + "  " + counts, 4, 2, F_SMALL, C_LGREY, top_left);
     drawPresetIcon(settings.preset, 6, 22, 64);
     bigValue(val, est, W() - 10, 16, valc, 1);
-    y = 78; x0 = 10; x1 = W() - 10;
+    y = 72; x0 = 10; x1 = W() - 10;
   } else {
     textAt((DEFLATE ? mode : "") + mmss(pump.runMs()), 4, 2, F_SMALL, C_LGREY, top_left);
     drawPresetIcon(settings.preset, 22, 22, 90);
     bigValue(val, est, W() / 2, 82, valc, 0);
     y = 146; x0 = 8; x1 = W() - 8;
   }
-  // progress bar p0 -> target, coloured by what is happening now
+  // progress bar p0 -> target (LEARN test: time of the pulse), coloured by what is happening now
   const bool known = pump.mode() != Mode::NONE;
   const float p0 = pump.p0(), span = settings.target - p0;
-  const float f = !known ? 0 : fabsf(span) < 0.01f ? 1.0f : constrain((cur - p0) / span, 0.0f, 1.0f);
+  const bool pulse = test && (st == PState::CAL_PULSE || st == PState::VENT);
+  float f = !known ? 0 : fabsf(span) < 0.01f ? 1.0f : constrain((cur - p0) / span, 0.0f, 1.0f);
+  if (test) f = pulse ? constrain((float)pump.phaseMs() / max(1UL, (unsigned long)pump.phaseLenMs()), 0.0f, 1.0f)
+                     : (pump.starts() + pump.vents() > 0 ? 1.0f : 0.0f);            // before the pulse 0, after it full
   const uint16_t bc = pump.compressorOn() ? TFT_ORANGE : pump.valveOpen() ? TFT_SKYBLUE : (st == PState::DONE ? TFT_GREEN : TFT_CYAN);
   canvas.fillRect(x0, y, x1 - x0 + 1, 13, TFT_BLACK);              // bar inside stays black so the fill reads
   canvas.drawRect(x0, y, x1 - x0 + 1, 13, C_GREY);
   if (known) canvas.fillRect(x0 + 2, y + 2, (int)((x1 - x0 - 4) * f) + 1, 9, bc);
-  if (known) textAt(fmt(p0), x0, y + 14, F_SMALL, C_GREY, top_left);
-  textAt(fmt(settings.target), x1, y + 14, F_SMALL, C_GREY, top_right);
-  if (!portrait()) textAt(line, W() / 2, H() - 22, F_TEXT, col, top_center, F_SMALL, W() - 4);
-  else {
-    textAt(line, W() / 2, H() - 50, F_TEXT, col, top_center, F_SMALL, W() - 4);
-    textAt(counts, W() / 2, H() - 22, F_SMALL, C_GREY, top_center);
+  if (test) {
+    textAt("0 s", x0, y + 14, F_SMALL, C_GREY, top_left);
+    textAt(String((pump.testMode() == Mode::DEF ? LEARN_DEF_MS : CAL_PULSE_MS) / 1000) + " s", x1, y + 14, F_SMALL, C_GREY, top_right);
+  } else {
+    if (known) textAt(fmt(p0), x0, y + 14, F_SMALL, C_GREY, top_left);
+    textAt(fmt(settings.target), x1, y + 14, F_SMALL, C_GREY, top_right);
   }
+  if (!portrait()) textAt(line, W() / 2, 101, F_TEXT, col, top_center, F_SMALL, W() - 4);
+  else {
+    textAt(line, W() / 2, 178, F_TEXT, col, top_center, F_SMALL, W() - 4);
+    textAt(counts, W() / 2, 198, F_SMALL, C_GREY, top_center);
+  }
+  drawHint(pump.busy() ? "press: STOP" : "press: back");
   if (pump.compressorOn()) canvas.fillCircle(W() - 10, 10, 6, TFT_ORANGE);
   if (pump.valveOpen())    canvas.fillCircle(W() - 10, 10, 6, TFT_SKYBLUE);
   canvas.pushSprite(0, 0);
@@ -528,10 +621,11 @@ String rotName() {
 
 void drawMenu() {
   canvas.fillSprite(TFT_BLACK);
+  const int ht = drawHint("turn: scroll  press: select  hold: back");
   const Font f = portrait() ? F_SMALL : F_TEXT;
   canvas.setFont(f);
   canvas.setTextDatum(middle_left);
-  const int rowH = 26, vis = max(1, (H() - 4) / rowH);
+  const int rowH = 26, vis = max(1, (ht - 4) / rowH);
   const int first = constrain(menuPos - vis / 2, 0, max(0, MENU_N - vis));
   for (int k = 0; k < vis && first + k < MENU_N; k++) {
     const int i = first + k;
@@ -551,6 +645,33 @@ void drawMenu() {
   canvas.pushSprite(0, 0);
 }
 
+// ---------- menu LEARN ----------
+constexpr int LEARN_N = DEFLATE ? 3 : 2;
+int learnPos = 0; Mode learnSel = Mode::INF; String learnMsg;
+Mode learnItem(int i) { if (i == 0) return Mode::INF; if (DEFLATE && i == 1) return Mode::DEF; return Mode::NONE; }
+void drawLearnPick() {
+  canvas.fillSprite(TFT_BLACK);
+  drawHint("turn: scroll  press: select  hold: back");
+  canvas.setFont(portrait() ? F_SMALL : F_TEXT); canvas.setTextDatum(middle_left);
+  for (int i = 0; i < LEARN_N; i++) {
+    const int y = 16 + i * 30;
+    if (i == learnPos) canvas.fillRoundRect(3, y - 11, W() - 6, 22, 4, TFT_DARKGREEN);
+    const Mode m = learnItem(i);
+    canvas.setTextColor(TFT_WHITE);
+    canvas.drawString(m == Mode::INF ? "LEARN INFLATE" : m == Mode::DEF ? "LEARN DEFLATE" : "BACK", 8, y);
+  }
+  canvas.pushSprite(0, 0);
+}
+void drawLearnConf() {
+  canvas.fillSprite(TFT_BLACK);
+  const bool def = learnSel == Mode::DEF;
+  drawLines({ {def ? "LEARN DEFLATE:" : "LEARN INFLATE:", F_TEXT, def ? TFT_SKYBLUE : TFT_ORANGE},
+              {def ? "valve " + String(LEARN_DEF_MS / 1000) + " s." : "compressor " + String(CAL_PULSE_MS / 1000) + " s.", F_TEXT, TFT_WHITE},
+              {"Measure, pulse, measure.", F_SMALL, C_LGREY} }, 0, H() - 18);
+  drawHint("press: start  hold: back");
+  canvas.pushSprite(0, 0);
+}
+
 void drawEdit() {
   canvas.fillSprite(TFT_BLACK);
   const bool off = editItem == M_OFFSET;
@@ -559,7 +680,8 @@ void drawEdit() {
   else     hint = "last auto: " + String(settings.settleLearn, 1) + " s";
   drawLines({ {off ? "OFFSET WHILE PUMPING" : "SETTLE BEFORE MEASURE", F_TEXT, TFT_CYAN},
               {off ? offText(editIdx) : setText(editIdx), F_LARGE, TFT_GREENYELLOW, F_MID},
-              {hint, F_SMALL, TFT_LIGHTGREY}, {"turn: change  press: save", F_SMALL, TFT_LIGHTGREY} });
+              {hint, F_SMALL, TFT_LIGHTGREY} }, 0, H() - 18);
+  drawHint("turn: change  press: save  hold: back");
   canvas.pushSprite(0, 0);
 }
 
@@ -573,27 +695,32 @@ void drawCal() {
   const String n = "CAL " + String(i + 1) + "/4";
   switch (cal.state()) {
     case CState::ZERO_WAIT:
-      drawLines({ {"CAL 1/4", F_TEXT, TFT_WHITE}, {"hose open to air", F_TEXT, TFT_WHITE}, {"press when ready", F_SMALL, TFT_LIGHTGREY} }, top); break;
+      drawLines({ {"CAL 1/4", F_TEXT, TFT_WHITE}, {"hose open to air", F_TEXT, TFT_WHITE} }, top, H() - 18);
+      drawHint("press when ready: next  hold: abort"); break;
     case CState::PUMPING:
       drawLines({ {n + ": pumping to ~" + String(cal.points[i], 0), F_TEXT, TFT_WHITE},
-                  {mmss(cal.phaseMs()), F_LARGE, TFT_ORANGE, F_MID}, {"press: abort", F_SMALL, TFT_LIGHTGREY} }, top); break;
+                  {mmss(cal.phaseMs()), F_LARGE, TFT_ORANGE, F_MID} }, top, H() - 18);
+      drawHint("press: abort"); break;
     case CState::SETTLING: {
       const uint32_t e = cal.phaseMs(), L = Calibration::SETTLE_TOTAL_MS;
-      drawLines({ {n + ": settling", F_TEXT, TFT_WHITE}, {String((e >= L ? 0 : L - e) / 1000.0f, 1), F_DIGIT, TFT_CYAN} }, top);
+      drawLines({ {n + ": settling", F_TEXT, TFT_WHITE}, {String((e >= L ? 0 : L - e) / 1000.0f, 1), F_DIGIT, TFT_CYAN} }, top, H() - 18);
+      drawHint("press: abort");
     } break;
     case CState::ENTER:
-      drawLines({ {"Gauge shows?", F_TEXT, TFT_WHITE}, {String(cal.entry(), 2), F_DIGIT, TFT_GREENYELLOW},
-                  {"turn + press", F_SMALL, TFT_LIGHTGREY} }, top); break;
+      drawLines({ {"Gauge shows?", F_TEXT, TFT_WHITE}, {String(cal.entry(), 2), F_DIGIT, TFT_GREENYELLOW} }, top, H() - 18);
+      drawHint("turn + press: next  hold: abort"); break;
     case CState::DONE: {   // plain words: how wrong the sensor was, and how good the result is
       const float pct = (settings.calA - 1.0f) * 100.0f;   // a > 1: sensor read low
       const float z = -settings.calB;                       // b < 0: sensor read high at zero
       drawLines({ {"CALIBRATION SAVED", F_TEXT, TFT_GREEN},
                   {fabsf(pct) < 0.2f ? "Sensor slope: exact" : "Sensor reads " + String(fabsf(pct), 1) + "% " + (pct > 0 ? "low" : "high"), F_TEXT, TFT_WHITE},
                   {fabsf(z) < 0.01f ? "Zero: exact" : "Zero: " + String(fabsf(z), 2) + " bar " + (z > 0 ? "high" : "low"), F_TEXT, TFT_WHITE},
-                  {"Accuracy +/-" + String(cal.fitErr(), 2) + " bar", F_TEXT, TFT_WHITE} });
+                  {"Accuracy +/-" + String(cal.fitErr(), 2) + " bar", F_TEXT, TFT_WHITE} }, 0, H() - 18);
+      drawHint("press: back");
     } break;
     case CState::FAILED:
-      drawLines({ {"CALIBRATION FAILED", F_TEXT, TFT_RED}, {"old calibration kept", F_SMALL, TFT_LIGHTGREY}, {"press: back", F_SMALL, TFT_LIGHTGREY} }); break;
+      drawLines({ {"CALIBRATION FAILED", F_TEXT, TFT_RED}, {"old calibration kept", F_SMALL, TFT_LIGHTGREY} }, 0, H() - 18);
+      drawHint("press: back"); break;
     default: break;
   }
   canvas.pushSprite(0, 0);
@@ -603,7 +730,8 @@ void drawOta() {
   canvas.fillSprite(TFT_BLACK);
   drawLines({ {"UPDATE MODE", F_TEXT, TFT_CYAN}, {"WiFi " OTA_SSID, F_TEXT, TFT_WHITE}, {"pass " OTA_PASS, F_TEXT, TFT_WHITE},
               {"192.168.4.1  (log: /log)", F_TEXT, TFT_WHITE, F_SMALL},
-              {ota.progress() ? String(ota.progress() / 1024) + " kB received" : "long press: exit", F_SMALL, TFT_LIGHTGREY} });
+              {ota.progress() ? String(ota.progress() / 1024) + " kB received" : "", F_SMALL, TFT_LIGHTGREY} }, 0, H() - 18);
+  drawHint("hold: exit");
   canvas.pushSprite(0, 0);
 }
 
@@ -616,7 +744,8 @@ void drawVersion() {
               {"settle " + String(settings.settleLearn, 1) + "s  starts " + String(pump.starts()), F_SMALL, TFT_LIGHTGREY},
               {String(TYRES[settings.tyre].name) + "  air " + String(settings.airL(), 0) + " L", F_SMALL, TFT_LIGHTGREY},
               {DEFLATE ? "tauD " + String(settings.tauD, 0) + "s " + (settings.learnedD ? "learned" : "model") : "", F_SMALL, TFT_LIGHTGREY},
-              {settings.learned ? "learned" : "not learned yet", F_SMALL, TFT_LIGHTGREY} });
+              {settings.learned ? "learned" : "not learned yet", F_SMALL, TFT_LIGHTGREY} }, 0, H() - 16);
+  drawHint("press: back");
   canvas.pushSprite(0, 0);
 }
 
@@ -628,7 +757,8 @@ void drawSensor() {
               {"sensor " + String(vs, 2) + " V", F_MID, TFT_WHITE},
               {SENSOR_PIN_NAME " " + String(vg, 2) + " V", F_MID, TFT_GREENYELLOW},
               {sensor.fault() ? "OUT OF RANGE" : fmt(sensor.bar(settings.calA, settings.calB)) + " " + unitName() + "  (raw " + String(sensor.rawBar(), 2) + ")", F_TEXT, sensor.fault() ? TFT_RED : TFT_WHITE},
-              {"press: back", F_SMALL, TFT_LIGHTGREY} });
+              }, 0, H() - 18);
+  drawHint("press: back");
   canvas.pushSprite(0, 0);
 }
 
@@ -670,12 +800,14 @@ void loop() {
   cal.update();
   ota.update();
 
-  const int steps = input::takeSteps();
+  int steps = input::takeSteps();
   const input::Btn b = input::button();
 
   switch (screen) {
     case Screen::MAIN: {
       updateNoAir();
+      if (armed && steps) { disarm("KNOB"); steps = 0; }               // a turn only cancels the armed start
+      if (armed && millis() - armT >= ARM_MS) disarm("TIMEOUT");
       if (steps && !pump.busy()) {
         // the knob steps through the typical pressures (config.h PRESETS), clockwise = higher; CUSTOM is last
         int i = constrain((int)settings.preset - steps, 0, N_PRESETS - 1);
@@ -687,14 +819,16 @@ void loop() {
       if (steps) { dirty = true; lastTurn = millis(); }
       if (dirty && millis() - lastTurn > 2000) { settings.save(); dirty = false; }   // spare the flash
 
-      if (b == input::Btn::SHORT) {
-        if (pump.busy()) pump.stop();
-        else if (pump.state() == PState::DONE || pump.state() == PState::ERROR) pump.clearResult();
-        else if (noAir) beep();                                        // CONNECT SYSTEM: nothing to start
+      // stop never needs two presses: while running any release before the LONG (2 s) stops at once
+      if (pump.busy() && (b == input::Btn::SHORT || b == input::Btn::MID)) pump.stop();
+      else if (b == input::Btn::SHORT) {
+        if (pump.state() == PState::DONE || pump.state() == PState::ERROR) pump.clearResult();
+        else if (noAir) { disarm("NO_AIR"); beep(); }                  // CONNECT SYSTEM: nothing to start
+        else if (armed) { armed = false; pump.start(); }               // second press within ARM_MS: go
         else if (settings.preset == P_CUSTOM) { customEdit = settings.custom; screen = Screen::CUSTOM; }   // check the value first
-        else pump.start();
+        else arm();
       }
-      if (b == input::Btn::LONG && !pump.busy()) { screen = Screen::MENU; menuPos = 0; }
+      if (b == input::Btn::LONG && !pump.busy()) { disarm("LONG"); screen = Screen::MENU; menuPos = 0; }
       static PState prev = PState::IDLE;
       if (pump.state() != prev) {
         if (pump.state() == PState::DONE)  beep(2);
@@ -710,6 +844,7 @@ void loop() {
       if (b == input::Btn::SHORT) {
         switch (menuPos) {
           case M_CAL:     cal.start(); screen = Screen::CAL; break;
+          case M_LEARN:   learnPos = 0; screen = Screen::LEARN_PICK; break;
           case M_SENSOR:  screen = Screen::SENSOR; break;
           case M_UNITS:   settings.psi = !settings.psi; settings.save(); break;
           case M_TYRE: {  // press: next size; learned values are scaled by the air volume
@@ -744,17 +879,42 @@ void loop() {
       if (screen == Screen::EDIT) drawEdit();
       break;
 
-    case Screen::CUSTOM:   // CUSTOM preset: turn 0.1 bar, press = save and start, long = cancel
+    case Screen::CUSTOM:   // CUSTOM preset: turn 0.1 bar, press = save and arm, long = cancel
       updateNoAir();
       if (steps) customEdit = roundf(constrain(customEdit + steps * TARGET_STEP, TARGET_MIN, TARGET_MAX) * 10) / 10.0f;
       if (b == input::Btn::SHORT) {
         settings.custom = settings.target = customEdit; settings.save();
         wlog::ev("CUSTOM_SET", wlog::kv("custom", settings.custom, 2));
         screen = Screen::MAIN;
-        if (noAir) beep(); else pump.start();
+        arm();                                                         // then press again to start
       }
       if (b == input::Btn::LONG) screen = Screen::MAIN;
       if (screen == Screen::CUSTOM) drawCustom();
+      break;
+
+    case Screen::LEARN_PICK:   // LEARN INFLATE / LEARN DEFLATE (valve builds) / BACK
+      if (steps) learnPos = constrain(learnPos + steps, 0, LEARN_N - 1);
+      if (b == input::Btn::LONG) screen = Screen::MENU;
+      if (b == input::Btn::SHORT) {
+        const Mode m = learnItem(learnPos);
+        const float now = sensor.bar(settings.calA, settings.calB);
+        if (m == Mode::NONE) screen = Screen::MENU;
+        else if (sensor.fault() || now <= LEARN_MIN_BAR) { learnMsg = "CONNECT SYSTEM"; screen = Screen::LEARN_MSG; }
+        else if (m == Mode::DEF && now < LEARN_DEF_MIN_BAR) { learnMsg = "PUMP UP TO " + fmt(LEARN_DEF_MIN_BAR) + " FIRST"; screen = Screen::LEARN_MSG; }
+        else { learnSel = m; screen = Screen::LEARN_CONF; }
+      }
+      if (screen == Screen::LEARN_PICK) drawLearnPick();
+      break;
+
+    case Screen::LEARN_CONF:
+      if (b == input::Btn::LONG) screen = Screen::LEARN_PICK;
+      if (b == input::Btn::SHORT) { pump.learnTest(learnSel); screen = Screen::MAIN; }
+      if (screen == Screen::LEARN_CONF) drawLearnConf();
+      break;
+
+    case Screen::LEARN_MSG:
+      if (b == input::Btn::SHORT || b == input::Btn::LONG) screen = Screen::LEARN_PICK;
+      else { canvas.fillSprite(TFT_BLACK); drawLines({ {learnMsg, F_TEXT, TFT_ORANGE} }, 0, H() - 18); drawHint("press: back"); canvas.pushSprite(0, 0); }
       break;
 
     case Screen::CAL:
@@ -773,12 +933,12 @@ void loop() {
       break;
 
     case Screen::VERSION:
-      if (b != input::Btn::NONE) screen = Screen::MENU;
+      if (b == input::Btn::SHORT || b == input::Btn::LONG) screen = Screen::MENU;
       else drawVersion();
       break;
 
     case Screen::SENSOR:
-      if (b != input::Btn::NONE) screen = Screen::MENU;
+      if (b == input::Btn::SHORT || b == input::Btn::LONG) screen = Screen::MENU;
       else drawSensor();
       break;
   }

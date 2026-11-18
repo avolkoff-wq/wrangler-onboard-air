@@ -12,6 +12,8 @@
 //             first vent before anything is learned goes only 60 % of the way; then more vents, up to 4
 //             overshoot below the target: a timed compressor top-up brings it back (hybrid)
 //        -> DONE
+//  learnTest(INF / DEF) (menu LEARN): SETTLE+MEASURE -> one fixed 15 s compressor pulse (same as CAL_PULSE, learnMain)
+//        or one 20 s valve opening (tauD set directly from it) -> SETTLE+MEASURE -> DONE. Same safety checks as a run.
 //
 // Inflate offset while pumping (sensor reads high because air is flowing):
 //   AUTO   offset = c * rise rate   (c learned; scalar learned offset until rate is valid)
@@ -30,7 +32,7 @@
 #include "log.h"
 
 enum class PState { IDLE, SETTLE, MEASURE, CAL_PULSE, MAIN, TOPUP, VENT, DONE, ERROR };
-enum class PErr   { NONE, SENSOR, OVER, LEAK, TIMEOUT };
+enum class PErr   { NONE, SENSOR, OVER, LEAK, TIMEOUT, LOW_P };   // LOW_P: LEARN DEFLATE below LEARN_DEF_MIN_BAR
 enum class Phase  { START, AFTER_CAL, AFTER_MAIN, AFTER_TOPUP, AFTER_VENT };
 enum class Mode   { NONE, INF, DEF };
 
@@ -40,10 +42,22 @@ class Pump {
 
   void start() {
     if (busy()) return;
+    test_ = Mode::NONE; testOk_ = false; testRes_ = 0;
     err_ = PErr::NONE; topups_ = 0; starts_ = 0; vents_ = 0; inBand_ = false; mode_ = Mode::NONE; runStart_ = millis();
     wlog::ev("RUN", wlog::kv("target", st_->target, 2) + wlog::kv("fw", FW_VERSION));
     goSettle(Phase::START);
   }
+  // menu LEARN: one fixed pulse (INF) or valve opening (DEF) between two static measurements
+  void learnTest(Mode m) {
+    if (busy() || m == Mode::NONE || (m == Mode::DEF && !DEFLATE)) return;
+    start();
+    test_ = m;
+    wlog::ev("LEARN_TEST", wlog::kv("mode", String(m == Mode::DEF ? "DEF" : "INF")));
+  }
+  Mode  testMode() const { return test_; }       // NONE = normal run
+  bool  testOk() const { return testOk_; }       // last test gave a sane value
+  float testResult() const { return testRes_; }  // tauD (s) after DEF, rate (bar/s) after INF
+  float testBefore() const { return p0_; }
   void stop() {
     relay(false); valve(false);
     if (busy()) logEnd("STOPPED");
@@ -176,7 +190,7 @@ class Pump {
   }
   void fail(PErr e) {
     relay(false); valve(false); err_ = e; state_ = PState::ERROR; endT_ = millis();
-    static const char* N[] = {"NONE", "SENSOR", "OVER", "LEAK", "TIMEOUT"};
+    static const char* N[] = {"NONE", "SENSOR", "OVER", "LEAK", "TIMEOUT", "LOW_P"};
     logEnd(String("ERR_") + N[(int)e]);
   }
   void done() { state_ = PState::DONE; endT_ = millis(); logEnd(inBand_ ? "IN_BAND" : "DONE"); }
@@ -279,6 +293,7 @@ class Pump {
     pStatic_ = p;
     static const char* PH[] = {"START", "AFTER_CAL", "AFTER_MAIN", "AFTER_TOPUP", "AFTER_VENT"};
     wlog::ev("STATIC", wlog::kv("after", String(PH[(int)phase_])) + wlog::kv("p", p) + wlog::kv("settle_s", settleEl_ / 1000.0f, 1));
+    if (test_ != Mode::NONE) return onTestStatic(p);
     if (phase_ == Phase::START)       p0_ = p;
     if (phase_ == Phase::AFTER_CAL)   learnMain(p0_, p, true);
     if (phase_ == Phase::AFTER_MAIN)  learnMain(before, p, false);
@@ -315,6 +330,41 @@ class Pump {
     relay(true); state_ = PState::TOPUP; t0_ = millis();
   }
 
+  // menu LEARN: static measurements of the test
+  void onTestStatic(float p) {
+    if (phase_ == Phase::START) {
+      p0_ = p; mode_ = test_;
+      if (test_ == Mode::DEF) {
+        if (p < LEARN_DEF_MIN_BAR) return fail(PErr::LOW_P);
+        aim_ = 0; ventMs_ = LEARN_DEF_MS;
+        relay(false); valve(true); state_ = PState::VENT; t0_ = millis();
+      } else {
+        relay(true); state_ = PState::CAL_PULSE; t0_ = millis();
+      }
+      return;
+    }
+    if (phase_ == Phase::AFTER_VENT) {
+      if (p < DEAD_BAR && p0_ > 0.5f) return fail(PErr::SENSOR);
+      const float old = st_->tauD, t = ventMs_ / 1000.0f;
+      float tau = 0;
+      if (p0_ - p > 0.01f) tau = t / logf((p0_ + P_ATM) / (p + P_ATM));
+      testOk_ = tau > 5 && tau < 3000;
+      if (testOk_) { st_->tauD = tau; st_->learnedD = true; st_->save(); testRes_ = tau; }
+      wlog::ev("LEARN_DEF_TEST", wlog::kv("p_before", p0_) + wlog::kv("p_after", p) + wlog::kv("t_s", t, 1) +
+               wlog::kv("tau_meas", tau, 1) + wlog::kv("ok", testOk_ ? "1" : "0") + wlog::mv("tau", old, st_->tauD, 1));
+      return done();
+    }
+    if (phase_ == Phase::AFTER_CAL) {
+      const float old = st_->rate;
+      learnMain(p0_, p, true);
+      testOk_ = p > p0_ + 0.005f; testRes_ = st_->rate;
+      wlog::ev("LEARN_INF_TEST", wlog::kv("p_before", p0_) + wlog::kv("p_after", p) + wlog::kv("t_s", pumpTime_, 1) +
+               wlog::kv("ok", testOk_ ? "1" : "0") + wlog::mv("rate", old, st_->rate, 4));
+      return done();
+    }
+    done();
+  }
+
   // one valve opening, timed from the exponential model
   void vent(float p) {
     // a vent below the target costs a compressor top-up, so always land a little above:
@@ -333,6 +383,7 @@ class Pump {
 
   Sensor* s_ = nullptr; Settings* st_ = nullptr;
   PState state_ = PState::IDLE; PErr err_ = PErr::NONE; Phase phase_ = Phase::START; Mode mode_ = Mode::NONE;
+  Mode test_ = Mode::NONE; bool testOk_ = false; float testRes_ = 0;
   bool on_ = false, vOn_ = false, inBand_ = false;
   uint32_t t0_ = 0, runStart_ = 0, endT_ = 0, topupMs_ = 0, ventMs_ = 0, leakT_ = 0, onT_ = 0, tS_ = 0, settleEl_ = 0;
   float pStatic_ = 0, p0_ = 0, est_ = 0, pumpTime_ = 0, leakRef_ = 0, aim_ = 0;

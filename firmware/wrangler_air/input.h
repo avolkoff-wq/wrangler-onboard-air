@@ -33,17 +33,27 @@ int takeSteps() {
   return (int)d;
 }
 
-enum class Btn { NONE, SHORT, LONG };
+enum class Btn { NONE, SHORT, MID, LONG };   // MID: released between 0.5 and 2.0 s
+
+// SHORT: released after 30..500 ms. MID: released between 0.5 and 2.0 s, an aborted hold; screens ignore it,
+// only a running pump treats it as stop.
+// LONG: fires at 2.0 s while still held (menu, CUSTOM cancel, LEARN back, OTA exit, cal abort).
+constexpr uint32_t BTN_SHORT_MAX_MS = 500, BTN_LONG_MS = 2000;
+bool     btnDown = false, btnLongSent = false;
+uint32_t btnT = 0;
 
 Btn button() {
-  static bool down = false, longSent = false;
-  static uint32_t t = 0;
   const bool pressed = digitalRead(PIN_BTN) == LOW;
   const uint32_t now = millis();
-  if (pressed && !down)  { down = true; longSent = false; t = now; }
-  if (pressed && down && !longSent && now - t > 1000) { longSent = true; return Btn::LONG; }
-  if (!pressed && down)  { down = false; if (!longSent && now - t > 30) return Btn::SHORT; }
+  if (pressed && !btnDown)  { btnDown = true; btnLongSent = false; btnT = now; }
+  if (pressed && btnDown && !btnLongSent && now - btnT >= BTN_LONG_MS) { btnLongSent = true; return Btn::LONG; }
+  if (!pressed && btnDown)  {
+    btnDown = false;
+    if (!btnLongSent && now - btnT > 30) return now - btnT < BTN_SHORT_MAX_MS ? Btn::SHORT : Btn::MID;
+  }
   return Btn::NONE;
 }
+// how long the button has been held so far, 0 when it is up or the LONG has already fired
+uint32_t heldMs() { return (btnDown && !btnLongSent) ? millis() - btnT : 0; }
 
 }  // namespace input

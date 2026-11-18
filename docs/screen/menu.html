@@ -13,40 +13,45 @@ h1{font-size:20px;margin:0 0 4px} .s{color:#666;margin:0 0 18px}
 .mh{grid-column:1/3;background:#111;color:#fff;border-radius:10px;padding:8px 12px;font-weight:600}
 .mi{background:#f1f3f5;border:1px solid #c9ced3;border-radius:8px;padding:7px 10px;font-weight:600;font-family:Menlo,Consolas,monospace;font-size:14px}
 .md{padding:7px 0;color:#333;border-bottom:1px solid #eee}
+code{font:12px Menlo,Consolas,monospace;background:#eef0f2;color:#333;border-radius:4px;padding:0 4px;white-space:pre}
+.b code{background:#333;color:#ccc;white-space:normal;display:inline-block;margin-top:4px;word-spacing:4px}
 .k{display:inline-block;border:1px solid #999;border-radius:4px;padding:0 5px;font-size:12px;color:#333;margin:0 2px}
 </style>
 <div class="w">
 <h1>Wrangler Air · управление и меню</h1>
-<p class="s">Ручка DinMeter: <span class="k">поворот</span> <span class="k">нажатие</span> <span class="k">долгое нажатие</span>. Все прошивки одинаково; спуск (DEFLATE) только в прошивке с клапаном.</p>
+<p class="s">Ручка DinMeter: <span class="k">поворот</span> <span class="k">нажатие</span> (отпустить быстрее 0,5 с) <span class="k">удержание 2 с</span> (hold). Отпустил между 0,5 и 2 с: ничего. Все прошивки одинаково; спуск (DEFLATE) только в прошивке с клапаном. Внизу каждого экрана серая подсказка, что сейчас делают ручка и кнопка.</p>
 
 <div class="flow">
- <div class="b grey"><b>CONNECT SYSTEM</b>давление 0<br>всё серое<br>старт заблокирован</div>
+ <div class="b grey"><b>CONNECT SYSTEM</b>давление 0<br>всё серое<br>старт заблокирован<br><code>turn: mode  hold: menu</code><br>(то же при OK / ABOVE)</div>
  <div class="a"><span>⇄</span>&gt; 0,15 bar 1 с<br>&lt; 0,05 bar</div>
- <div class="b dark"><b>Главный экран</b><span class="k" style="color:#ddd;border-color:#777">поворот</span> режим:<br>HIGHWAY 2.5 · ROUGH ROAD 1.8<br>GRAVEL 1.5 · TRAIL 1.2 · ROCK 1.0<br>SAND 0.8 · RECOVERY 0.5 · CUSTOM<br>actual x.x · INFLATE / DEFLATE / OK</div>
- <div class="a"><span>→</span>нажатие</div>
- <div class="b amb"><b>Работа</b>замер → подкачка<br>или <span style="color:#87ceeb">спуск</span> → замер …<br>фон янтарный / синий<br>нажатие: СТОП</div>
+ <div class="b dark"><b>Главный экран</b><span class="k" style="color:#ddd;border-color:#777">поворот</span> режим:<br>HIGHWAY 2.5 · ROUGH ROAD 1.8<br>GRAVEL 1.5 · TRAIL 1.2 · ROCK 1.0<br>SAND 0.8 · RECOVERY 0.5 · CUSTOM<br>actual x.x · INFLATE / DEFLATE / OK<br><code>turn: mode  press: start  hold: menu</code></div>
+ <div class="a"><span>→</span>нажатие<br>(INFLATE / DEFLATE)</div>
+ <div class="b dark"><b>ARMED</b>PRESS AGAIN: START<br>полоска 3 с<br>поворот, hold, 3 с: отмена<br><code>PRESS AGAIN: START  turn: cancel</code></div>
+ <div class="a"><span>→</span>2-е нажатие<br>за 3 с</div>
+ <div class="b amb"><b>Работа</b>замер → подкачка<br>или <span style="color:#87ceeb">спуск</span> → замер …<br>фон янтарный / синий<br><code>press: STOP</code> (одно нажатие)</div>
  <div class="a"><span>→</span></div>
- <div class="b dark"><b>Итог</b>DONE · OK, WITHIN 0.1<br>ERR ...<br>нажатие: назад</div>
+ <div class="b dark"><b>Итог</b>DONE · OK, WITHIN 0.1<br>ERR ...<br><code>press: back</code></div>
 </div>
 <div class="flow" style="margin-top:-14px;margin-left:300px">
  <div class="a" style="min-width:110px"><span>↓</span>нажатие на CUSTOM</div>
- <div class="b cust"><b>CUSTOM</b>поворот: шаг 0,1 bar<br>нажатие: OK + старт<br>долгое: отмена</div>
- <div class="a" style="min-width:110px"><span>↓</span>долгое нажатие<br>(не в работе)</div>
- <div class="b dark"><b>МЕНЮ ↓</b>поворот: листать<br>нажатие: выбрать<br>долгое: назад</div>
+ <div class="b cust"><b>CUSTOM</b>поворот: шаг 0,1 bar<br>нажатие: OK → ARMED<br>hold: отмена<br><code>turn: 0.1  press: OK  hold: cancel</code></div>
+ <div class="a" style="min-width:110px"><span>↓</span>удержание 2 с<br>полоска HOLD FOR MENU<br>(не в работе)</div>
+ <div class="b dark"><b>МЕНЮ ↓</b>поворот: листать<br>нажатие: выбрать<br>hold: назад<br><code>turn: scroll  press: select  hold: back</code></div>
 </div>
 
 <div class="menu">
  <div class="mh">МЕНЮ</div>
- <div class="mi">CALIBRATE</div><div class="md">4 точки по манометру: 0 (шланг открыт), ~1, ~2, ~3 bar. Качает сам до точки, ждёт, ты вводишь показание манометра поворотом и нажатием. Итог: наклон датчика, ноль, точность. Нажатие во время качки: отмена.</div>
- <div class="mi">SENSOR</div><div class="md">Живые вольты датчика и пина, давление. Для стенда.</div>
+ <div class="mi">CALIBRATE</div><div class="md">4 точки по манометру: 0 (шланг открыт), ~1, ~2, ~3 bar. Качает сам до точки, ждёт, ты вводишь показание манометра поворотом и нажатием. Итог: наклон датчика, ноль, точность. Нажатие во время качки: отмена, hold: отмена. Подсказки: <code>press when ready: next  hold: abort</code>, <code>press: abort</code>, <code>turn + press: next  hold: abort</code>.</div>
+ <div class="mi">LEARN</div><div class="md">LEARN INFLATE (компрессор 15 с) · LEARN DEFLATE (клапан 20 с, только с клапаном) · BACK. Нужно &gt; 0,15 bar (иначе CONNECT SYSTEM), для спуска ≥ 1,5 bar (иначе PUMP UP TO 1.5 FIRST). Подтверждение <code>press: start  hold: back</code>. Замер, импульс, замер; спуск ставит τ сразу, подкачка учится как первый импульс. Экран как в работе, статус LEARN 12.3s, <code>press: STOP</code>. Итог: τ или rate, <code>press: back</code>.</div>
+ <div class="mi">SENSOR</div><div class="md">Живые вольты датчика и пина, давление. Для стенда. <code>press: back</code>.</div>
  <div class="mi">UNITS: bar / psi</div><div class="md">Нажатие переключает. Режимы, CUSTOM и давление показываются в выбранных единицах.</div>
  <div class="mi">TYRE: 255/75R17 / 285/70R17</div><div class="md">Нажатие переключает. Объём воздуха 210 / 248 л; выученные поправки пересчитываются по объёму, обучение не сбрасывается.</div>
- <div class="mi">OFFSET: AUTO / 0.05–1.50 bar</div><div class="md">Поправка датчика во время подкачки. AUTO = учится сама. Нажатие: редактировать, поворот, нажатие: сохранить.</div>
+ <div class="mi">OFFSET: AUTO / 0.05–1.50 bar</div><div class="md">Поправка датчика во время подкачки. AUTO = учится сама. Нажатие: редактировать, <code>turn: change  press: save  hold: back</code>.</div>
  <div class="mi">SETTLE: AUTO / 1–10 s</div><div class="md">Пауза перед замером. AUTO = ждёт, пока давление успокоится.</div>
  <div class="mi">SCREEN</div><div class="md">Поворот картинки: WIDE · PORTRAIT · WIDE 180 · PORTRAIT 180.</div>
  <div class="mi">RESET LEARNING</div><div class="md">Нажать 2 раза за 3 с (первое нажатие: PRESS AGAIN). Сбрасывает обучение подкачки и спуска, калибровка по манометру остаётся.</div>
- <div class="mi">WIFI: UPDATE + LOG</div><div class="md">DinMeter поднимает Wi-Fi <b>WranglerAir</b>, пароль <b>jeepjeep</b>. В браузере 192.168.4.1: залить прошивку .bin, скачать лог CSV, очистить лог. Компрессор и клапан выключены. Долгое нажатие: выход.</div>
- <div class="mi">VERSION</div><div class="md">Версия, шина и объём воздуха, выученные поправки подкачки, τ спуска.</div>
+ <div class="mi">WIFI: UPDATE + LOG</div><div class="md">DinMeter поднимает Wi-Fi <b>WranglerAir</b>, пароль <b>jeepjeep</b>. В браузере 192.168.4.1: залить прошивку .bin, скачать лог CSV, очистить лог. Компрессор и клапан выключены. <code>hold: exit</code>.</div>
+ <div class="mi">VERSION</div><div class="md">Версия, шина и объём воздуха, выученные поправки подкачки, τ спуска. <code>press: back</code>.</div>
  <div class="mi">EXIT</div><div class="md">Назад на главный экран.</div>
 </div>
 </div>
