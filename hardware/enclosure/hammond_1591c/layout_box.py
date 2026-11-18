@@ -17,6 +17,8 @@ import cadquery as cq
 
 TAG = os.environ.get("WA_BOX", "1591s")
 PCB_BOSS = None
+GLANDS = None          # (x, z) of round M12 cable gland holes in the lower end wall, instead of the slot
+GLAND_D = 12.2
 if TAG == "f100":
     # AliExpress IP65 box F-100x68x50, black ABS base 36 + clear PC lid 14 (seller drawing). Inner sizes, wall, floor and
     # the corner posts are measured off the seller drawing (scale 0.35 mm/px): to be checked on the real box.
@@ -27,7 +29,8 @@ if TAG == "f100":
     PCB_BOSS = (43.0, 75.0, 6.0, 5.0)                            # floor PCB bosses: pitch x, pitch y, dia, height (estimated)
     DIN_X, DIN_Z = 0.0, 19.0          # housing bottom at 7.9 clears the floor PCB bosses near the DinMeter end
     BOSS_CUT_Z = None
-    SLOT_X, SLOT_Z = 8.0, 18.0
+    SLOT_X, SLOT_Z = 8.0, 18.0        # kept for cables_box.py; the box itself gets two M12 glands
+    GLANDS = ((-12.0, 18.0), (12.0, 18.0))   # left: power (BK + 2x RD), right: sensor + ARB (OG, BU, YE, VT)
     RXC, RY0, AXC, AY0 = -14.5, -34.0, 15.5, -18.0
     CH_X = 0.0
 elif TAG == "1591c":
@@ -88,7 +91,11 @@ box = box.cut(cq.Workplane("XY").box(CUT_W, 10, CUT_H).translate((DIN_X, TOP_Y -
 
 # ---------- wire slot in the lower end wall ----------
 SLOT_L, SLOT_H = 14.0, 8.0
-box = box.cut(cq.Workplane("XZ").workplane(offset=TOP_Y - 5).center(SLOT_X, SLOT_Z).slot2D(SLOT_L, SLOT_H, 0).extrude(8))
+if GLANDS:
+    for gx, gz in GLANDS:
+        box = box.cut(cq.Workplane("XZ").workplane(offset=TOP_Y - 5).center(gx, gz).circle(GLAND_D / 2).extrude(8))
+else:
+    box = box.cut(cq.Workplane("XZ").workplane(offset=TOP_Y - 5).center(SLOT_X, SLOT_Z).slot2D(SLOT_L, SLOT_H, 0).extrude(8))
 
 def bx(sx, sy, sz, cx, cy, cz):
     return cq.Workplane("XY").box(sx, sy, sz).translate((cx, cy, cz))

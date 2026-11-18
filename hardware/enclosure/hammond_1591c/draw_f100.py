@@ -82,12 +82,16 @@ for xc, y0, ln, name, ty in ((L.RXC, L.RY0, 48, "Relay", 10), (L.AXC, L.AY0, 32,
     a, b = P(xc - 4.95, y0 + ln + 6.5), P(xc + 4.95, y0 + ln); o.append(R(*a, *b, "plug"))
     a, b = P(xc - 6, y0 + ty), P(xc + 6, y0); o.append(R(*a, *b, "term"))
     o.append(T(P(xc, 0)[0], P(0, y0 + ln / 2)[1], name))
-# wire slot
-a, b = P(L.SLOT_X - 7, -L.Y_IN), P(L.SLOT_X + 7, -L.TOP_Y); o.append(R(*a, *b, "win"))
-o.append(T(P(L.SLOT_X, 0)[0], P(0, -L.TOP_Y)[1] + 18, "паз под провода 14×8", "note"))
+# two M12 cable glands in the lower end wall: lock nut inside, body and dome nut outside
+for gx, gz in L.GLANDS:
+    a, b = P(gx - 9, -L.Y_IN + 5), P(gx + 9, -L.Y_IN); o.append(R(*a, *b, "plug"))           # lock nut
+    a, b = P(gx - 8, -L.TOP_Y), P(gx + 8, -L.TOP_Y - 4); o.append(R(*a, *b, "post"))         # hex
+    a, b = P(gx - 6.5, -L.TOP_Y - 4), P(gx + 6.5, -L.TOP_Y - 16); o.append(R(*a, *b, "post", 6))  # dome nut
+o.append(T(P(L.GLANDS[0][0], 0)[0], P(0, -L.TOP_Y - 16)[1] + 16, "питание", "note"))
+o.append(T(P(L.GLANDS[1][0], 0)[0], P(0, -L.TOP_Y - 16)[1] + 16, "датчик + ARB", "note"))
 # dims
 o.append(dim_h(*[P(x, 0)[0] for x in (-L.W / 2, L.W / 2)], P(0, L.TOP_Y)[1] - 28, "68"))
-o.append(dim_h(*[P(x, 0)[0] for x in (-L.IN_W / 2, L.IN_W / 2)], P(0, -L.TOP_Y)[1] + 40, "≈63 внутри", above=False))
+o.append(dim_h(*[P(x, 0)[0] for x in (-L.IN_W / 2, L.IN_W / 2)], P(0, -L.TOP_Y)[1] + 115, "≈63 внутри", above=False))
 o.append(dim_v(P(-L.W / 2, 0)[0] - 30, *[P(0, y)[1] for y in (L.TOP_Y, -L.TOP_Y)], "100"))
 o.append(dim_v(P(L.W / 2, 0)[0] + 22, *[P(0, y)[1] for y in (L.Y_IN, -L.Y_IN)], "≈95", left=False))
 o.append(dim_h(P(22.8, 0)[0], P(L.BOSS_X / 2 - L.BOSS_D / 2, 0)[0], P(0, L.BOSS_Y / 2)[1], ""))
@@ -133,13 +137,30 @@ a, b = S(L.RY0, F + 8), S(L.RY0 + 48, F); o.append(R(*a, *b, "mod", 2))
 a, b = S(L.RY0, F + 20), S(L.RY0 + 10, F + 8); o.append(R(*a, *b, "term"))
 a, b = S(L.RY0 + 48, F + 6.3), S(L.RY0 + 54.5, F + 1.7); o.append(R(*a, *b, "plug"))
 o.append(T(S(L.RY0 + 30, 0)[0], S(0, F + 4)[1] + 4, "Relay (ADC рядом)"))
-a, b = S(-L.TOP_Y, L.SLOT_Z + 4), S(-L.Y_IN, L.SLOT_Z - 4); o.append(R(*a, *b, "win"))
+gz = L.GLANDS[0][1]
+a, b = S(-L.Y_IN, gz + 9), S(-L.Y_IN + 5, gz - 9); o.append(R(*a, *b, "plug"))
+a, b = S(-L.TOP_Y - 4, gz + 8), S(-L.TOP_Y, gz - 8); o.append(R(*a, *b, "post"))
+a, b = S(-L.TOP_Y - 16, gz + 6.5), S(-L.TOP_Y - 4, gz - 6.5); o.append(R(*a, *b, "post", 6))
 o.append(dim_v(S(L.TOP_Y, 0)[0] + 30, S(0, L.HB + L.HL - 2.5)[1], S(0, F)[1], "≈45", left=False))
 o.append(dim_h(S(L.DB, 0)[0], S(L.TOP_Y, 0)[0], S(0, L.HB + L.HL)[1] - 14, "20.4"))
 o.append(T(S(0, 0)[0], SZ + 30, "Над модулями ≈ 25 мм до крышки: место под петли Grove", "note"))
 
+# ---------------- lower end wall, view from outside: two M12 holes ----------------
+GX0, GZ = OX - L.W / 2 * k, OY + L.L / 2 * k + 220 + (L.HB + L.HL) * k
+G = lambda x, z: (GX0 + (x + L.W / 2) * k, GZ - z * k)
+o.append(T(OX, GZ - (L.HB + L.HL) * k - 22, "Нижний торец, вид снаружи: 2 ввода M12", "ttl"))
+a, b = G(-L.W / 2, L.HB), G(L.W / 2, 0); o.append(R(*a, *b, "part", 4))
+a, b = G(-L.W / 2, L.HB + L.HL), G(L.W / 2, L.HB); o.append(R(*a, *b, "lid", 4))
+for gx, gz in L.GLANDS:
+    o.append(C(*G(gx, gz), 9 * k, "hid")); o.append(C(*G(gx, gz), L.GLAND_D / 2 * k, "win"))
+o.append(T(G(0, 0)[0], G(0, L.GLANDS[0][1])[1] + 4, "Ø12", "dt"))
+o.append(dim_h(G(-L.W / 2, 0)[0], G(L.GLANDS[0][0], 0)[0], G(0, 0)[1] + 22, f"{L.W/2 + L.GLANDS[0][0]:.0f}", above=False))
+o.append(dim_h(G(L.GLANDS[0][0], 0)[0], G(L.GLANDS[1][0], 0)[0], G(0, 0)[1] + 22, f"{L.GLANDS[1][0]-L.GLANDS[0][0]:.0f}", above=False))
+o.append(dim_v(G(-L.W / 2, 0)[0] - 14, G(0, L.GLANDS[0][1])[1], G(0, 0)[1], f"{L.GLANDS[0][1]:.0f}"))
+o.append(T(G(0, 0)[0], G(0, 0)[1] + 58, "пунктир: гайка Ø18 изнутри", "note"))
+
 W_SVG = int(EX + L.W * k + 190)
-H_SVG = int(SZ + 60)
+H_SVG = int(max(SZ + 60, GZ + 80))
 svg = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W_SVG} {H_SVG}" width="{W_SVG}" height="{H_SVG}">'
        f'<style>{CSS}</style><defs><marker id="a" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">'
        f'<path d="M0 0 L10 5 L0 10 z" fill="#c00"/></marker></defs><rect width="100%" height="100%" fill="#fff"/>' + "".join(o) + "</svg>")

@@ -22,6 +22,8 @@ Grove: реле на 5 см, ADC на 10 см (расстояние до PORT.A 
 |---|---|---|---|---|
 | Коробка IP65, чёрное основание 36 + прозрачная крышка PC 14 | 1 | 100x68x50mm, без ушек | 6.23 | [item](https://www.aliexpress.com/item/1005006825410101.html) |
 
+| Кабельный ввод M12 IP68, нейлон, 3-6,5 мм | 1 лот | M12 Black, 10 шт | 2.82 | [item](https://www.aliexpress.com/item/1005006830465138.html) |
+
 Чертёж: [hardware/enclosure/hammond_1591c/box_f100.png](../hardware/enclosure/hammond_1591c/box_f100.png).
 
 ## Провод и соединения
