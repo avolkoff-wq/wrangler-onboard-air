@@ -12,8 +12,14 @@
 //   long press      menu: CALIBRATE, SENSOR (live volts for the bench), UNITS, TYRE, OFFSET, SETTLE, SCREEN, RESET LEARNING, UPDATE, VERSION, EXIT
 //   SCREEN: press to turn the picture 90 degrees (WIDE, PORTRAIT, WIDE 180, PORTRAIT 180)
 //   OFFSET / SETTLE: press to edit, turn: AUTO or a fixed value, press to save
-// Screen: in idle a small pictogram of the preset (SUV on its terrain); while running a bar under the big number
-//   from the start pressure to the target, orange = compressor, sky blue = valve venting, cyan = pause
+// Screen (layout: docs/screen/screen_mockup.py, screen_mockup_idle_direction.py)
+//   idle: the preset icon (SUV on its terrain), the target in big digits, the preset name and, under a coloured
+//   rule, the live pressure ("actual x.x") and what a start would do: INFLATE / DEFLATE (with "press to start"),
+//   = OK, ABOVE (builds without the valve); CONNECT SYSTEM below 0.05 bar or on a sensor fault, the whole screen grey
+//   and start blocked (a press only beeps) until the reading stays above 0.15 bar for 1 s
+//   running: a small icon, the pressure (~ = estimate), a bar from the start pressure to the target
+//   (orange = compressor, sky blue = venting, cyan = measuring) and the phase line;
+//   the background turns dark amber while the compressor pumps and dark blue while the valve vents
 //
 // Libraries: M5Unified (Arduino Library Manager). Board: M5Stack StampS3 / "M5DinMeter".
 // Partition scheme must have two OTA app partitions (default 8MB scheme does).
@@ -106,16 +112,12 @@ int wrapText(const String& t, int maxW, String* out, int maxOut) {
   return n;
 }
 
-// draws the lines spread evenly between top and bottom.
-// A line with empty text is a spacer SPACER_H px high (room for the progress bar); its top is left in spacerY.
-constexpr int SPACER_H = 8;
-int spacerY = -1;
+// draws the lines spread evenly between top and bottom
 void drawLines(std::initializer_list<Ln> ls, int top = 0, int bottom = -1) {
   if (bottom < 0) bottom = H();
   const int maxW = W() - 8;
   struct Row { String t; Font f; uint16_t c; int h; } rows[16]; int n = 0;
   for (const Ln& l : ls) {
-    if (!l.t.length()) { if (n < 16) rows[n++] = { "", l.f, l.c, SPACER_H }; continue; }
     Font f = l.f; canvas.setFont(f);
     if (l.alt && canvas.textWidth(l.t) > maxW) { f = l.alt; canvas.setFont(f); }
     String parts[4]; const int k = (f == F_DIGIT) ? (parts[0] = l.t, 1) : wrapText(l.t, maxW, parts, 4);
@@ -125,9 +127,7 @@ void drawLines(std::initializer_list<Ln> ls, int top = 0, int bottom = -1) {
   const float gap = max(2.0f, (float)(bottom - top - total) / (n + 1));
   float y = top + gap;
   canvas.setTextDatum(top_center);
-  spacerY = -1;
   for (int q = 0; q < n; q++) {
-    if (!rows[q].t.length()) { spacerY = (int)y; y += rows[q].h + gap; continue; }
     canvas.setFont(rows[q].f); canvas.setTextColor(rows[q].c);
     canvas.drawString(rows[q].t, W() / 2, (int)y);
     y += rows[q].h + gap;
@@ -142,112 +142,249 @@ int drawTopBar(const String& t) {
   return 4 + k * canvas.fontHeight();
 }
 
-// ---------- preset pictograms (M5GFX primitives only) ----------
-// One generic boxy SUV in side view (white, 36x20 px) on a terrain line that changes per preset (light grey).
-// The whole icon is ICON_W x ICON_H px, (ox, oy) = its top left corner.
-constexpr int ICON_W = 44, ICON_H = 28;
-// SUV with its rear wheel touching the ground at (rx, ry), nose turned up by a (rad)
-void drawSuv(float rx, float ry, float a) {
-  const float ca = cosf(a), sa = sinf(a);
-  const float bx = rx - 8 * ca, by = ry + 8 * sa;              // local origin: ground under the rear of the body
-  auto X = [&](float x, float y) { return (int)roundf(bx + x * ca + y * sa); };
-  auto Y = [&](float x, float y) { return (int)roundf(by - x * sa + y * ca); };
-  static const int8_t body[][2] = { {0,-6}, {0,-19}, {22,-19}, {26,-14}, {36,-13}, {36,-6} };   // box, cabin step, hood
-  static const int8_t win[][2]  = { {3,-17}, {20,-17}, {23,-14}, {3,-14} };
-  for (int i = 0; i < 6; i++) { const int j = (i + 1) % 6;
-    canvas.drawLine(X(body[i][0], body[i][1]), Y(body[i][0], body[i][1]), X(body[j][0], body[j][1]), Y(body[j][0], body[j][1]), TFT_WHITE); }
-  for (int i = 0; i < 4; i++) { const int j = (i + 1) % 4;
-    canvas.drawLine(X(win[i][0], win[i][1]), Y(win[i][0], win[i][1]), X(win[j][0], win[j][1]), Y(win[j][0], win[j][1]), TFT_WHITE); }
-  for (int wx : {8, 28}) {
-    const int cx = X(wx, -4), cy = Y(wx, -4);
-    canvas.fillCircle(cx, cy, 4, TFT_BLACK); canvas.drawCircle(cx, cy, 4, TFT_WHITE); canvas.drawPixel(cx, cy, TFT_WHITE);
+// ---------- screen graphics (spec: docs/screen/screen_mockup.py, M5GFX primitives only) ----------
+uint16_t rgb(uint8_t r, uint8_t g, uint8_t b) { return canvas.color565(r, g, b); }
+// icon colours: with iconDim (idle, no air) everything is drawn in greys, half the brightness
+bool iconDim = false;
+uint16_t ic(uint8_t r, uint8_t g, uint8_t b) {
+  if (!iconDim) return rgb(r, g, b);
+  const uint8_t v = (uint8_t)((0.3f * r + 0.59f * g + 0.11f * b) / 2); return rgb(v, v, v);
+}
+#define C_GREY  ic(150, 150, 150)
+#define C_LGREY ic(200, 200, 200)
+#define C_DGREY ic(90, 90, 90)
+#define C_SAND  ic(222, 184, 120)
+#define C_ROCK  ic(160, 160, 170)
+
+// line w px thick
+void wline(float x0, float y0, float x1, float y1, int w, uint16_t c) {
+  if (w <= 1) canvas.drawLine(lroundf(x0), lroundf(y0), lroundf(x1), lroundf(y1), c);
+  else canvas.drawWideLine(lroundf(x0), lroundf(y0), lroundf(x1), lroundf(y1), w / 2.0f, c);
+}
+// convex polygon, fan of triangles
+void fillConvex(const float (*p)[2], int n, uint16_t c) {
+  for (int i = 1; i + 1 < n; i++)
+    canvas.fillTriangle(lroundf(p[0][0]), lroundf(p[0][1]), lroundf(p[i][0]), lroundf(p[i][1]), lroundf(p[i + 1][0]), lroundf(p[i + 1][1]), c);
+}
+
+// filled boxy SUV side view, 40 x 22 units, (x, y) = rear wheel ground contact, s = px per unit, ang in degrees (negative = nose up)
+void drawSuv(float x, float y, float s, float ang = 0) {
+  const float a = ang * DEG_TO_RAD, ca = cosf(a), sa = sinf(a);
+  auto R = [&](float px, float py, float* o) { o[0] = x + s * (px * ca + py * sa); o[1] = y - s * (-px * sa + py * ca); };
+  auto poly = [&](const float (*u)[2], int n, uint16_t c) {
+    float p[8][2]; for (int i = 0; i < n; i++) R(u[i][0], u[i][1], p[i]); fillConvex(p, n, c);
+  };
+  static const float lower[][2] = { {-4,3}, {36,3}, {36,11}, {31,12}, {2,12}, {-4,12} };   // body, split into convex parts
+  static const float cabin[][2] = { {2,12}, {31,12}, {27,20}, {4,20} };
+  static const float win1[][2]  = { {5,13}, {14,13}, {14,18}, {6,18} };
+  static const float win2[][2]  = { {16,13}, {26,13}, {24.5f,18}, {16,18} };
+  static const float spare[][2] = { {-6,6}, {-4,6}, {-4,11}, {-6,11} };
+  poly(lower, 6, ic(255, 255, 255)); poly(cabin, 4, ic(255, 255, 255));
+  poly(win1, 4, TFT_BLACK); poly(win2, 4, TFT_BLACK); poly(spare, 4, ic(255, 255, 255));
+  const float r = 5.2f * s; const int rim = max(1, (int)(s * 1.6f));
+  for (float wx : {4.0f, 28.0f}) {
+    float c[2]; R(wx, 4.5f, c);
+    const int cx = lroundf(c[0]), cy = lroundf(c[1]);
+    canvas.fillCircle(cx, cy, lroundf(r), ic(255, 255, 255));
+    canvas.fillCircle(cx, cy, max(1L, lroundf(r) - rim), TFT_BLACK);
+    canvas.fillCircle(cx, cy, max(1L, lroundf(r * 0.35f)), ic(255, 255, 255));
   }
 }
-// polyline through (dx, dy) offsets from (ox, g)
-void drawTerrain(int ox, int g, const int8_t (*pts)[2], int n, uint16_t c = TFT_LIGHTGREY) {
-  for (int i = 0; i + 1 < n; i++) canvas.drawLine(ox + pts[i][0], g + pts[i][1], ox + pts[i + 1][0], g + pts[i + 1][1], c);
-}
-void drawPresetIcon(int preset, int ox, int oy) {
-  const uint16_t T = TFT_LIGHTGREY;
-  const int g = oy + 24;                                        // ground line
+
+// gravel pebbles: u, depth below ground, radius (units); fixed list = the mock-up's random.seed(3)
+static const float PEBBLES[][3] = {
+  {12.4f,3.7f,1.1f}, {47.6f,3.4f,1.4f}, {3.4f,1.6f,1.1f}, {13.5f,2.4f,1.4f}, {24.5f,4.8f,1.1f}, {20.7f,4.9f,0.8f}, {33.0f,5.0f,1.4f},
+  {20.3f,1.6f,0.8f}, {8.3f,5.3f,0.8f}, {15.7f,1.6f,1.1f}, {24.6f,4.4f,1.1f}, {37.1f,5.2f,1.1f}, {37.9f,3.8f,0.8f}, {45.7f,1.9f,0.8f},
+  {25.7f,2.5f,1.4f}, {22.7f,4.0f,1.1f}, {21.9f,4.8f,1.4f}, {18.2f,3.8f,1.4f}, {12.1f,2.8f,0.8f}, {44.5f,5.5f,1.4f}, {36.2f,4.3f,1.1f},
+  {50.2f,5.1f,1.4f}, {5.4f,4.1f,1.4f}, {43.2f,3.8f,1.1f}, {6.5f,3.4f,1.4f}, {51.5f,1.9f,0.8f} };
+
+// preset icon, box w x 0.62 w, (ox, oy) = top left
+void drawPresetIcon(int preset, float ox, float oy, float w) {
+  const float s = w / 52.0f, h = w * 0.62f, g = oy + h - 6 * s;
+  const int lw = max(2, (int)(s * 1.4f));
+  auto X = [&](float u) { return ox + u * s; };
+  auto ground = [&]() { wline(ox, g, ox + w, g, lw, C_GREY); };
+  auto fillUnder = [&](float (*top)(float), uint16_t c) {        // area between a curve (units) and g + 6 units
+    for (int px = 0; px <= (int)w; px++) { const float y = g + top(px / s) * s; canvas.drawFastVLine(lroundf(ox + px), lroundf(y), lroundf(g + 6 * s - y) + 1, c); }
+  };
   const char* n = PRESETS[preset].name;
   if (!strcmp(n, "HIGHWAY")) {
-    canvas.drawFastHLine(ox, g, ICON_W, T);
-    for (int x : {2, 16, 30}) canvas.drawFastHLine(ox + x, g + 3, 7, T);          // lane marks
-    for (int dy : {15, 11, 7}) canvas.drawFastHLine(ox, g - dy, 4, T);            // speed lines
-    drawSuv(ox + 14, g, 0);
+    ground();
+    for (int i = 0; i < 52; i += 10) wline(X(i), g + 4 * s, X(i + 5), g + 4 * s, lw, ic(255, 255, 255));
+    const int yy[] = {10, 14, 18};
+    for (int k = 0; k < 3; k++) wline(X(0), g - yy[k] * s, X(5 - k), g - yy[k] * s, lw, C_LGREY);
+    drawSuv(X(12), g, s);
   } else if (!strcmp(n, "ROUGH ROAD")) {
-    static const int8_t r[][2] = { {0,0}, {14,0}, {16,3}, {22,3}, {24,0}, {44,0} };  // pothole
-    drawTerrain(ox, g, r, 6);
-    static const int8_t k[][2] = { {38,0}, {39,2}, {41,3} };                      // crack
-    drawTerrain(ox, g, k, 3);
-    drawSuv(ox + 10, g, 0);
+    const float p[][2] = { {0,0}, {20,0}, {23,5}, {31,5}, {34,0}, {52,0} };
+    for (int i = 0; i < 5; i++) wline(X(p[i][0]), g + p[i][1] * s, X(p[i + 1][0]), g + p[i + 1][1] * s, lw, C_GREY);
+    const int tw = max(1, lw - 1);
+    const float c1[][2] = { {40,1}, {42,3}, {45,2}, {47,4} }, c2[][2] = { {6,1}, {8,3}, {11,2} };   // cracks
+    for (int i = 0; i < 3; i++) wline(X(c1[i][0]), g + c1[i][1] * s, X(c1[i + 1][0]), g + c1[i + 1][1] * s, tw, C_GREY);
+    for (int i = 0; i < 2; i++) wline(X(c2[i][0]), g + c2[i][1] * s, X(c2[i + 1][0]), g + c2[i + 1][1] * s, tw, C_GREY);
+    drawSuv(X(9), g, s, -3);
   } else if (!strcmp(n, "GRAVEL")) {
-    canvas.drawFastHLine(ox, g, ICON_W, T);
-    static const int8_t d[][2] = { {1,2}, {5,3}, {9,2}, {13,4}, {17,2}, {21,3}, {25,2}, {29,4}, {33,2}, {37,3}, {41,2}, {3,-1}, {39,-1}, {19,-1} };
-    for (auto& q : d) canvas.fillRect(ox + q[0], g + q[1], 2, 1 + (q[0] & 1), T);
-    drawSuv(ox + 12, g, 0);
+    ground();
+    for (auto& q : PEBBLES) canvas.fillCircle(lroundf(X(q[0])), lroundf(g + q[1] * s), max(1L, lroundf(q[2] * s)), C_LGREY);
+    drawSuv(X(9), g, s);
   } else if (!strcmp(n, "TRAIL")) {
-    static const int8_t w[][2] = { {0,1}, {5,-1}, {12,0}, {18,2}, {24,1}, {32,-2}, {38,-3}, {44,-1} };
-    drawTerrain(ox, g, w, 8);
-    drawSuv(ox + 12, g, atan2f(2, 20));                         // front wheel on the rise: slightly tilted
+    for (int u = 0; u < 52; u++) wline(X(u), g + 2.2f * s * sinf(u / 4.5f), X(u + 1), g + 2.2f * s * sinf((u + 1) / 4.5f), lw, C_GREY);
+    for (int u : {6, 18, 30, 42}) wline(X(u), g + 4.5f * s, X(u + 3), g + 4.5f * s, lw, C_DGREY);   // tyre tracks
+    drawSuv(X(9), g - 1.5f * s, s, -5);
   } else if (!strcmp(n, "ROCK")) {
-    canvas.drawFastHLine(ox, g, ICON_W, T);
-    const float a = 15 * DEG_TO_RAD;
-    const int fx = ox + 8 + (int)roundf(20 * cosf(a)), fy = g - (int)roundf(20 * sinf(a));   // front wheel contact
-    canvas.fillTriangle(fx - 7, g, fx - 2, fy, fx + 4, fy - 1, TFT_DARKGREY);
-    canvas.fillTriangle(fx - 7, g, fx + 4, fy - 1, fx + 9, g, TFT_DARKGREY);
-    canvas.drawLine(fx - 7, g, fx - 2, fy, T); canvas.drawLine(fx - 2, fy, fx + 4, fy - 1, T);
-    canvas.drawLine(fx + 4, fy - 1, fx + 9, g, T); canvas.drawLine(fx + 1, fy, fx + 3, g - 1, T);   // facet
-    drawSuv(ox + 8, g, a);
+    ground();
+    const float rock[][2] = { {X(24), g}, {X(28), g - 8 * s}, {X(34), g - 13 * s}, {X(41), g - 12 * s}, {X(47), g - 6 * s}, {X(50), g} };
+    fillConvex(rock, 6, C_ROCK);
+    const float small[][2] = { {X(3), g}, {X(6), g - 3 * s}, {X(10), g} };
+    fillConvex(small, 3, C_ROCK);
+    drawSuv(X(8), g - 0.5f * s, s, -22);
   } else if (!strcmp(n, "SAND")) {
-    auto dune = [&](int x) { return g + 2 - (int)roundf(0.004f * x * x); };
-    for (int x = 0; x < ICON_W; x++) canvas.drawLine(ox + x, dune(x), ox + x + 1, dune(x + 1), T);
-    static const int8_t dr[][2] = { {1,-5}, {4,-8}, {2,-11}, {6,-4} };
-    for (auto& q : dr) canvas.drawPixel(ox + q[0], dune(q[0]) + q[1], T);   // drift
-    drawSuv(ox + 10, dune(10), atan2f(dune(10) - dune(30), 20));
+    fillUnder([](float u) { return 2 - 11 * expf(-powf((u - 40) / 14.0f, 2)); }, C_SAND);
+    drawSuv(X(8), g + 1.5f * s, s, -12);
   } else if (!strcmp(n, "RECOVERY")) {
-    drawSuv(ox + 8, g, 0);
-    static const int8_t s[][2] = { {0,-2}, {10,-4}, {20,-3}, {30,-4}, {38,-2} };   // wheels half sunk
-    for (int i = 0; i < 4; i++) for (int x = s[i][0]; x < s[i + 1][0]; x++) {
-      const int y = g + s[i][1] + (s[i + 1][1] - s[i][1]) * (x - s[i][0]) / (s[i + 1][0] - s[i][0]);
-      canvas.drawFastVLine(ox + x, y, g + 3 - y, TFT_DARKGREY);
-    }
-    drawTerrain(ox, g, s, 5);
-    canvas.drawFastVLine(ox + 41, g - 14, 9, TFT_WHITE);                         // arrow down
-    canvas.fillTriangle(ox + 38, g - 6, ox + 44, g - 6, ox + 41, g - 2, TFT_WHITE);
+    drawSuv(X(8), g + 3 * s, s);
+    fillUnder([](float u) { return -1 + 1.8f * sinf(u / 6.0f); }, C_SAND);        // wheels half in the sand
+    const float ax = X(47);
+    wline(ax, g - 20 * s, ax, g - 9 * s, lw + 1, ic(255, 165, 0));
+    canvas.fillTriangle(lroundf(ax - 4 * s), lroundf(g - 10 * s), lroundf(ax + 4 * s), lroundf(g - 10 * s), lroundf(ax), lroundf(g - 4 * s), ic(255, 165, 0));
   } else {                                                      // CUSTOM
-    canvas.drawFastHLine(ox, g, ICON_W, T);
-    drawSuv(ox + 6, g, 0);
-    canvas.drawFastHLine(ox + 30, oy + 3, 5, TFT_WHITE); canvas.drawFastVLine(ox + 32, oy + 1, 5, TFT_WHITE);   // +
-    canvas.drawLine(ox + 36, oy + 6, ox + 38, oy, TFT_WHITE);                                                  // /
-    canvas.drawFastHLine(ox + 39, oy + 3, 5, TFT_WHITE);                                                       // -
+    ground();
+    drawSuv(X(6), g, s);
+    const float cx = X(46), cy = g - 17 * s, r = 5.5f * s;
+    for (int k = 0; k < lw; k++) canvas.drawCircle(lroundf(cx), lroundf(cy), lroundf(r) - k, ic(0, 255, 255));
+    wline(cx - r * 0.55f, cy, cx + r * 0.55f, cy, lw, ic(0, 255, 255));
+    wline(cx, cy - r * 0.55f, cx, cy + r * 0.55f, lw, ic(0, 255, 255));
   }
+}
+
+void textAt(const String& t, int x, int y, Font f, uint16_t c, textdatum_t d, Font alt = nullptr, int maxW = 0) {
+  canvas.setFont(f);
+  if (alt && maxW && canvas.textWidth(t) > maxW) canvas.setFont(alt);
+  canvas.setTextColor(c); canvas.setTextDatum(d); canvas.drawString(t, x, y);
+}
+// big value in Font7 digits; "~" (estimate) in a text font in front of it. align: 0 = centre at x, 1 = right edge at x
+void bigValue(const String& v, bool tilde, int x, int y, uint16_t c, int align) {
+  canvas.setFont(F_DIGIT); const int wv = canvas.textWidth(v);
+  canvas.setFont(F_LARGE); const int wt = tilde ? canvas.textWidth("~") + 2 : 0;
+  const int left = align ? x - wv - wt : x - (wv + wt) / 2;
+  if (tilde) textAt("~", left, y + 24, F_LARGE, c, middle_left);
+  textAt(v, left + wt, y, F_DIGIT, c, top_left);
+}
+
+// "no air" state (hoses not connected): entered below NOAIR_IN or on a sensor fault, left only after the reading
+// stayed above NOAIR_OUT for NOAIR_HOLD_MS, so the screen does not flicker. Starting a run is blocked meanwhile.
+constexpr float NOAIR_IN = 0.05f, NOAIR_OUT = 0.15f;
+constexpr uint32_t NOAIR_HOLD_MS = 1000;
+bool noAir = true;
+void updateNoAir() {
+  static uint32_t okSince = 0;
+  const float now = sensor.bar(settings.calA, settings.calB);
+  if (sensor.fault() || now < NOAIR_IN) { noAir = true; okSince = 0; }
+  else if (noAir) {
+    if (now <= NOAIR_OUT) okSince = 0;
+    else if (!okSince) okSince = millis();
+    else if (millis() - okSince >= NOAIR_HOLD_MS) noAir = false;
+  }
+}
+
+// idle screen and the CUSTOM value screen (edit = true): icon, big target value, unit, preset name and, below a
+// coloured rule, the live pressure and what a start would do (spec: docs/screen/screen_mockup_idle_direction.py)
+void drawIdle(bool edit) {
+  canvas.fillSprite(TFT_BLACK);
+  const int p = settings.preset;
+  const float bar = edit ? customEdit : settings.target;
+  const bool low = bar < TARGET_LOW_WARN;
+  const float now = sensor.bar(settings.calA, settings.calB);
+  // what a start would do
+  enum { D_UP, D_DOWN, D_OK, D_ABOVE, D_DEAD } dir;
+  if (noAir) dir = D_DEAD;                                             // hoses not connected / no air
+  else if (fabsf(now - bar) <= START_BAND) dir = D_OK;
+  else if (now < bar) dir = D_UP;
+  else dir = DEFLATE ? D_DOWN : D_ABOVE;                               // inflate-only builds do nothing above the target
+  const bool dead = dir == D_DEAD && !edit;
+  const char* word = dir == D_UP ? "INFLATE" : dir == D_DOWN ? "DEFLATE" : dir == D_OK ? "= OK" : "ABOVE";
+  const uint16_t dc = dir == D_UP ? TFT_ORANGE : dir == D_DOWN ? TFT_SKYBLUE : dir == D_OK ? rgb(0, 220, 0) : C_GREY;
+  const uint16_t dim = rgb(55, 55, 55);
+  const uint16_t numc = edit ? TFT_CYAN : dead ? dim : TFT_GREENYELLOW;
+  const uint16_t namec = edit ? TFT_CYAN : dead ? dim : low ? TFT_ORANGE : TFT_WHITE;
+  const uint16_t unitc = dead ? dim : C_LGREY;
+  const String name = PRESETS[p].name, nowT = "actual " + fmt(max(0.0f, now));
+  // "now x.x", triangle, word; one line centred at y, or two lines (portrait)
+  auto dirLine = [&](int y, bool twoLines) {
+    canvas.setFont(F_TEXT);
+    const bool tri = dir == D_UP || dir == D_DOWN;
+    const int th = 11, tw = 12, gap = 6;
+    const int w1 = canvas.textWidth(nowT), w2 = canvas.textWidth(word) + (tri ? tw + 4 : 0);
+    auto part2 = [&](int x, int yy) {   // triangle + word from x
+      if (tri) {
+        const int cy = yy + canvas.fontHeight() / 2 - 1;
+        if (dir == D_UP) canvas.fillTriangle(x, cy + th / 2, x + tw, cy + th / 2, x + tw / 2, cy - th / 2, dc);
+        else             canvas.fillTriangle(x, cy - th / 2, x + tw, cy - th / 2, x + tw / 2, cy + th / 2, dc);
+        x += tw + 4;
+      }
+      textAt(word, x, yy, F_TEXT, dc, top_left);
+    };
+    if (!twoLines) {
+      const int x = (W() - (w1 + gap + w2)) / 2;
+      textAt(nowT, x, y, F_TEXT, dc, top_left); part2(x + w1 + gap, y);
+    } else {
+      textAt(nowT, W() / 2, y, F_TEXT, dc, top_center); part2((W() - w2) / 2, y + 18);
+    }
+  };
+  const bool hint = dir == D_UP || dir == D_DOWN;                      // "press to start" only when a start would do something
+  const Font F_HINT = &fonts::Font2;
+  iconDim = dead;
+  if (!portrait()) {
+    drawPresetIcon(p, 6, 6, 104);
+    iconDim = false;
+    bigValue(fmt(bar), false, W() - 8, 2, numc, 1);
+    textAt(unitName(), W() - 8, 56, F_TEXT, unitc, top_right);
+    textAt(name + (low && !edit ? "  LOW" : ""), W() / 2, 72, F_MID, namec, top_center, F_TEXT, W() - 8);
+    if (edit) textAt("turn 0.1   press: OK + start", W() / 2, 110, F_SMALL, C_GREY, top_center);
+    else {
+      canvas.fillRect(10, 94, W() - 20, 2, dead ? dim : dc);
+      if (dead) {
+        textAt("CONNECT SYSTEM", W() / 2, 99, F_TEXT, C_LGREY, top_center);
+        textAt(nowT + " " + unitName(), W() / 2, 119, F_HINT, C_GREY, top_center);
+      } else dirLine(99, false);
+      if (hint && !dead) textAt("press to start", W() / 2, 119, F_HINT, C_GREY, top_center);
+    }
+  } else {
+    drawPresetIcon(p, 6, !strcmp(PRESETS[p].name, "ROCK") ? 14 : 8, 123);   // tilted ROCK SUV would touch the top edge
+    iconDim = false;
+    textAt(name, W() / 2, 90, F_MID, namec, top_center, F_TEXT, W() - 6);
+    bigValue(fmt(bar), false, W() / 2, 110, numc, 0);
+    textAt(String(unitName()) + (low && !edit ? "  LOW" : ""), W() / 2, 164, F_TEXT, low && !edit && !dead ? TFT_ORANGE : unitc, top_center);
+    if (edit) textAt("turn 0.1, press OK", W() / 2, 200, F_SMALL, C_GREY, top_center);
+    else {
+      canvas.fillRect(10, 183, W() - 20, 2, dead ? dim : dc);
+      if (dead) {
+        textAt("CONNECT", W() / 2, 188, F_TEXT, C_LGREY, top_center);
+        textAt("SYSTEM", W() / 2, 206, F_TEXT, C_LGREY, top_center);
+        textAt(nowT, W() / 2, 224, F_HINT, C_GREY, top_center);
+      } else dirLine(188, true);
+      if (hint && !dead) textAt("press to start", W() / 2, 224, F_HINT, C_GREY, top_center);
+    }
+  }
+  canvas.pushSprite(0, 0);
 }
 
 void drawMain() {
-  canvas.fillSprite(TFT_BLACK);
   const PState st = pump.state();
+  if (st == PState::IDLE) { drawIdle(false); return; }
+  // background by phase: compressor pumping = dark amber, valve venting = dark blue, pauses and results = black
+  canvas.fillSprite(pump.compressorOn() ? rgb(90, 38, 0) : pump.valveOpen() ? rgb(0, 40, 90) : TFT_BLACK);
   const bool est = pump.estimating();
-  const float shown = (st == PState::IDLE) ? sensor.bar(settings.calA, settings.calB)
-                                           : (est ? pump.estimate() : pump.staticBar());
-  String bar = mmss(pump.runMs()) + "  starts " + String(pump.starts());
-  if (DEFLATE) bar = (pump.mode() == Mode::DEF ? "DEF " : pump.mode() == Mode::INF ? "INF " : "") + bar + "  vents " + String(pump.vents());
-  const int top = (st != PState::IDLE) ? drawTopBar(bar) : 0;
-
+  const float cur = est ? pump.estimate() : (pump.mode() == Mode::NONE ? sensor.bar(settings.calA, settings.calB) : pump.staticBar());
   const String tm = phaseTimer(pump.phaseMs(), pump.phaseLenMs());
+  const String pause = String(pump.pauseLeftMs() / 1000.0f, 1) + "s";
   String line; uint16_t col = TFT_WHITE;
   switch (st) {
-    case PState::IDLE:
-      line = String(PRESETS[settings.preset].name) + " " + fmt(settings.target) + (settings.target < TARGET_LOW_WARN ? "  LOW" : "");
-      if (settings.target < TARGET_LOW_WARN) col = TFT_ORANGE;
-      break;
-    case PState::SETTLE:    line = "SETTLING -> " + fmt(settings.target); col = TFT_CYAN; break;
-    case PState::MEASURE:   line = "MEASURING -> " + fmt(settings.target); col = TFT_CYAN; break;
+    case PState::SETTLE:    line = "SETTLING " + pause; col = TFT_CYAN; break;
+    case PState::MEASURE:   line = "MEASURING " + pause; col = TFT_CYAN; break;
     case PState::CAL_PULSE: line = "LEARNING " + tm; col = TFT_ORANGE; break;
-    case PState::MAIN:      line = "PUMP -> " + fmt(settings.target) + "  " + tm; col = TFT_ORANGE; break;
+    case PState::MAIN:      line = "PUMP " + tm; col = TFT_ORANGE; break;
     case PState::TOPUP:     line = "TOP-UP " + tm; col = TFT_ORANGE; break;
-    case PState::VENT:      line = "VENT -> " + fmt(settings.target) + "  " + tm; col = TFT_SKYBLUE; break;
+    case PState::VENT:      line = "VENT " + tm; col = TFT_SKYBLUE; break;
     case PState::DONE:
       line = pump.inBand() ? "OK, WITHIN 0.1" : "DONE " + fmt(pump.staticBar()) + "  " + mmss(pump.runMs()); col = TFT_GREEN; break;
     case PState::ERROR:
@@ -260,29 +397,38 @@ void drawMain() {
         default:            line = "ERR"; break;
       }
       break;
+    default: break;
   }
-  // idle: preset pictogram, top left (wide) or above everything (portrait)
-  int top2 = top;
-  if (st == PState::IDLE) {
-    if (portrait()) { drawPresetIcon(settings.preset, (W() - ICON_W) / 2, 4); top2 = ICON_H + 6; }
-    else drawPresetIcon(settings.preset, 4, 4);
+  const String mode = pump.mode() == Mode::DEF ? "DEF " : pump.mode() == Mode::INF ? "INF " : "";
+  const String counts = "starts " + String(pump.starts()) + (DEFLATE ? "  vents " + String(pump.vents()) : "");
+  const String val = sensor.fault() ? "--.-" : fmt(max(0.0f, cur));
+  const uint16_t valc = sensor.fault() ? TFT_RED : TFT_GREENYELLOW;
+  int y, x0, x1;
+  if (!portrait()) {
+    textAt((DEFLATE ? mode : "") + mmss(pump.runMs()) + "  " + counts, 4, 2, F_SMALL, C_LGREY, top_left);
+    drawPresetIcon(settings.preset, 6, 22, 64);
+    bigValue(val, est, W() - 10, 16, valc, 1);
+    y = 78; x0 = 10; x1 = W() - 10;
+  } else {
+    textAt((DEFLATE ? mode : "") + mmss(pump.runMs()), 4, 2, F_SMALL, C_LGREY, top_left);
+    drawPresetIcon(settings.preset, 22, 22, 90);
+    bigValue(val, est, W() / 2, 82, valc, 0);
+    y = 146; x0 = 8; x1 = W() - 8;
   }
-  // running: progress bar from p0 to the target under the big number (empty spacer line keeps room for it)
-  const bool prog = pump.busy();
-  const String big = (pump.paused() && !sensor.fault()) ? String(pump.pauseLeftMs() / 1000.0f, 1)   // pause: countdown
-                                                        : (sensor.fault() ? "--.-" : fmt(max(0.0f, shown)));
-  const uint16_t bigCol = (pump.paused() && !sensor.fault()) ? TFT_CYAN : sensor.fault() ? TFT_RED : TFT_GREENYELLOW;
-  const String unit = (pump.paused() && !sensor.fault()) ? String("s") : String(est ? "~ " : "") + unitName();
-  if (prog) drawLines({ {big, F_DIGIT, bigCol}, {"", F_SMALL, 0}, {unit, F_TEXT, TFT_LIGHTGREY}, {line, F_TEXT, col} }, top2);
-  else      drawLines({ {big, F_DIGIT, bigCol}, {unit, F_TEXT, TFT_LIGHTGREY}, {line, F_TEXT, col} }, top2);
-  if (prog && spacerY >= 0 && pump.mode() != Mode::NONE) {
-    const float p0 = pump.p0(), cur = est ? pump.estimate() : pump.staticBar(), span = settings.target - p0;
-    const float f = fabsf(span) < 0.01f ? 1.0f : constrain((cur - p0) / span, 0.0f, 1.0f);
-    const uint16_t bc = pump.compressorOn() ? TFT_ORANGE : pump.valveOpen() ? TFT_SKYBLUE : TFT_CYAN;
-    const int x0 = 12, w = W() - 24, y = spacerY + 1, h = SPACER_H - 2;
-    canvas.drawRect(x0, y, w, h, TFT_DARKGREY);
-    canvas.fillRect(x0 + 1, y + 1, (int)((w - 2) * f), h - 2, bc);
-    canvas.drawFastVLine(x0 + (int)((w - 1) * f), y - 2, h + 4, TFT_WHITE);   // marker: current pressure
+  // progress bar p0 -> target, coloured by what is happening now
+  const bool known = pump.mode() != Mode::NONE;
+  const float p0 = pump.p0(), span = settings.target - p0;
+  const float f = !known ? 0 : fabsf(span) < 0.01f ? 1.0f : constrain((cur - p0) / span, 0.0f, 1.0f);
+  const uint16_t bc = pump.compressorOn() ? TFT_ORANGE : pump.valveOpen() ? TFT_SKYBLUE : (st == PState::DONE ? TFT_GREEN : TFT_CYAN);
+  canvas.fillRect(x0, y, x1 - x0 + 1, 13, TFT_BLACK);              // bar inside stays black so the fill reads
+  canvas.drawRect(x0, y, x1 - x0 + 1, 13, C_GREY);
+  if (known) canvas.fillRect(x0 + 2, y + 2, (int)((x1 - x0 - 4) * f) + 1, 9, bc);
+  if (known) textAt(fmt(p0), x0, y + 14, F_SMALL, C_GREY, top_left);
+  textAt(fmt(settings.target), x1, y + 14, F_SMALL, C_GREY, top_right);
+  if (!portrait()) textAt(line, W() / 2, H() - 22, F_TEXT, col, top_center, F_SMALL, W() - 4);
+  else {
+    textAt(line, W() / 2, H() - 50, F_TEXT, col, top_center, F_SMALL, W() - 4);
+    textAt(counts, W() / 2, H() - 22, F_SMALL, C_GREY, top_center);
   }
   if (pump.compressorOn()) canvas.fillCircle(W() - 10, 10, 6, TFT_ORANGE);
   if (pump.valveOpen())    canvas.fillCircle(W() - 10, 10, 6, TFT_SKYBLUE);
@@ -330,14 +476,7 @@ void drawEdit() {
   canvas.pushSprite(0, 0);
 }
 
-void drawCustom() {   // CUSTOM preset value, cyan big number (orange below TARGET_LOW_WARN)
-  canvas.fillSprite(TFT_BLACK);
-  const bool low = customEdit < TARGET_LOW_WARN;
-  drawLines({ {fmt(customEdit), F_DIGIT, low ? TFT_ORANGE : TFT_CYAN},
-              {String(unitName()) + (low ? "  LOW" : ""), F_TEXT, low ? TFT_ORANGE : TFT_LIGHTGREY},
-              {"CUSTOM: turn 0.1, press: OK", F_TEXT, TFT_WHITE} });
-  canvas.pushSprite(0, 0);
-}
+void drawCustom() { drawIdle(true); }   // CUSTOM value: idle layout, value and name in cyan
 
 void drawCal() {
   canvas.fillSprite(TFT_BLACK);
@@ -449,6 +588,7 @@ void loop() {
 
   switch (screen) {
     case Screen::MAIN: {
+      updateNoAir();
       if (steps && !pump.busy()) {
         // the knob steps through the typical pressures (config.h PRESETS), clockwise = higher; CUSTOM is last
         int i = constrain((int)settings.preset - steps, 0, N_PRESETS - 1);
@@ -463,6 +603,7 @@ void loop() {
       if (b == input::Btn::SHORT) {
         if (pump.busy()) pump.stop();
         else if (pump.state() == PState::DONE || pump.state() == PState::ERROR) pump.clearResult();
+        else if (noAir) beep();                                        // CONNECT SYSTEM: nothing to start
         else if (settings.preset == P_CUSTOM) { customEdit = settings.custom; screen = Screen::CUSTOM; }   // check the value first
         else pump.start();
       }
@@ -517,11 +658,13 @@ void loop() {
       break;
 
     case Screen::CUSTOM:   // CUSTOM preset: turn 0.1 bar, press = save and start, long = cancel
+      updateNoAir();
       if (steps) customEdit = roundf(constrain(customEdit + steps * TARGET_STEP, TARGET_MIN, TARGET_MAX) * 10) / 10.0f;
       if (b == input::Btn::SHORT) {
         settings.custom = settings.target = customEdit; settings.save();
         wlog::ev("CUSTOM_SET", wlog::kv("custom", settings.custom, 2));
-        screen = Screen::MAIN; pump.start();
+        screen = Screen::MAIN;
+        if (noAir) beep(); else pump.start();
       }
       if (b == input::Btn::LONG) screen = Screen::MAIN;
       if (screen == Screen::CUSTOM) drawCustom();
