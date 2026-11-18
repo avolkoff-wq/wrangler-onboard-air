@@ -13,8 +13,9 @@
 //   SCREEN: press to turn the picture 90 degrees (WIDE, PORTRAIT, WIDE 180, PORTRAIT 180)
 //   OFFSET / SETTLE: press to edit, turn: AUTO or a fixed value, press to save
 // Screen (layout: docs/screen/screen_mockup.py, screen_mockup_idle_direction.py, scenery: sim2.py)
-//   idle: the preset icon (SUV on its terrain, scenery behind: peaks, cone, firs, sun and cactus), the target in
-//   big digits, the preset name and, under a coloured rule, the live pressure ("actual x.x") and what a start would do: INFLATE / DEFLATE (with "press to start"),
+//   idle: the preset icon (SUV on its terrain, scenery behind: city, cone, firs, peaks, sun and cactus, beach),
+//   the target in big digits, the preset name and, under a coloured rule, the live pressure ("actual x.x") and
+//   what a start would do: INFLATE / DEFLATE (with "press to start"),
 //   = OK, ABOVE (builds without the valve); CONNECT SYSTEM below 0.05 bar or on a sensor fault, the whole screen grey
 //   and start blocked (a press only beeps) until the reading stays above 0.15 bar for 1 s
 //   running: a small icon, the pressure (~ = estimate), a bar from the start pressure to the target
@@ -204,6 +205,10 @@ static const float PEBBLES[][3] = {
 #define C_SUN   ic(255, 200, 40)
 #define C_MOUNT ic(105, 118, 140)
 #define C_CONE  ic(255, 120, 0)
+#define C_TOWER ic(85, 95, 115)
+#define C_LIT   ic(255, 220, 120)
+#define C_SEA   ic(40, 110, 190)
+#define C_FOAM  ic(170, 210, 240)
 // PIL-style rectangle with inclusive corners
 void rectI(float x0, float y0, float x1, float y1, uint16_t c) {
   const int a = lroundf(x0), b = lroundf(y0); canvas.fillRect(a, b, lroundf(x1) - a + 1, lroundf(y1) - b + 1, c);
@@ -244,7 +249,27 @@ void drawScenery(const char* n, float ox, float g, float s) {
     const float sn[][2] = { {X(um - (um - u0) * f), g - top * s * (1 - f)}, {X(um), g - top * s}, {X(um + (u1 - um) * f), g - top * s * (1 - f)} };
     fillConvex(sn, 3, ic(255, 255, 255));
   };
-  if (!strcmp(n, "HIGHWAY"))         { peak(22, 46, 27); peak(36, 58, 22); }
+  auto skyline = [&]() {                                     // city towers behind the road, lit windows, antenna
+    static const int8_t towers[][3] = { {14, 7, 30}, {22, 6, 22}, {29, 8, 34}, {38, 6, 26}, {45, 8, 31} };   // u0, width, height
+    for (auto& t : towers) {
+      const int u0 = t[0], wd = t[1], ht = t[2];
+      rectI(X(u0), g - ht * s, X(u0 + wd), g, C_TOWER);
+      for (int wy = 4; wy < ht - 2; wy += 4)
+        for (float wx : {1.5f, wd - 2.5f})
+          if ((wy * 7 + u0) % 3) rectI(X(u0 + wx), g - (ht - wy) * s, X(u0 + wx + 1), g - (ht - wy) * s + s, C_LIT);
+    }
+    rectI(X(32.5f), g - 38 * s, X(33.2f), g - 34 * s, C_TOWER);
+  };
+  auto sea = [&]() {                                         // sea band behind the beach with wave crests
+    const float top = g - 15 * s;
+    rectI(X(0), top, X(52), g - 1 * s, C_SEA);
+    for (int u = 2; u < 52; u += 9) {
+      const float cx = (X(u) + X(u + 5)) / 2, cy = top + 0.25f * s, rx = 2.5f * s, ry = 1.75f * s;
+      for (int a = 200; a < 340; a += 10)
+        wline(cx + rx * cosf(a * DEG_TO_RAD), cy + ry * sinf(a * DEG_TO_RAD), cx + rx * cosf((a + 10) * DEG_TO_RAD), cy + ry * sinf((a + 10) * DEG_TO_RAD), max(1, (int)s), C_FOAM);
+    }
+  };
+  if (!strcmp(n, "HIGHWAY"))         skyline();
   else if (!strcmp(n, "ROUGH ROAD")) {                       // traffic cone with a white band
     const float x = X(46);
     const float cone[][2] = { {x - 3.5f * s, g}, {x + 3.5f * s, g}, {x + 1 * s, g - 11 * s}, {x - 1 * s, g - 11 * s} };
@@ -256,7 +281,7 @@ void drawScenery(const char* n, float ox, float g, float s) {
   else if (!strcmp(n, "TRAIL"))      { fir(3, 22); fir(47, 28); fir(41, 20); }
   else if (!strcmp(n, "ROCK"))       { peak(-6, 22, 30); peak(38, 60, 24); }
   else if (!strcmp(n, "SAND"))       { sun(40, 25); cactus(49, 19); }
-  else if (!strcmp(n, "RECOVERY"))   { sun(40, 25); cactus(51, 21); }
+  else if (!strcmp(n, "RECOVERY"))   { sea(); sun(30, 26, 3); }
 }
 
 // preset icon, box w x 0.62 w, (ox, oy) = top left
