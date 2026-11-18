@@ -28,6 +28,63 @@ def suv(d, x, y, s, ang=0.0, sink=0.0):
         d.ellipse([cx - r * .35, cy - r * .35, cx + r * .35, cy + r * .35], fill=WHITE)
 
 
+TREE, CACT, SUN, MOUNT, CONE = (40, 125, 60), (70, 160, 80), (255, 200, 40), (105, 118, 140), (255, 120, 0)
+
+
+def fir(d, X, g, s, u, hgt):
+    """fir tree at unit u, height hgt units"""
+    d.rectangle([X(u) - 0.8 * s, g - 3 * s, X(u) + 0.8 * s, g], fill=(110, 80, 50))
+    for k in range(3):
+        y0 = g - 3 * s - k * hgt * 0.25 * s
+        wdt = (4.5 - k * 1.2) * s
+        d.polygon([(X(u) - wdt, y0), (X(u) + wdt, y0), (X(u), y0 - hgt * 0.42 * s)], fill=TREE)
+
+
+def cactus(d, X, g, s, u, hgt):
+    c = 1.3 * s
+    d.rounded_rectangle([X(u) - c, g - hgt * s, X(u) + c, g], radius=c, fill=CACT)
+    d.rounded_rectangle([X(u) - 4 * s, g - hgt * 0.75 * s, X(u) - 4 * s + 2 * c, g - hgt * 0.4 * s], radius=c, fill=CACT)
+    d.rectangle([X(u) - 4 * s, g - hgt * 0.45 * s, X(u), g - hgt * 0.45 * s + 2 * c], fill=CACT)
+    d.rounded_rectangle([X(u) + 4 * s - 2 * c, g - hgt * 0.85 * s, X(u) + 4 * s, g - hgt * 0.5 * s], radius=c, fill=CACT)
+    d.rectangle([X(u), g - hgt * 0.55 * s, X(u) + 4 * s, g - hgt * 0.55 * s + 2 * c], fill=CACT)
+
+
+def sun(d, X, g, s, u, v, r=3.5):
+    cx, cy = X(u), g - v * s
+    for k in range(8):
+        a = k * math.pi / 4
+        d.line([(cx + math.cos(a) * r * 1.4 * s, cy + math.sin(a) * r * 1.4 * s), (cx + math.cos(a) * r * 2 * s, cy + math.sin(a) * r * 2 * s)], fill=SUN, width=max(1, int(s)))
+    d.ellipse([cx - r * s, cy - r * s, cx + r * s, cy + r * s], fill=SUN)
+
+
+def peak(d, X, g, s, u0, u1, top, snow=True):
+    um = (u0 + u1) / 2
+    d.polygon([(X(u0), g), (X(um), g - top * s), (X(u1), g)], fill=MOUNT)
+    if snow:
+        f = 0.28
+        d.polygon([(X(um - (um - u0) * f), g - top * s * (1 - f)), (X(um), g - top * s), (X(um + (u1 - um) * f), g - top * s * (1 - f))], fill=WHITE)
+
+
+def scenery(d, name, X, g, s):
+    """background drawn before terrain and SUV"""
+    if name == "HIGHWAY":
+        peak(d, X, g, s, 22, 46, 27); peak(d, X, g, s, 36, 58, 22)
+    elif name == "ROUGH ROAD":
+        x = X(46); d.polygon([(x - 3.5 * s, g), (x + 3.5 * s, g), (x + 1 * s, g - 11 * s), (x - 1 * s, g - 11 * s)], fill=CONE)
+        d.rectangle([x - 2.2 * s, g - 6 * s, x + 2.2 * s, g - 4.5 * s], fill=WHITE)
+        d.rectangle([x - 4.5 * s, g - 1 * s, x + 4.5 * s, g], fill=CONE)
+    elif name == "GRAVEL":
+        fir(d, X, g, s, 48, 26); fir(d, X, g, s, 3, 18)
+    elif name == "TRAIL":
+        fir(d, X, g, s, 3, 22); fir(d, X, g, s, 47, 28); fir(d, X, g, s, 41, 20)
+    elif name == "ROCK":
+        peak(d, X, g, s, -6, 22, 30); peak(d, X, g, s, 38, 60, 24)
+    elif name == "SAND":
+        sun(d, X, g, s, 40, 25); cactus(d, X, g, s, 49, 19)
+    elif name == "RECOVERY":
+        sun(d, X, g, s, 40, 25); cactus(d, X, g, s, 51, 21)
+
+
 def icon(d, name, ox, oy, w):
     """icon box w x 0.62w, (ox, oy) top-left"""
     s = w / 52.0                       # SUV ~42 units long incl. spare
@@ -37,6 +94,7 @@ def icon(d, name, ox, oy, w):
     X = lambda u: ox + u * s
     def ground(col=GREY):
         d.line([(ox, g), (ox + w, g)], fill=col, width=lw)
+    scenery(d, name, X, g, s)
     if name == "HIGHWAY":
         ground()
         for i in range(0, 52, 10):
