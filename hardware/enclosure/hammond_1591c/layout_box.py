@@ -84,6 +84,8 @@ if PCB_BOSS:
             box = box.union(cq.Workplane("XY").workplane(offset=FLOOR).center(sx * PCB_BOSS[0] / 2, sy * PCB_BOSS[1] / 2)
                             .circle(PCB_BOSS[2] / 2).circle(1.2).extrude(PCB_BOSS[3]))
 lid = cq.Workplane("XY").rect(W, L).extrude(HL).edges("|Z").fillet(5.0).faces(">Z").edges().fillet(1.0).translate((0, 0, HB))
+if TAG == "f100":    # clear lid is a 14 mm deep shell: the space above the units is usable
+    lid = lid.cut(cq.Workplane("XY").workplane(offset=HB).rect(IN_W, IN_L).extrude(HL - 2.5).edges("|Z").fillet(2.0))
 
 # ---------- DinMeter in the upper end wall ----------
 CUT_W, CUT_H = 46.0, 22.8
@@ -140,7 +142,16 @@ asm.add(box, name=f"{NAME}_body", color=cq.Color(0.16, 0.17, 0.19))
 asm.add(lid, name=f"{NAME}_lid", color=cq.Color(0.30, 0.32, 0.35))
 if boss_cut is not None:
     asm.add(boss_cut, name="boss_part_to_cut_off", color=cq.Color(0.90, 0.10, 0.10, 0.55))
-asm.add(din); asm.add(rel); asm.add(adc)
+asm.add(din); asm.add(rel)
+if TAG != "f100":         # f100 = schematic A: sensor straight on PORT.A, no ADC
+    asm.add(adc)
+if GLANDS:                # M12 cable glands: lock nut inside, hex and dome nut outside
+    for i, (gx, gz) in enumerate(GLANDS):
+        g = (cq.Workplane("XZ").workplane(offset=-(-Y_IN + 5)).center(gx, gz).polygon(6, 18).extrude(5)
+             .union(cq.Workplane("XZ").workplane(offset=TOP_Y).center(gx, gz).polygon(6, 17).extrude(4))
+             .union(cq.Workplane("XZ").workplane(offset=TOP_Y + 4).center(gx, gz).circle(6.5).extrude(10)))
+        g = g.cut(cq.Workplane("XZ").workplane(offset=-(-Y_IN + 6)).center(gx, gz).circle(3.3).extrude(40))
+        asm.add(g, name=f"gland_M12_{'power' if i == 0 else 'sensor_ARB'}", color=cq.Color(0.10, 0.10, 0.11))
 
 if __name__ == "__main__":
     import itertools
