@@ -12,6 +12,8 @@
 //   long press      menu: CALIBRATE, SENSOR (live volts for the bench), UNITS, TYRE, OFFSET, SETTLE, SCREEN, RESET LEARNING, UPDATE, VERSION, EXIT
 //   SCREEN: press to turn the picture 90 degrees (WIDE, PORTRAIT, WIDE 180, PORTRAIT 180)
 //   OFFSET / SETTLE: press to edit, turn: AUTO or a fixed value, press to save
+// Screen: in idle a small pictogram of the preset (SUV on its terrain); while running a bar under the big number
+//   from the start pressure to the target, orange = compressor, sky blue = valve venting, cyan = pause
 //
 // Libraries: M5Unified (Arduino Library Manager). Board: M5Stack StampS3 / "M5DinMeter".
 // Partition scheme must have two OTA app partitions (default 8MB scheme does).
@@ -104,12 +106,16 @@ int wrapText(const String& t, int maxW, String* out, int maxOut) {
   return n;
 }
 
-// draws the lines spread evenly between top and bottom
+// draws the lines spread evenly between top and bottom.
+// A line with empty text is a spacer SPACER_H px high (room for the progress bar); its top is left in spacerY.
+constexpr int SPACER_H = 8;
+int spacerY = -1;
 void drawLines(std::initializer_list<Ln> ls, int top = 0, int bottom = -1) {
   if (bottom < 0) bottom = H();
   const int maxW = W() - 8;
   struct Row { String t; Font f; uint16_t c; int h; } rows[16]; int n = 0;
   for (const Ln& l : ls) {
+    if (!l.t.length()) { if (n < 16) rows[n++] = { "", l.f, l.c, SPACER_H }; continue; }
     Font f = l.f; canvas.setFont(f);
     if (l.alt && canvas.textWidth(l.t) > maxW) { f = l.alt; canvas.setFont(f); }
     String parts[4]; const int k = (f == F_DIGIT) ? (parts[0] = l.t, 1) : wrapText(l.t, maxW, parts, 4);
@@ -119,7 +125,9 @@ void drawLines(std::initializer_list<Ln> ls, int top = 0, int bottom = -1) {
   const float gap = max(2.0f, (float)(bottom - top - total) / (n + 1));
   float y = top + gap;
   canvas.setTextDatum(top_center);
+  spacerY = -1;
   for (int q = 0; q < n; q++) {
+    if (!rows[q].t.length()) { spacerY = (int)y; y += rows[q].h + gap; continue; }
     canvas.setFont(rows[q].f); canvas.setTextColor(rows[q].c);
     canvas.drawString(rows[q].t, W() / 2, (int)y);
     y += rows[q].h + gap;
@@ -132,6 +140,89 @@ int drawTopBar(const String& t) {
   String parts[2]; const int k = wrapText(t, W() - 22, parts, 2);
   for (int q = 0; q < k; q++) canvas.drawString(parts[q], 4, 2 + q * canvas.fontHeight());
   return 4 + k * canvas.fontHeight();
+}
+
+// ---------- preset pictograms (M5GFX primitives only) ----------
+// One generic boxy SUV in side view (white, 36x20 px) on a terrain line that changes per preset (light grey).
+// The whole icon is ICON_W x ICON_H px, (ox, oy) = its top left corner.
+constexpr int ICON_W = 44, ICON_H = 28;
+// SUV with its rear wheel touching the ground at (rx, ry), nose turned up by a (rad)
+void drawSuv(float rx, float ry, float a) {
+  const float ca = cosf(a), sa = sinf(a);
+  const float bx = rx - 8 * ca, by = ry + 8 * sa;              // local origin: ground under the rear of the body
+  auto X = [&](float x, float y) { return (int)roundf(bx + x * ca + y * sa); };
+  auto Y = [&](float x, float y) { return (int)roundf(by - x * sa + y * ca); };
+  static const int8_t body[][2] = { {0,-6}, {0,-19}, {22,-19}, {26,-14}, {36,-13}, {36,-6} };   // box, cabin step, hood
+  static const int8_t win[][2]  = { {3,-17}, {20,-17}, {23,-14}, {3,-14} };
+  for (int i = 0; i < 6; i++) { const int j = (i + 1) % 6;
+    canvas.drawLine(X(body[i][0], body[i][1]), Y(body[i][0], body[i][1]), X(body[j][0], body[j][1]), Y(body[j][0], body[j][1]), TFT_WHITE); }
+  for (int i = 0; i < 4; i++) { const int j = (i + 1) % 4;
+    canvas.drawLine(X(win[i][0], win[i][1]), Y(win[i][0], win[i][1]), X(win[j][0], win[j][1]), Y(win[j][0], win[j][1]), TFT_WHITE); }
+  for (int wx : {8, 28}) {
+    const int cx = X(wx, -4), cy = Y(wx, -4);
+    canvas.fillCircle(cx, cy, 4, TFT_BLACK); canvas.drawCircle(cx, cy, 4, TFT_WHITE); canvas.drawPixel(cx, cy, TFT_WHITE);
+  }
+}
+// polyline through (dx, dy) offsets from (ox, g)
+void drawTerrain(int ox, int g, const int8_t (*pts)[2], int n, uint16_t c = TFT_LIGHTGREY) {
+  for (int i = 0; i + 1 < n; i++) canvas.drawLine(ox + pts[i][0], g + pts[i][1], ox + pts[i + 1][0], g + pts[i + 1][1], c);
+}
+void drawPresetIcon(int preset, int ox, int oy) {
+  const uint16_t T = TFT_LIGHTGREY;
+  const int g = oy + 24;                                        // ground line
+  const char* n = PRESETS[preset].name;
+  if (!strcmp(n, "HIGHWAY")) {
+    canvas.drawFastHLine(ox, g, ICON_W, T);
+    for (int x : {2, 16, 30}) canvas.drawFastHLine(ox + x, g + 3, 7, T);          // lane marks
+    for (int dy : {15, 11, 7}) canvas.drawFastHLine(ox, g - dy, 4, T);            // speed lines
+    drawSuv(ox + 14, g, 0);
+  } else if (!strcmp(n, "ROUGH ROAD")) {
+    static const int8_t r[][2] = { {0,0}, {14,0}, {16,3}, {22,3}, {24,0}, {44,0} };  // pothole
+    drawTerrain(ox, g, r, 6);
+    static const int8_t k[][2] = { {38,0}, {39,2}, {41,3} };                      // crack
+    drawTerrain(ox, g, k, 3);
+    drawSuv(ox + 10, g, 0);
+  } else if (!strcmp(n, "GRAVEL")) {
+    canvas.drawFastHLine(ox, g, ICON_W, T);
+    static const int8_t d[][2] = { {1,2}, {5,3}, {9,2}, {13,4}, {17,2}, {21,3}, {25,2}, {29,4}, {33,2}, {37,3}, {41,2}, {3,-1}, {39,-1}, {19,-1} };
+    for (auto& q : d) canvas.fillRect(ox + q[0], g + q[1], 2, 1 + (q[0] & 1), T);
+    drawSuv(ox + 12, g, 0);
+  } else if (!strcmp(n, "TRAIL")) {
+    static const int8_t w[][2] = { {0,1}, {5,-1}, {12,0}, {18,2}, {24,1}, {32,-2}, {38,-3}, {44,-1} };
+    drawTerrain(ox, g, w, 8);
+    drawSuv(ox + 12, g, atan2f(2, 20));                         // front wheel on the rise: slightly tilted
+  } else if (!strcmp(n, "ROCK")) {
+    canvas.drawFastHLine(ox, g, ICON_W, T);
+    const float a = 15 * DEG_TO_RAD;
+    const int fx = ox + 8 + (int)roundf(20 * cosf(a)), fy = g - (int)roundf(20 * sinf(a));   // front wheel contact
+    canvas.fillTriangle(fx - 7, g, fx - 2, fy, fx + 4, fy - 1, TFT_DARKGREY);
+    canvas.fillTriangle(fx - 7, g, fx + 4, fy - 1, fx + 9, g, TFT_DARKGREY);
+    canvas.drawLine(fx - 7, g, fx - 2, fy, T); canvas.drawLine(fx - 2, fy, fx + 4, fy - 1, T);
+    canvas.drawLine(fx + 4, fy - 1, fx + 9, g, T); canvas.drawLine(fx + 1, fy, fx + 3, g - 1, T);   // facet
+    drawSuv(ox + 8, g, a);
+  } else if (!strcmp(n, "SAND")) {
+    auto dune = [&](int x) { return g + 2 - (int)roundf(0.004f * x * x); };
+    for (int x = 0; x < ICON_W; x++) canvas.drawLine(ox + x, dune(x), ox + x + 1, dune(x + 1), T);
+    static const int8_t dr[][2] = { {1,-5}, {4,-8}, {2,-11}, {6,-4} };
+    for (auto& q : dr) canvas.drawPixel(ox + q[0], dune(q[0]) + q[1], T);   // drift
+    drawSuv(ox + 10, dune(10), atan2f(dune(10) - dune(30), 20));
+  } else if (!strcmp(n, "RECOVERY")) {
+    drawSuv(ox + 8, g, 0);
+    static const int8_t s[][2] = { {0,-2}, {10,-4}, {20,-3}, {30,-4}, {38,-2} };   // wheels half sunk
+    for (int i = 0; i < 4; i++) for (int x = s[i][0]; x < s[i + 1][0]; x++) {
+      const int y = g + s[i][1] + (s[i + 1][1] - s[i][1]) * (x - s[i][0]) / (s[i + 1][0] - s[i][0]);
+      canvas.drawFastVLine(ox + x, y, g + 3 - y, TFT_DARKGREY);
+    }
+    drawTerrain(ox, g, s, 5);
+    canvas.drawFastVLine(ox + 41, g - 14, 9, TFT_WHITE);                         // arrow down
+    canvas.fillTriangle(ox + 38, g - 6, ox + 44, g - 6, ox + 41, g - 2, TFT_WHITE);
+  } else {                                                      // CUSTOM
+    canvas.drawFastHLine(ox, g, ICON_W, T);
+    drawSuv(ox + 6, g, 0);
+    canvas.drawFastHLine(ox + 30, oy + 3, 5, TFT_WHITE); canvas.drawFastVLine(ox + 32, oy + 1, 5, TFT_WHITE);   // +
+    canvas.drawLine(ox + 36, oy + 6, ox + 38, oy, TFT_WHITE);                                                  // /
+    canvas.drawFastHLine(ox + 39, oy + 3, 5, TFT_WHITE);                                                       // -
+  }
 }
 
 void drawMain() {
@@ -170,11 +261,29 @@ void drawMain() {
       }
       break;
   }
-  if (pump.paused() && !sensor.fault())      // pause: big countdown to the end of the measurement
-    drawLines({ {String(pump.pauseLeftMs() / 1000.0f, 1), F_DIGIT, TFT_CYAN}, {"s", F_TEXT, TFT_LIGHTGREY}, {line, F_TEXT, col} }, top);
-  else
-    drawLines({ {sensor.fault() ? "--.-" : fmt(max(0.0f, shown)), F_DIGIT, sensor.fault() ? TFT_RED : TFT_GREENYELLOW},
-                {String(est ? "~ " : "") + unitName(), F_TEXT, TFT_LIGHTGREY}, {line, F_TEXT, col} }, top);
+  // idle: preset pictogram, top left (wide) or above everything (portrait)
+  int top2 = top;
+  if (st == PState::IDLE) {
+    if (portrait()) { drawPresetIcon(settings.preset, (W() - ICON_W) / 2, 4); top2 = ICON_H + 6; }
+    else drawPresetIcon(settings.preset, 4, 4);
+  }
+  // running: progress bar from p0 to the target under the big number (empty spacer line keeps room for it)
+  const bool prog = pump.busy();
+  const String big = (pump.paused() && !sensor.fault()) ? String(pump.pauseLeftMs() / 1000.0f, 1)   // pause: countdown
+                                                        : (sensor.fault() ? "--.-" : fmt(max(0.0f, shown)));
+  const uint16_t bigCol = (pump.paused() && !sensor.fault()) ? TFT_CYAN : sensor.fault() ? TFT_RED : TFT_GREENYELLOW;
+  const String unit = (pump.paused() && !sensor.fault()) ? String("s") : String(est ? "~ " : "") + unitName();
+  if (prog) drawLines({ {big, F_DIGIT, bigCol}, {"", F_SMALL, 0}, {unit, F_TEXT, TFT_LIGHTGREY}, {line, F_TEXT, col} }, top2);
+  else      drawLines({ {big, F_DIGIT, bigCol}, {unit, F_TEXT, TFT_LIGHTGREY}, {line, F_TEXT, col} }, top2);
+  if (prog && spacerY >= 0 && pump.mode() != Mode::NONE) {
+    const float p0 = pump.p0(), cur = est ? pump.estimate() : pump.staticBar(), span = settings.target - p0;
+    const float f = fabsf(span) < 0.01f ? 1.0f : constrain((cur - p0) / span, 0.0f, 1.0f);
+    const uint16_t bc = pump.compressorOn() ? TFT_ORANGE : pump.valveOpen() ? TFT_SKYBLUE : TFT_CYAN;
+    const int x0 = 12, w = W() - 24, y = spacerY + 1, h = SPACER_H - 2;
+    canvas.drawRect(x0, y, w, h, TFT_DARKGREY);
+    canvas.fillRect(x0 + 1, y + 1, (int)((w - 2) * f), h - 2, bc);
+    canvas.drawFastVLine(x0 + (int)((w - 1) * f), y - 2, h + 4, TFT_WHITE);   // marker: current pressure
+  }
   if (pump.compressorOn()) canvas.fillCircle(W() - 10, 10, 6, TFT_ORANGE);
   if (pump.valveOpen())    canvas.fillCircle(W() - 10, 10, 6, TFT_SKYBLUE);
   canvas.pushSprite(0, 0);

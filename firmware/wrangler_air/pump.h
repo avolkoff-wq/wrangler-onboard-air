@@ -60,6 +60,7 @@ class Pump {
   bool   valveOpen() const { return vOn_; }
   float  staticBar() const { return pStatic_; }
   float  estimate() const { return est_; }
+  float  p0() const { return p0_; }                // static pressure at the start of the run (valid once mode() is set)
   bool   estimating() const { return on_; }
   int    starts() const { return starts_; }      // compressor starts in the last run
   int    vents() const { return vents_; }        // valve openings in the last run
