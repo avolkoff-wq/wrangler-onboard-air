@@ -26,6 +26,9 @@ inline void rotate() {
 }
 
 inline void ev(const char* event, const String& data) {
+#if BENCH_USB
+  Serial.printf("%lu,%.1f,%s,%s\n", (unsigned long)boot, millis() / 1000.0f, event, data.c_str());   // bench: every line also on USB
+#endif
   if (!ok) return;
   rotate();
   const bool fresh = !LittleFS.exists("/log.csv");

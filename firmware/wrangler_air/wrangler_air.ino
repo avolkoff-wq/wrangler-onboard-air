@@ -837,6 +837,79 @@ void drawOutTest() {
   canvas.pushSprite(0, 0);
 }
 
+// ---------- bench builds only (BENCH_USB): USB serial live stream and commands ----------
+#if BENCH_USB
+// LIVE,t,bar,est,phase,k1,valve twice per second while something runs (run, LEARN, OUTPUT TEST, calibration pumping)
+void benchLive() {
+  static uint32_t last = 0;
+  const uint32_t now = millis();
+  const bool on = pump.busy() || pump.pulsing() || cal.state() == CState::PUMPING;
+  if (!on || now - last < 500) return;
+  last = now;
+  Serial.printf("LIVE,%.1f,%.3f,%.3f,%c,%d,%d\n", now / 1000.0f, sensor.bar(settings.calA, settings.calB), pump.estimate(),
+                phaseChar(pump.state()), pump.compressorOn() ? 1 : 0, pump.valveOpen() ? 1 : 0);
+}
+void benchDump(const char* path) {
+  File f = LittleFS.open(path, "r");
+  if (!f) { Serial.printf("# %s: none\n", path); return; }
+  Serial.printf("# ---- %s (%u bytes)\n", path, (unsigned)f.size());
+  uint8_t buf[256];
+  while (f.available()) { const size_t n = f.read(buf, sizeof buf); Serial.write(buf, n); }
+  f.close();
+  Serial.println("# ---- end");
+}
+void benchCommand(String c) {
+  c.trim(); c.toLowerCase();
+  if (!c.length()) return;
+  if (c == "help") {
+    Serial.println("# commands: status | log | runs | run <id> | clear | pulse k1 | pulse valve | help");
+  } else if (c == "status") {
+    Serial.printf("# fw %s  preset %s  target %.2f bar  sensor %.3f bar (%.3f V)%s  state %d err %d\n", FW_VERSION,
+                  PRESETS[settings.preset].name, settings.target, sensor.bar(settings.calA, settings.calB), sensor.vG1() * DIVIDER,
+                  sensor.fault() ? " FAULT" : "", (int)pump.state(), (int)pump.error());
+    Serial.printf("# tyre %s  rate %.4f  kTop %.4f  offset %.3f  c %.2f  tauD %.1f  learned %d/%d  cal a %.4f b %.3f\n",
+                  TYRES[settings.tyre].name, settings.rate, settings.kTop, settings.offset, settings.c, settings.tauD,
+                  settings.learned, settings.learnedD, settings.calA, settings.calB);
+    Serial.printf("# compressor %.2f h  valve %.2f h  since filter service %.2f h  boot %lu\n", settings.cmpSec / 3600.0f,
+                  settings.ventSec / 3600.0f, settings.svcHours(), (unsigned long)settings.bootN);
+  } else if (c == "log") {
+    benchDump("/log_old.csv"); benchDump("/log.csv");
+  } else if (c == "runs") {
+    File d = LittleFS.open("/runs");
+    if (!d) { Serial.println("# no runs"); return; }
+    for (File f = d.openNextFile(); f; f = d.openNextFile()) {
+      String n = f.name(); n = n.substring(n.lastIndexOf('/') + 1);
+      Serial.printf("# %s  %s\n", n.c_str(), f.readStringUntil('\n').c_str());
+      f.close();
+    }
+    d.close();
+  } else if (c.startsWith("run ")) {
+    String id = c.substring(4); id.trim();
+    if (id.indexOf('/') >= 0 || id.indexOf("..") >= 0) { Serial.println("# bad id"); return; }
+    if (!id.endsWith(".csv")) id += ".csv";
+    benchDump(("/runs/" + id).c_str());
+  } else if (c == "clear") {
+    wlog::clear(); wlog::ev("LOG", "cleared=1;"); Serial.println("# log cleared (runs kept)");
+  } else if (c == "pulse k1" || c == "pulse valve") {
+    const bool v = c.endsWith("valve");
+    if (v && !DEFLATE) Serial.println("# no valve in this build");
+    else if (!pump.pulse(v)) Serial.println("# blocked: a run or a pulse is active");
+    else Serial.printf("# %s pulse %lu ms\n", v ? "VALVE" : "K1", (unsigned long)OUTPUT_PULSE_MS);
+  } else {
+    Serial.println("# unknown command, type help");
+  }
+}
+void benchLoop() {
+  static String line;
+  while (Serial.available()) {
+    const char ch = Serial.read();
+    if (ch == '\n' || ch == '\r') { benchCommand(line); line = ""; }
+    else if (line.length() < 80) line += ch;
+  }
+  benchLive();
+}
+#endif
+
 // ---------- hour meter ----------
 // every second the compressor (run, LEARN, calibration) or the valve is on; saved when a run or calibration ends
 void countHours() {
@@ -897,6 +970,10 @@ void setup() {
 
   auto cfg = M5.config();
   M5.begin(cfg);
+#if BENCH_USB
+  Serial.begin(115200);
+  Serial.println("# Wrangler Air " FW_VERSION " bench: type help");
+#endif
   M5.Display.setBrightness(255);   // always full brightness (sunlight)
   settings.load();
   settings.bootN++; settings.save();
@@ -922,6 +999,9 @@ void loop() {
   cal.update();
   countHours();
   traceStep();
+#if BENCH_USB
+  benchLoop();
+#endif
   ota.update();
 
   int steps = input::takeSteps();

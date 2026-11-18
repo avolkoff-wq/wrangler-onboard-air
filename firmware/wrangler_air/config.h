@@ -3,10 +3,15 @@
 #pragma once
 #include <Arduino.h>
 
+#ifndef BENCH_USB
+#define BENCH_USB 0     // 1 = bench builds only (dinmeter-bench, *-sim): USB serial log mirror, LIVE stream, commands
+#endif
 #ifndef DEFLATE
 #define DEFLATE 0       // 1 = schematic C: Unit 2Relay, channel 2 (PORT.B white, G1) opens the deflate valve. Only with SENSOR_DIRECT
 #endif
-#if SENSOR_DIRECT && DEFLATE
+#if SENSOR_DIRECT && DEFLATE && BENCH_USB && !BENCH_SIM
+#define FW_VERSION "0.4.0-bench"
+#elif SENSOR_DIRECT && DEFLATE
 #define FW_VERSION "0.4.0-deflate"
 #elif SENSOR_DIRECT
 #define FW_VERSION "0.4.0-direct"

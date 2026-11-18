@@ -76,6 +76,15 @@
 - Живого графика нет: при включённом Wi-Fi вход датчика (ADC2) не читается.
 - Пример из настольной симуляции: `docs/screen/run_graph_example.html` (пишет `test/run.sh`).
 
+## Стенд по USB
+
+- Прошивка `bin/wrangler_air_bench.bin` (`pio run -e dinmeter-bench`): как `wrangler_air_deflate.bin` (настоящий датчик на G13, клапан) плюс USB. SIM-прошивки (`*_SIM.bin`) тоже со стендовым USB. Рабочие прошивки для машины (stage1, direct, deflate) в USB ничего не пишут.
+- Подключить DinMeter кабелем USB-C к ноутбуку: `pio device monitor -b 115200` или `python3 tools/serial_log.py <порт> bench.csv` (порт: macOS `/dev/cu.usbmodem*`, Linux `/dev/ttyACM0`, Windows `COM5`). Нужен `pip install pyserial`, для графика ещё `matplotlib`.
+- В USB идёт каждая строка лога (как в CSV на флеше), а во время работы, LEARN, OUTPUT TEST и калибровки дважды в секунду `LIVE,t,bar,est,phase,k1,valve`.
+- Команды (строкой, регистр не важен): `status` (давление, вольты датчика, состояние, выученные значения, моточасы), `log` (оба файла лога), `runs` (список трасс), `run <id>` (одна трасса), `clear` (стереть лог, трассы остаются), `pulse k1`, `pulse valve` (импульс 1 с, как в OUTPUT TEST, во время работы нельзя), `help`.
+- `tools/serial_log.py <порт> out.csv --plot`: пишет `LIVE` в CSV, после Ctrl+C рисует давление, цель, полосы компрессора и клапана. `--plot-only out.csv` рисует сохранённый файл, `--cmd "pulse k1"` отправляет команду при старте.
+- В машине ноутбук на своей батарее, не от прикуривателя.
+
 ## Спецификация
 
 Платформа: M5Stack DinMeter v1.1 (StampS3A, ESP32-S3), Arduino IDE, библиотека M5Unified.
