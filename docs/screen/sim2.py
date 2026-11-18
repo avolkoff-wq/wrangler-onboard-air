@@ -29,6 +29,26 @@ def suv(d, x, y, s, ang=0.0, sink=0.0):
 
 
 TREE, CACT, SUN, MOUNT, CONE = (40, 125, 60), (70, 160, 80), (255, 200, 40), (105, 118, 140), (255, 120, 0)
+TOWER, LITWIN, SEA, FOAM = (85, 95, 115), (255, 220, 120), (40, 110, 190), (170, 210, 240)
+
+
+def skyline(d, X, g, s):
+    """city towers behind the road: (u0, width, height) in units, lit windows"""
+    for u0, wd, ht in ((14, 7, 30), (22, 6, 22), (29, 8, 34), (38, 6, 26), (45, 8, 31)):
+        d.rectangle([X(u0), g - ht * s, X(u0 + wd), g], fill=TOWER)
+        for wy in range(4, int(ht) - 2, 4):
+            for wx in (1.5, wd - 2.5):
+                if (wy * 7 + u0) % 3:
+                    d.rectangle([X(u0 + wx), g - (ht - wy) * s, X(u0 + wx + 1), g - (ht - wy) * s + s], fill=LITWIN)
+    d.rectangle([X(32.5), g - 38 * s, X(33.2), g - 34 * s], fill=TOWER)    # antenna
+
+
+def sea(d, X, g, s):
+    """sea band behind the beach with a couple of wave crests"""
+    top = g - 15 * s
+    d.rectangle([X(0), top, X(52), g - 1 * s], fill=SEA)
+    for u in range(2, 52, 9):
+        d.arc([X(u), top - 1.5 * s, X(u + 5), top + 2 * s], 200, 340, fill=FOAM, width=max(1, int(s)))
 
 
 def fir(d, X, g, s, u, hgt):
@@ -68,7 +88,7 @@ def peak(d, X, g, s, u0, u1, top, snow=True):
 def scenery(d, name, X, g, s):
     """background drawn before terrain and SUV"""
     if name == "HIGHWAY":
-        peak(d, X, g, s, 22, 46, 27); peak(d, X, g, s, 36, 58, 22)
+        skyline(d, X, g, s)
     elif name == "ROUGH ROAD":
         x = X(46); d.polygon([(x - 3.5 * s, g), (x + 3.5 * s, g), (x + 1 * s, g - 11 * s), (x - 1 * s, g - 11 * s)], fill=CONE)
         d.rectangle([x - 2.2 * s, g - 6 * s, x + 2.2 * s, g - 4.5 * s], fill=WHITE)
@@ -82,7 +102,7 @@ def scenery(d, name, X, g, s):
     elif name == "SAND":
         sun(d, X, g, s, 40, 25); cactus(d, X, g, s, 49, 19)
     elif name == "RECOVERY":
-        sun(d, X, g, s, 40, 25); cactus(d, X, g, s, 51, 21)
+        sea(d, X, g, s); sun(d, X, g, s, 30, 26, r=3)
 
 
 def icon(d, name, ox, oy, w):
