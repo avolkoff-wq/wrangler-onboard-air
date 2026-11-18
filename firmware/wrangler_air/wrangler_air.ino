@@ -43,13 +43,16 @@
 #include "calibration.h"
 #include "ota.h"
 #include "log.h"
+#include "trace.h"
 #include "input.h"
+#include <algorithm>
 
 Settings settings;
 Sensor sensor;
 Pump pump;
 Calibration cal;
 Ota ota;
+Trace trace;   // pressure trace of the current run, written to /runs at its end
 M5Canvas canvas(&M5.Display);
 
 enum IdleDir { D_UP, D_DOWN, D_OK, D_ABOVE, D_DEAD };   // what a start would do from the idle screen
@@ -764,6 +767,53 @@ void drawVersion() {
 }
 
 // live sensor check for the bench: what the sensor sends, what the input pin sees (after the divider if any), and the pressure
+// ---------- run traces (trace.h) ----------
+char phaseChar(PState s) {
+  switch (s) {
+    case PState::SETTLE: return 'S'; case PState::MEASURE: return 'E'; case PState::CAL_PULSE: return 'C';
+    case PState::MAIN: return 'M'; case PState::TOPUP: return 'T'; case PState::VENT: return 'V'; default: return '-';
+  }
+}
+// newest TRACE_KEEP files stay; names sort by boot and run number
+void pruneRuns() {
+  String names[64]; int n = 0;
+  File d = LittleFS.open("/runs");
+  if (!d) return;
+  for (File f = d.openNextFile(); f && n < 64; f = d.openNextFile()) { names[n++] = String(f.name()); f.close(); }
+  d.close();
+  std::sort(names, names + n, [](const String& a, const String& b) { return a < b; });
+  for (int i = 0; i + TRACE_KEEP < n; i++) LittleFS.remove("/runs/" + names[i].substring(names[i].lastIndexOf('/') + 1));
+}
+void traceStep() {
+  static uint32_t runNo = 0; static PState prev = PState::IDLE; static float t0s = 0;
+  const uint32_t now = millis();
+  const PState st = pump.state();
+  if (pump.busy() && !trace.active()) { trace.begin(now); t0s = now / 1000.0f; }
+  if (trace.active()) {
+    trace.sample(now, sensor.bar(settings.calA, settings.calB), pump.estimate(), phaseChar(st), pump.compressorOn(), pump.valveOpen());
+    if (prev == PState::MEASURE && st != PState::MEASURE) trace.marker(now, pump.staticBar());
+    if (!pump.busy()) {
+      static const char* E[] = {"NONE", "SENSOR", "OVER", "LEAK", "TIMEOUT", "LOW_P"};
+      const String res = st == PState::DONE ? (pump.inBand() ? "IN_BAND" : "DONE") : st == PState::ERROR ? String("ERR_") + E[(int)pump.error()] : "STOPPED";
+      const Mode tm = pump.testMode();
+      const String hdr = wlog::kv("preset", String(PRESETS[settings.preset].name)) + wlog::kv("target", settings.target, 2) +
+                         wlog::kv("p0", pump.p0()) + wlog::kv("p", pump.staticBar()) + wlog::kv("result", res) +
+                         wlog::kv("boot", String((int)settings.bootN)) + wlog::kv("t0", t0s, 1) + wlog::kv("tyre", String(TYRES[settings.tyre].name)) +
+                         wlog::kv("starts", String(pump.starts())) + wlog::kv("vents", String(pump.vents())) +
+                         wlog::kv("dur", trace.seconds(now), 1) + wlog::kv("test", String(tm == Mode::INF ? "INF" : tm == Mode::DEF ? "DEF" : "-"));
+      const String body = trace.finish(hdr);
+      if (wlog::ok) {
+        LittleFS.mkdir("/runs");
+        char name[32]; snprintf(name, sizeof name, "/runs/r%05lu_%03lu.csv", (unsigned long)settings.bootN, (unsigned long)++runNo);
+        File f = LittleFS.open(name, "w");
+        if (f) { f.print(body); f.close(); }
+        pruneRuns();
+      }
+    }
+  }
+  prev = st;
+}
+
 // ---------- hour meter ----------
 // every second the compressor (run, LEARN, calibration) or the valve is on; saved when a run or calibration ends
 void countHours() {
@@ -848,6 +898,7 @@ void loop() {
   pump.update();
   cal.update();
   countHours();
+  traceStep();
   ota.update();
 
   int steps = input::takeSteps();
@@ -910,7 +961,7 @@ void loop() {
             if (resetArm && millis() - resetArm < 3000) { settings.resetLearning(); wlog::ev("RESET_LEARNING", ""); beep(); resetArm = 0; }
             else resetArm = millis();
             break;
-          case M_UPDATE:  ota.start(); screen = Screen::OTA; break;
+          case M_UPDATE:  ota.start(&settings.psi); screen = Screen::OTA; break;
           case M_VERSION: screen = Screen::VERSION; break;
           case M_HOURS:   screen = Screen::HOURS; break;
           default: screen = Screen::MAIN; break;
