@@ -1,13 +1,19 @@
-// Pressure sensor on G1: 0.5-4.5 V ratiometric through a 10k/20k divider
+// Pressure sensor: 0.5-4.5 V on G1 through a 10k/20k divider, or (SENSOR_DIRECT) 0-3.3 V straight on G13
 #pragma once
 #include <Arduino.h>
 #include "config.h"
+#include <driver/gpio.h>
 
 class Sensor {
  public:
   void begin() {
     analogReadResolution(12);
     analogSetPinAttenuation(PIN_SENSOR, ADC_11db);
+#if SENSOR_DIRECT && !BENCH_SIM
+    analogReadMilliVolts(PIN_SENSOR);                   // attach the pin to the ADC first...
+    gpio_pulldown_en((gpio_num_t)PIN_SENSOR);           // ...then pull it down: a broken signal wire reads 0 V, not noise
+    gpio_pullup_dis((gpio_num_t)PIN_SENSOR);
+#endif
   }
   // call every loop: keeps a short running average (~50 ms)
   void update() {

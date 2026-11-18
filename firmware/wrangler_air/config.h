@@ -3,24 +3,56 @@
 #pragma once
 #include <Arduino.h>
 
-#define FW_VERSION "0.2.0-stage1"
+#if SENSOR_DIRECT
+#define FW_VERSION "0.3.0-stage1-direct"
+#else
+#define FW_VERSION "0.3.0-stage1"
+#endif
+
+// ---------- sensor variant ----------
+// 0 = 0.5-4.5 V sensor on G1 (PORT.B) through a 10k/20k divider (original board)
+// 1 = 0-3.3 V sensor straight on G13 (PORT.A yellow), 2 m Grove cable, no ADC, no divider
+//     (schematic A, hardware/enclosure/hammond_1591c/power_schematic.png). Build: pio run -e dinmeter-direct
+#ifndef SENSOR_DIRECT
+#define SENSOR_DIRECT 0
+#endif
 
 // ---------- pins (M5Stack DinMeter v1.1, StampS3A) ----------
+constexpr int PIN_K1       = 2;   // G2, PORT.B yellow: M5 Mini Relay (DIN) / K1 -> compressor
+#if SENSOR_DIRECT
+constexpr int PIN_SENSOR   = 13;  // G13, PORT.A yellow: sensor output 0-3.3 V (ADC2: not read while Wi-Fi is on, OTA only)
+constexpr int PIN_K4       = -1;  // PORT.A is taken by the sensor: no deflate output in this build
+#define SENSOR_PIN_NAME "G13"
+#else
 constexpr int PIN_SENSOR   = 1;   // G1, PORT.B: sensor through 10k/20k divider
-constexpr int PIN_K1       = 2;   // G2, PORT.B: K1 PhotoMOS -> K2 compressor relay
 constexpr int PIN_K4       = 13;  // G13, PORT.A: K4 (stage 3, deflate). Kept LOW in stage 1
+#define SENSOR_PIN_NAME "G1"
+#endif
 constexpr int PIN_ENC_A    = 41;
 constexpr int PIN_ENC_B    = 40;
 constexpr int PIN_BTN      = 42;  // encoder push, active LOW
 constexpr int PIN_HOLD     = 46;  // power hold, HIGH = stay on
 
 // ---------- sensor ----------
+#if SENSOR_DIRECT
+// G1/8 ceramic sensor 0-1.2 MPa, 5 V supply, output 0-3.3 V (AliExpress 1005004559608411, "output 0-3.3V")
+constexpr float DIVIDER      = 1.0f;   // no divider
+constexpr float SENSOR_V0    = 0.0f;   // 0 bar = 0 V: a broken wire cannot be told from 0 bar by voltage,
+constexpr float SENSOR_SPAN  = 3.3f;   //   so the pin has a pull-down and the pump checks plausibility (DEAD_*)
+constexpr float SENSOR_FS    = 12.0f;  // 1.2 MPa full scale, bar
+constexpr float G1_MIN_V     = -1.0f;  // no low limit
+constexpr float G1_MAX_V     = 3.10f;  // ADC ceiling at 11 dB (~11.3 bar): above = fault
+#else
 constexpr float DIVIDER      = 1.5f;   // V_sensor = V_G1 * 1.5  (R1 10k series, R2 20k to GND)
 constexpr float SENSOR_V0    = 0.5f;   // 0 bar
 constexpr float SENSOR_SPAN  = 4.0f;   // 0.5..4.5 V
 constexpr float SENSOR_FS    = 6.895f; // 100 psi full scale, bar
 constexpr float G1_MIN_V     = 0.25f;  // below: wire broken / sensor missing
 constexpr float G1_MAX_V     = 3.05f;  // above: sensor fault / over range
+#endif
+// plausibility while the compressor runs: the line is never near 0 bar once air flows into the tyres
+constexpr uint32_t DEAD_AFTER_MS = 3000;   // compressor on this long...
+constexpr float    DEAD_BAR      = 0.10f;  // ...and the sensor still reads below this: wire broken, stop
 
 // ---------- control ----------
 constexpr float TARGET_MAX       = 3.0f;   // bar, hard cap for the program

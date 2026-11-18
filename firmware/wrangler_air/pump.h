@@ -82,6 +82,8 @@ class Pump {
       if (now - runStart_ > RUN_TIMEOUT_MS)  return fail(PErr::TIMEOUT);
       if (!on_ && sb > TARGET_MAX + 0.05f)   return fail(PErr::OVER);
     }
+    // compressor has been running for a while, yet the sensor reads ~0: signal wire broken or sensor dead
+    if (busy() && on_ && now - onT_ > DEAD_AFTER_MS && sb < DEAD_BAR) return fail(PErr::SENSOR);
     if (on_) trackRate(now, sb);
     est_ = on_ ? sb - offsetNow() : sb;
     if (busy() && on_ && est_ > TARGET_MAX)  return fail(PErr::OVER);

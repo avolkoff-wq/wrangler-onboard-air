@@ -43,6 +43,7 @@ class Calibration {
     const uint32_t now = millis();
     if (state_ == CState::PUMPING) {
       if (s_->fault() || now - t0_ > 180000UL) { relay(false); state_ = CState::FAILED; return; }
+      if (now - t0_ > DEAD_AFTER_MS && s_->rawBar() < DEAD_BAR) { relay(false); state_ = CState::FAILED; return; }  // wire broken
       // stop a bit before the point using the raw line minus the default offset
       if (s_->rawBar() - DEFAULT_OFFSET >= points[i_] - 0.05f || s_->rawBar() > TARGET_MAX + 0.6f) {
         relay(false); state_ = CState::SETTLING; t0_ = now;

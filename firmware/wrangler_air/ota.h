@@ -11,7 +11,7 @@ class Ota {
  public:
   void start() {
     if (running_) return;
-    digitalWrite(PIN_K1, LOW); digitalWrite(PIN_K4, LOW);   // outputs off for the whole update
+    digitalWrite(PIN_K1, LOW); if (PIN_K4 >= 0) digitalWrite(PIN_K4, LOW);   // outputs off for the whole update
     WiFi.mode(WIFI_AP);
     WiFi.softAP(OTA_SSID, OTA_PASS);
     server_.on("/", HTTP_GET, [this]() {

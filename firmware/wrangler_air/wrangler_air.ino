@@ -258,13 +258,13 @@ void drawVersion() {
   canvas.pushSprite(0, 0);
 }
 
-// live sensor check for the bench: what the sensor sends, what G1 sees after the divider, and the pressure
+// live sensor check for the bench: what the sensor sends, what the input pin sees (after the divider if any), and the pressure
 void drawSensor() {
   canvas.fillSprite(TFT_BLACK);
   const float vg = sensor.vG1(), vs = vg * DIVIDER;
   drawLines({ {"SENSOR CHECK", F_TEXT, TFT_CYAN},
               {"sensor " + String(vs, 2) + " V", F_MID, TFT_WHITE},
-              {"G1 " + String(vg, 2) + " V", F_MID, TFT_GREENYELLOW},
+              {SENSOR_PIN_NAME " " + String(vg, 2) + " V", F_MID, TFT_GREENYELLOW},
               {sensor.fault() ? "OUT OF RANGE" : fmt(sensor.bar(settings.calA, settings.calB)) + " " + unitName() + "  (raw " + String(sensor.rawBar(), 2) + ")", F_TEXT, sensor.fault() ? TFT_RED : TFT_WHITE},
               {"press: back", F_SMALL, TFT_LIGHTGREY} });
   canvas.pushSprite(0, 0);
@@ -280,7 +280,7 @@ void applyRotation() {
 void setup() {
   // outputs first: compressor and K4 must never twitch at boot
   pinMode(PIN_K1, OUTPUT); digitalWrite(PIN_K1, LOW);
-  pinMode(PIN_K4, OUTPUT); digitalWrite(PIN_K4, LOW);
+  if (PIN_K4 >= 0) { pinMode(PIN_K4, OUTPUT); digitalWrite(PIN_K4, LOW); }
   pinMode(PIN_HOLD, OUTPUT); digitalWrite(PIN_HOLD, HIGH);
 
   auto cfg = M5.config();
