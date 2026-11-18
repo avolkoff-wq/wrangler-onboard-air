@@ -12,9 +12,9 @@
 //   long press      menu: CALIBRATE, SENSOR (live volts for the bench), UNITS, TYRE, OFFSET, SETTLE, SCREEN, RESET LEARNING, UPDATE, VERSION, EXIT
 //   SCREEN: press to turn the picture 90 degrees (WIDE, PORTRAIT, WIDE 180, PORTRAIT 180)
 //   OFFSET / SETTLE: press to edit, turn: AUTO or a fixed value, press to save
-// Screen (layout: docs/screen/screen_mockup.py, screen_mockup_idle_direction.py)
-//   idle: the preset icon (SUV on its terrain), the target in big digits, the preset name and, under a coloured
-//   rule, the live pressure ("actual x.x") and what a start would do: INFLATE / DEFLATE (with "press to start"),
+// Screen (layout: docs/screen/screen_mockup.py, screen_mockup_idle_direction.py, scenery: sim2.py)
+//   idle: the preset icon (SUV on its terrain, scenery behind: peaks, cone, firs, sun and cactus), the target in
+//   big digits, the preset name and, under a coloured rule, the live pressure ("actual x.x") and what a start would do: INFLATE / DEFLATE (with "press to start"),
 //   = OK, ABOVE (builds without the valve); CONNECT SYSTEM below 0.05 bar or on a sensor fault, the whole screen grey
 //   and start blocked (a press only beeps) until the reading stays above 0.15 bar for 1 s
 //   running: a small icon, the pressure (~ = estimate), a bar from the start pressure to the target
@@ -198,6 +198,67 @@ static const float PEBBLES[][3] = {
   {25.7f,2.5f,1.4f}, {22.7f,4.0f,1.1f}, {21.9f,4.8f,1.4f}, {18.2f,3.8f,1.4f}, {12.1f,2.8f,0.8f}, {44.5f,5.5f,1.4f}, {36.2f,4.3f,1.1f},
   {50.2f,5.1f,1.4f}, {5.4f,4.1f,1.4f}, {43.2f,3.8f,1.1f}, {6.5f,3.4f,1.4f}, {51.5f,1.9f,0.8f} };
 
+// scenery behind the icon (spec: docs/screen/sim2.py scenery(), fir(), cactus(), sun(), peak()), drawn before terrain and SUV
+#define C_TREE  ic(40, 125, 60)
+#define C_CACT  ic(70, 160, 80)
+#define C_SUN   ic(255, 200, 40)
+#define C_MOUNT ic(105, 118, 140)
+#define C_CONE  ic(255, 120, 0)
+// PIL-style rectangle with inclusive corners
+void rectI(float x0, float y0, float x1, float y1, uint16_t c) {
+  const int a = lroundf(x0), b = lroundf(y0); canvas.fillRect(a, b, lroundf(x1) - a + 1, lroundf(y1) - b + 1, c);
+}
+void rrectI(float x0, float y0, float x1, float y1, float r, uint16_t c) {
+  const int a = lroundf(x0), b = lroundf(y0); canvas.fillRoundRect(a, b, lroundf(x1) - a + 1, lroundf(y1) - b + 1, lroundf(r), c);
+}
+void drawScenery(const char* n, float ox, float g, float s) {
+  auto X = [&](float u) { return ox + u * s; };
+  auto fir = [&](float u, float hgt) {
+    rectI(X(u) - 0.8f * s, g - 3 * s, X(u) + 0.8f * s, g, ic(110, 80, 50));
+    for (int k = 0; k < 3; k++) {
+      const float y0 = g - 3 * s - k * hgt * 0.25f * s, wd = (4.5f - k * 1.2f) * s;
+      const float t[][2] = { {X(u) - wd, y0}, {X(u) + wd, y0}, {X(u), y0 - hgt * 0.42f * s} };
+      fillConvex(t, 3, C_TREE);
+    }
+  };
+  auto cactus = [&](float u, float hgt) {
+    const float c = 1.3f * s;
+    rrectI(X(u) - c, g - hgt * s, X(u) + c, g, c, C_CACT);
+    rrectI(X(u) - 4 * s, g - hgt * 0.75f * s, X(u) - 4 * s + 2 * c, g - hgt * 0.4f * s, c, C_CACT);
+    rectI(X(u) - 4 * s, g - hgt * 0.45f * s, X(u), g - hgt * 0.45f * s + 2 * c, C_CACT);
+    rrectI(X(u) + 4 * s - 2 * c, g - hgt * 0.85f * s, X(u) + 4 * s, g - hgt * 0.5f * s, c, C_CACT);
+    rectI(X(u), g - hgt * 0.55f * s, X(u) + 4 * s, g - hgt * 0.55f * s + 2 * c, C_CACT);
+  };
+  auto sun = [&](float u, float v, float r = 3.5f) {
+    const float cx = X(u), cy = g - v * s;
+    for (int k = 0; k < 8; k++) {
+      const float a = k * PI / 4;
+      wline(cx + cosf(a) * r * 1.4f * s, cy + sinf(a) * r * 1.4f * s, cx + cosf(a) * r * 2 * s, cy + sinf(a) * r * 2 * s, max(1, (int)s), C_SUN);
+    }
+    canvas.fillCircle(lroundf(cx), lroundf(cy), lroundf(r * s), C_SUN);
+  };
+  auto peak = [&](float u0, float u1, float top) {
+    const float um = (u0 + u1) / 2, f = 0.28f;
+    const float m[][2] = { {X(u0), g}, {X(um), g - top * s}, {X(u1), g} };
+    fillConvex(m, 3, C_MOUNT);
+    const float sn[][2] = { {X(um - (um - u0) * f), g - top * s * (1 - f)}, {X(um), g - top * s}, {X(um + (u1 - um) * f), g - top * s * (1 - f)} };
+    fillConvex(sn, 3, ic(255, 255, 255));
+  };
+  if (!strcmp(n, "HIGHWAY"))         { peak(22, 46, 27); peak(36, 58, 22); }
+  else if (!strcmp(n, "ROUGH ROAD")) {                       // traffic cone with a white band
+    const float x = X(46);
+    const float cone[][2] = { {x - 3.5f * s, g}, {x + 3.5f * s, g}, {x + 1 * s, g - 11 * s}, {x - 1 * s, g - 11 * s} };
+    fillConvex(cone, 4, C_CONE);
+    rectI(x - 2.2f * s, g - 6 * s, x + 2.2f * s, g - 4.5f * s, ic(255, 255, 255));
+    rectI(x - 4.5f * s, g - 1 * s, x + 4.5f * s, g, C_CONE);
+  }
+  else if (!strcmp(n, "GRAVEL"))     { fir(48, 26); fir(3, 18); }
+  else if (!strcmp(n, "TRAIL"))      { fir(3, 22); fir(47, 28); fir(41, 20); }
+  else if (!strcmp(n, "ROCK"))       { peak(-6, 22, 30); peak(38, 60, 24); }
+  else if (!strcmp(n, "SAND"))       { sun(40, 25); cactus(49, 19); }
+  else if (!strcmp(n, "RECOVERY"))   { sun(40, 25); cactus(51, 21); }
+}
+
 // preset icon, box w x 0.62 w, (ox, oy) = top left
 void drawPresetIcon(int preset, float ox, float oy, float w) {
   const float s = w / 52.0f, h = w * 0.62f, g = oy + h - 6 * s;
@@ -208,6 +269,7 @@ void drawPresetIcon(int preset, float ox, float oy, float w) {
     for (int px = 0; px <= (int)w; px++) { const float y = g + top(px / s) * s; canvas.drawFastVLine(lroundf(ox + px), lroundf(y), lroundf(g + 6 * s - y) + 1, c); }
   };
   const char* n = PRESETS[preset].name;
+  drawScenery(n, ox, g, s);
   if (!strcmp(n, "HIGHWAY")) {
     ground();
     for (int i = 0; i < 52; i += 10) wline(X(i), g + 4 * s, X(i + 5), g + 4 * s, lw, ic(255, 255, 255));
