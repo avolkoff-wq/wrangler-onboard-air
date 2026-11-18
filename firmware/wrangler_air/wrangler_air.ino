@@ -13,8 +13,10 @@
 //                   On CUSTOM the first press opens the value: turn 0.1 bar steps, press OK = save and arm,
 //                   long press = cancel (one look at the value before every custom run)
 //   long press      held 2.0 s (from 0.3 s a "HOLD FOR MENU" bar fills along the bottom; released 0.5..2.0 s = nothing):
-//                   menu: CALIBRATE, LEARN, SENSOR (live volts for the bench), UNITS, TYRE, OFFSET, SETTLE, SCREEN,
+//                   menu: CALIBRATE, LEARN, SENSOR (live volts for the bench), OUTPUT TEST, UNITS, TYRE, OFFSET, SETTLE, SCREEN,
 //                   RESET LEARNING, UPDATE, VERSION, HOURS, EXIT. Not while running.
+//   OUTPUT TEST: COMPRESSOR (K1) / VALVE (K4, valve builds) / BACK, press = one 1 s pulse, then off (never latched,
+//          the other output forced off, not during a run); live sensor reading; log OUTPUT_TEST with p before / after.
 //   HOURS: compressor hours, hours since the last filter service, valve hours (h:mm); hold 2 s, then hold 2 s again
 //          on the confirmation = FILTERS CLEANED (log FILTER_RESET). After FILTER_SERVICE_H (10 h) idle shows CLEAN FILTERS.
 //   LEARN: LEARN INFLATE (compressor 15 s) / LEARN DEFLATE (valve 20 s, builds with the valve, needs >= 1.5 bar) / BACK;
@@ -56,11 +58,11 @@ Trace trace;   // pressure trace of the current run, written to /runs at its end
 M5Canvas canvas(&M5.Display);
 
 enum IdleDir { D_UP, D_DOWN, D_OK, D_ABOVE, D_DEAD };   // what a start would do from the idle screen
-enum class Screen { MAIN, MENU, EDIT, CAL, OTA, VERSION, SENSOR, CUSTOM, LEARN_PICK, LEARN_CONF, LEARN_MSG, HOURS, HOURS_CONF };
+enum class Screen { MAIN, MENU, EDIT, CAL, OTA, VERSION, SENSOR, CUSTOM, LEARN_PICK, LEARN_CONF, LEARN_MSG, HOURS, HOURS_CONF, OUT_TEST };
 Screen screen = Screen::MAIN;
 int menuPos = 0;
-enum MenuItem { M_CAL, M_LEARN, M_SENSOR, M_UNITS, M_TYRE, M_OFFSET, M_SETTLE, M_SCREEN, M_RESET, M_UPDATE, M_VERSION, M_HOURS, M_EXIT };
-const char* MENU[] = {"CALIBRATE", "LEARN", "SENSOR", "UNITS", "TYRE", "OFFSET", "SETTLE", "SCREEN", "RESET LEARNING", "WIFI: UPDATE + LOG", "VERSION", "HOURS", "EXIT"};
+enum MenuItem { M_CAL, M_LEARN, M_SENSOR, M_OUTPUT, M_UNITS, M_TYRE, M_OFFSET, M_SETTLE, M_SCREEN, M_RESET, M_UPDATE, M_VERSION, M_HOURS, M_EXIT };
+const char* MENU[] = {"CALIBRATE", "LEARN", "SENSOR", "OUTPUT TEST", "UNITS", "TYRE", "OFFSET", "SETTLE", "SCREEN", "RESET LEARNING", "WIFI: UPDATE + LOG", "VERSION", "HOURS", "EXIT"};
 constexpr int MENU_N = sizeof(MENU) / sizeof(MENU[0]);
 
 // ---------- helpers ----------
@@ -814,6 +816,27 @@ void traceStep() {
   prev = st;
 }
 
+// ---------- menu OUTPUT TEST ----------
+constexpr int OUT_N = DEFLATE ? 3 : 2;   // COMPRESSOR, (VALVE), BACK
+int outPos = 0;
+void drawOutTest() {
+  canvas.fillSprite(TFT_BLACK);
+  drawHint("press: 1 s pulse  turn: choose  hold: back");
+  canvas.setFont(portrait() ? F_SMALL : F_TEXT); canvas.setTextDatum(middle_left);
+  for (int i = 0; i < OUT_N; i++) {
+    const int y = 12 + i * 24;
+    if (i == outPos) canvas.fillRoundRect(3, y - 11, W() - 6, 22, 4, TFT_DARKGREEN);
+    canvas.setTextColor(TFT_WHITE);
+    canvas.drawString(i == OUT_N - 1 ? "BACK" : i == 0 ? "COMPRESSOR (K1)" : "VALVE (K4)", 8, y);
+  }
+  const int y0 = 8 + OUT_N * 24;
+  const float vg = sensor.vG1();
+  textAt(sensor.fault() ? String("SENSOR FAULT") : fmt(sensor.bar(settings.calA, settings.calB)) + " " + unitName() + "  " + String(vg * DIVIDER, 2) + " V",
+         W() / 2, y0, F_TEXT, sensor.fault() ? TFT_RED : TFT_GREENYELLOW, top_center, F_SMALL, W() - 4);
+  if (pump.pulsing()) textAt(pump.pulseIsValve() ? "VALVE PULSE" : "K1 PULSE", W() / 2, y0 + 18, F_TEXT, pump.pulseIsValve() ? TFT_SKYBLUE : TFT_ORANGE, top_center);
+  canvas.pushSprite(0, 0);
+}
+
 // ---------- hour meter ----------
 // every second the compressor (run, LEARN, calibration) or the valve is on; saved when a run or calibration ends
 void countHours() {
@@ -947,6 +970,7 @@ void loop() {
           case M_CAL:     cal.start(); screen = Screen::CAL; break;
           case M_LEARN:   learnPos = 0; screen = Screen::LEARN_PICK; break;
           case M_SENSOR:  screen = Screen::SENSOR; break;
+          case M_OUTPUT:  outPos = 0; screen = Screen::OUT_TEST; break;
           case M_UNITS:   settings.psi = !settings.psi; settings.save(); break;
           case M_TYRE: {  // press: next size; learned values are scaled by the air volume
             const uint8_t old = settings.tyre;
@@ -1037,6 +1061,16 @@ void loop() {
     case Screen::VERSION:
       if (b == input::Btn::SHORT || b == input::Btn::LONG) screen = Screen::MENU;
       else drawVersion();
+      break;
+
+    case Screen::OUT_TEST:   // COMPRESSOR (K1) / VALVE (K4, valve builds) / BACK: press = one 1 s pulse
+      if (steps) outPos = constrain(outPos + steps, 0, OUT_N - 1);
+      if (b == input::Btn::LONG) { pump.stop(); screen = Screen::MENU; }
+      if (b == input::Btn::SHORT) {
+        if (outPos == OUT_N - 1) { pump.stop(); screen = Screen::MENU; }
+        else if (!pump.pulse(outPos == 1)) beep();                     // already pulsing (or a run is active)
+      }
+      if (screen == Screen::OUT_TEST) drawOutTest();
       break;
 
     case Screen::HOURS:

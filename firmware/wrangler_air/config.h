@@ -97,6 +97,7 @@ constexpr uint32_t RATE_WINDOW_MS= 2500;   // window for the live rise rate whil
 constexpr uint32_t RATE_VALID_MS = 3000;   // rate is trusted this long after the compressor starts
 constexpr uint32_t CAL_PULSE_MS  = 15000;  // first-ever run: calibration pulse
 constexpr float    FILTER_SERVICE_H = 10.0f; // compressor hours between filter services: then idle shows CLEAN FILTERS
+constexpr uint32_t OUTPUT_PULSE_MS = 1000;  // menu OUTPUT TEST: one pulse on K1 or K4, then off
 constexpr uint32_t LEARN_DEF_MS  = 20000;  // menu LEARN DEFLATE: valve open exactly this long
 constexpr float    LEARN_DEF_MIN_BAR = 1.5f; // LEARN DEFLATE needs at least this static pressure
 constexpr float    LEARN_MIN_BAR = 0.15f;   // LEARN needs air in the system
