@@ -456,18 +456,18 @@ def power_svg_iec_def():
         L(*pts, c=c, w=3); slash(*at, n, vertical)
 
     # ---- outside: -X2a ground splice (2 wires), -X2 +12 V splice after -F1 (4 wires) ----
-    L((200, T[1]), (267, T[1]), c="BK"); L((235, T[1]), (235, T[2]), (267, T[2]), c="BK"); dot(235, T[1])
-    L((200, T[1]), (200, T[1] + 8), c="BK"); ground(200, T[1] + 8)
-    lab(186, T[1] + 4, "масса 31", "d", "end"); lab(242, T[2] - 8, "-X2a", "c", "start")
-    lab(262, T[1] - 6, "BK 0.5", "c", "end")
+    L((160, T[1]), (267, T[1]), c="BK"); L((190, T[1]), (190, T[2]), (267, T[2]), c="BK"); dot(190, T[1])
+    L((160, T[1]), (160, T[1] + 8), c="BK"); ground(160, T[1] + 8)
+    lab(146, T[1] + 4, "масса 31", "d", "end"); lab(184, T[2] + 4, "-X2a", "c", "end")
+    lab(208, T[1] - 6, "BK 0.5", "c", "end")
     lab(20, T[3] + 4, "AUX1", "d", "start"); L((60, T[3]), (267, T[3]), c="RD")
     fuse_h(110, T[3], "", ""); lab(110, T[3] + 24, "-F1 3 A", "d")
-    L((170, T[3]), (170, T[6]), (267, T[6]), c="RD"); L((170, T[4]), (267, T[4]), c="RD"); L((170, T[5]), (267, T[5]), c="RD")
-    dot(170, T[3]); dot(170, T[4]); dot(170, T[5]); lab(160, T[3] - 10, "-X2", "c", "end")
-    lab(262, T[3] - 6, "RD 0.5", "c", "end")
+    L((150, T[3]), (150, T[6]), (267, T[6]), c="RD"); L((150, T[4]), (267, T[4]), c="RD"); L((150, T[5]), (267, T[5]), c="RD")
+    dot(150, T[3]); dot(150, T[4]); dot(150, T[5]); lab(158, T[3] + 20, "-X2", "c", "start")
+    lab(208, T[3] - 6, "RD 0.5", "c", "end")
     # deflate valve -Y1 with its flyback diode -V3, ground at the manifold
     VY = T[7]
-    L((60, VY), (267, VY), c="OG"); lab(262, VY - 6, "OG 0.5", "c", "end")
+    L((60, VY), (267, VY), c="OG"); lab(208, VY - 6, "OG 0.5", "c", "end")
     o.append(f'<rect x="20" y="{VY+20}" width="100" height="60" class="b"/>'); lab(26, VY + 14, "-Y1", "d", "start")
     lab(70, VY + 44, "клапан 2W040-10", "d"); lab(70, VY + 60, "12 В, NC, Ø4", "c")
     L((60, VY), (60, VY + 20), c="OG")
@@ -481,8 +481,8 @@ def power_svg_iec_def():
     comp(20, MY - 30, 100, 60, "-M1", "ARB CKMTA12", "")
     pinl(120, MY, "VT", "r")
     L((123, MY), (267, MY), c="VT"); dot(170, MY)
-    diode_h(220, MY, "-V1")
-    lab(170, MY + 18, "-X3", "c"); lab(262, MY + 18, "VT 0.5", "c", "end")
+    diode_h(192, MY, ""); lab(192, MY + 22, "-V1", "d")
+    lab(162, MY + 18, "-X3", "c", "end")
     lab(20, MY + 46, "внутри ARB: реле давления,", "c", "start"); lab(20, MY + 60, "2 реле 12 В 40 А", "c", "start")
     # sensor -B1 on the 2 m Grove, connector -X6 at the sensor (3 conductors used, WH unused there)
     S = {"+5V": 735, "GND": 765, "OUT": 795}
@@ -491,7 +491,7 @@ def power_svg_iec_def():
         pinl(120, y, t, "r")
     o.append('<rect x="176" y="720" width="22" height="90" class="b"/>'); lab(187, 714, "-X6", "d"); lab(187, 828, "JWPF 3P", "c")
     L((123, S["+5V"]), (176, S["+5V"]), c="RD"); L((123, S["GND"]), (176, S["GND"]), c="BK"); L((123, S["OUT"]), (176, S["OUT"]), c="YE")
-    grove4([(281, G2), (240, G2), (240, S["GND"]), (201, S["GND"])], order=("BK", "RD", "YE"))
+    grove4([(281, G2), (205, G2), (205, S["GND"]), (201, S["GND"])], order=("BK", "RD", "YE"))
     lab(250, 780, "-W2 Grove 2 м", "c", "start"); lab(250, 794, "BK RD YE к датчику", "c", "start")
 
     # ---- inside ----
@@ -528,6 +528,15 @@ def power_svg_iec_def():
     L((397, B2), (350, B2), (350, T[8]), (313, T[8]), c="VT")
     grove4([(970, 203), (970, 300), (543, 300)])
     o.append('<circle cx="540" cy="300" r="3" class="t"/>'); lab(720, 284, "-W1 Grove 5 см: WH G1 → реле 1, YE G2 → реле 2", "c")
+
+    # connectors on the pigtails out of the glands (~20 cm): the box unplugs from the car harness, the glands stay
+    def conn(y0, y1, name, sub):
+        o.append(f'<rect x="214" y="{y0}" width="16" height="{y1-y0}" fill="var(--bg,#fff)" stroke="#111" stroke-width="1.5"/>')
+        o.append(f'<line x1="222" y1="{y0}" x2="222" y2="{y1}" stroke="#111" stroke-width="1" stroke-dasharray="3 3"/>')
+        lab(222, y0 - 8, name, "d"); lab(222, y1 + 16, sub, "c")
+    conn(T[1] - 12, T[6] + 12, "-X7", "DT 8")
+    conn(T[7] - 12, G2 + 12, "-X8", "DT 6")
+    lab(20, 860, "-X7 / -X8: разъёмы Deutsch DT на хвостах ~20 см из гермовводов, коробка отключается от жгута", "c", "start")
 
     # title block
     o.append('<rect x="650" y="845" width="400" height="44" class="b"/>')

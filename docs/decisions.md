@@ -118,3 +118,9 @@
 - Same day, owner: no splice inside the box at all. Relay 1 A gets its own red wire from -X2 (no A2-A1 jumper). -X1 order: 1-2 grounds (DinMeter, module), 3-6 +12 V (module, DinMeter, relay 2 A, relay 1 A), 7 output OG to the valve; -X5: 8 output VT to the ARB plus the Grove to the sensor. Right gland now 7 wires (hex bundle ~5.3 mm, same as 6) in the 9.5 mm adhesive heat-shrink jacket.
 - -X2 splice outside: AUX1 after -F1 into 4 wires; -X2a: ground into 2 wires.
 - Owner: the valve wire is an output, so it moves to the outputs. Right gland = power in only, 6 wires (1-2 grounds, 3-6 +12 V). Left gland = outputs 7 OG (valve) and 8 VT (ARB) plus the Grove to the sensor; valve and sensor both sit at the manifold, so they leave together.
+
+## 2026-11-19 Box disconnect: Deutsch DT connectors on the pigtails
+- Owner: glands stay, no connectors in the box wall. The wires leave the glands as ~20 cm pigtails ending in Deutsch DT connectors, so the box unplugs from the car harness.
+- -X7 input, DT 8-way (6 used): 1 BK DinMeter, 2 BK module, 3 RD module, 4 RD DinMeter, 5 RD relay 2 A, 6 RD relay 1 A, 7-8 spare with seal plugs. Box pigtail DT04-08P (pins), car side DT06-08S (sockets): the always-live car side has the shrouded sockets.
+- -X8 output, DT 6-way (5 used): 1 OG valve, 2 VT ARB, 3 BK sensor GND, 4 RD sensor +5 V, 5 YE sensor signal, 6 spare. Box pigtail DT06-6S (sockets), car side DT04-6P (pins). Different size and gender, so the two cannot be swapped.
+- DT: 13 A per contact, IP68, needs the DT crimp tool. Splices -X2 (+12 V, 1 to 4) and -X2a (ground, 1 to 2) stay in the car harness before -X7.
