@@ -496,19 +496,22 @@ def power_svg_iec_def():
 
     # ---- inside ----
     comp(820, 70, 200, 130, "-A1", "M5Stack DinMeter", "12 В → 5 В")
-    pinl(820, T[1], "GND"); pinl(820, T[4], "+12 V"); pinl(820, 135, "G15")
+    pinl(820, T[1], "GND"); pinl(820, T[4], "+12 V")
     L((313, T[1]), (817, T[1]), c="BK"); L((313, T[4]), (817, T[4]), c="RD")
     pinl(870, 200, "PORT.A"); pinl(970, 200, "PORT.B")
     # -A3 voltage module: own BK / RD from -X1 2 and 3, output S on G15 (the white conductor of -W2, cut off in the box at -X6a)
     comp(560, 105, 160, 62, "-A3", "", ""); lab(650, 124, "модуль 0–25 В", "c")
     pinl(560, T[2], "GND"); pinl(560, T[3], "VCC"); pinl(720, 135, "S", "r")
     L((313, T[2]), (557, T[2]), c="BK"); L((313, T[3]), (557, T[3]), c="RD")
-    L((723, 135), (817, 135), c="WH", w=2.5); lab(770, 129, "WH, -X6a", "c")
+    # G15 = white conductor of -W2 from PORT.A, cut off at -X6a just below the plug and led to S
+    grove4([(870, 203), (870, 222)], order=("WH", "YE", "RD", "BK"))
+    L((864, 222), (760, 222), (760, 135), (723, 135), c="WH", w=2.5); dot(864, 222)
+    lab(856, 238, "-X6a", "c", "end"); lab(770, 214, "WH = G15", "c", "start")
     lab(620, 198, "делитель 1:5, 14,4 В → 2,9 В на G15", "c")
     # -W2 from PORT.A: BK RD YE (G13) to the sensor through the left gland
-    grove4([(870, 203), (870, G2), (313, G2)], order=("BK", "RD", "YE"))
+    grove4([(869, 222), (869, G2), (313, G2)], order=("YE", "RD", "BK"))
     lab(880, 470, "-W2: YE G13 = давление", "c", "start")
-    lab(880, 486, "WH G15 отрезана в коробке", "c", "start")
+    lab(880, 486, "WH отрезана у -X6a, к датчику не идёт", "c", "start")
     # -K1 Unit 2Relay, contacts drawn detached: relay 1 (valve) inside, relay 2 (compressor) around it.
     # Each relay A gets its own +12 V wire from -X2 outside the box, no jumper inside.
     o.append('<rect x="380" y="212" width="160" height="134" class="box"/>'); lab(460, 362, "-K1 Unit 2Relay, 2 × 8 A", "d")

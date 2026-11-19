@@ -121,7 +121,7 @@ if not L.REL_ACROSS and L.TAG != "cust_adc":
           "red", "right gland (-X2)", "voltage module VCC")
         w("GND_to_vmod_GND", [(px, YOUT, pz - 1.5), (px, YIN, pz - 1.5), (VG[0] + 1, -36.0, 15.5), (VG[0], VG[1], VG[2] + 5), VG],
           "black", "right gland (-X2a)", "voltage module GND")
-        w("G15_to_vmod_S", [(-8.0, -3.0, 25.6), (-6.0, -3.0, 30.5), (VS[0], -3.0, 30.5), (VS[0], VS[1] + 2, VS[2] + 1), VS],
+        w("G15_to_vmod_S", [(A[0] + 1.5, A[1] - 6.0, A[2] + 2.0), (-2.0, A[1] - 8.0, 18.0), (VS[0], A[1] - 9.0, 17.0), (VS[0], VS[1] + 2, VS[2] + 1), VS],
           "white", "-X6a on W2 white (G15)", "voltage module S")
         w("12V_to_relay_COM", [(px + 2, YOUT, pz - 1.5), (px + 2, YIN, pz - 1.5), (9.0, -30.0, 26.0), (2.0, 11.0, 28.5),
                                (COM[0], 11.0, 28.5), (COM[0], COM[1], 25.0), COM], "red", "right gland", "2Relay relay 2 A (+12 V)")
