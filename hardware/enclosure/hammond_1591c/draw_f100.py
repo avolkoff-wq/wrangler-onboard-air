@@ -103,8 +103,12 @@ for key, cls in (("case", "mod"), ("plug", "plug"), ("term", "term"), ("term2", 
     x0, y0, x1, y1 = L.REL_FOOT[key]; a, b = P(x0, y1), P(x1, y0); o.append(R(*a, *b, cls, 3 if key == "case" else 0))
 cx0, cy0, cx1, cy1 = L.REL_FOOT["case"]
 if L.REL2:
-    for key, t in (("relay1", "K1"), ("relay2", "K2")):
+    for key, t in (("relay1", "1 клапан"), ("relay2", "2 компр.")):
         x0, y0, x1, y1 = L.REL_FOOT[key]; o.append(T(P((x0 + x1) / 2, 0)[0], P(0, (y0 + y1) / 2)[1] + 4, t, "labw"))
+    for key in ("term", "term2"):   # VH3.96-4P across the module: C A B C
+        x0, y0, x1, y1 = L.REL_FOOT[key]
+        for i, t in enumerate("CABC"):
+            o.append(T(P(x0 + 1.98 + i * 3.96, 0)[0], P(0, (y0 + y1) / 2)[1] + 5, t, "lab"))
     o.append(T(P((cx0 + cx1) / 2, 0)[0], P(0, cy0)[1] + 16, "2Relay", "lab"))
 else:
     o.append(T(P((cx0 + cx1) / 2, 0)[0], P(0, (cy0 + cy1) / 2)[1] + 4, "Relay"))

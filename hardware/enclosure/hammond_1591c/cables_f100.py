@@ -90,16 +90,15 @@ if not L.REL_ACROSS and L.TAG != "cust_adc":
     gx = sx + 1.2
     w2 = [A, (A[0], A[1] - 4, A[2]), (-8.0, 8.0, 24.0), (-8.0, -35.5, 24.0), (gx, -39.0, 20.0), (gx, YIN, sz), (gx, YOUT, sz)]
     if L.TAG == "cust_def":
-        # schematic C: Unit 2Relay, terminals on the side towards the middle. Left gland M12: Grove 2 m + violet (K1 NO); right: power + orange (K2 NO)
-        w2 = [A, (A[0], A[1] - 4, A[2]), (-8.0, 8.0, 25.0), (-8.0, -35.5, 25.0), (sx - 1.0, -39.0, 20.0), (sx - 1.0, YIN, sz), (sx - 1.0, YOUT, sz)]
+        # schematic C: Unit 2Relay. Left gland M12: Grove 2 m + violet (relay 2 B); right: 6 power wires + orange (relay 1 B)
+        w2 = [A, (A[0], A[1] - 4, A[2]), (-8.0, 8.0, 25.0), (-8.0, -28.0, 25.0), (sx - 0.5, -36.0, 21.0), (sx - 0.5, YIN, sz), (sx - 0.5, YOUT, sz)]
+        # relay 2 (Grove YE, G2) = compressor, relay 1 (Grove WH, G1) = valve; wires enter the plugs from the top
         C1, N1, C2, N2 = (L.REL_PIN[k] for k in ("COM1", "NO1", "COM2", "NO2"))
-        w("relay_NO_to_ARB", [N1, (N1[0], N1[1], N1[2] + 4), (0.0, N1[1], 23.0), (0.0, -34.0, 23.0), (sx + 2.6, -40.0, sz),
-                              (sx + 2.6, YIN, sz), (sx + 2.6, YOUT, sz)], "violet", "2Relay K1 NO", "left gland, on to V1 and the ARB violet wire (-X3)")
-        # orange to the valve leaves with the power wires (right gland M12: BK, RD, RD, OG ~4.5 mm bundle)
-        w("relay_K2_NO_to_valve", [N2, (N2[0], N2[1], N2[2] + 4), (4.0, N2[1], 21.0), (px - 3.0, -38.0, 19.0),
-                                   (px - 2.5, YIN, pz + 1.5), (px - 2.5, YOUT, pz + 1.5)], "orange", "2Relay K2 NO", "right gland, to the deflate valve -Y1 (+)")
-        w("jumper_COM1_COM2", [C1, (C1[0], C1[1], C1[2] + 2.5), (-2.0, C1[1], C1[2] + 2.5), (-2.0, C2[1], C2[2] + 2.5), (C2[0], C2[1], C2[2] + 2.5), C2],
-          "red", "2Relay K1 COM", "2Relay K2 COM")
+        w("relay_NO_to_ARB", [N2, (N2[0], N2[1], 23.0), (N2[0], -26.0, 23.0), (sx + 2.5, -32.0, 22.0), (sx + 2.5, -40.0, sz), (sx + 2.5, YIN, sz), (sx + 2.5, YOUT, sz)],
+          "violet", "2Relay relay 2 B (compressor)", "left gland, on to V1 and the ARB violet wire (-X3)")
+        w("relay_K2_NO_to_valve", [N1, (N1[0], N1[1], 21.5), (4.0, N1[1], 21.5), (px - 3.0, -38.0, 19.0),
+                                   (px - 2.5, YIN, pz + 1.5), (px - 2.5, YOUT, pz + 1.5)], "orange", "2Relay relay 1 B (valve)", "right gland, to the deflate valve -Y1 (+)")
+        w("jumper_COM1_COM2", [C2, (C2[0], C2[1], 23.0), (C1[0], C1[1], 23.0), C1], "red", "2Relay relay 2 A", "2Relay relay 1 A")
     else:
         # violet: relay NO straight down into the left gland, beside the Grove
         vx = sx - 3.6
@@ -121,8 +120,8 @@ if not L.REL_ACROSS and L.TAG != "cust_adc":
           "black", "right gland (-X2a)", "voltage module GND")
         w("G15_to_vmod_S", [(-8.0, -3.0, 25.6), (-6.0, -3.0, 30.5), (VS[0], -3.0, 30.5), (VS[0], VS[1] + 2, VS[2] + 1), VS],
           "white", "-X6a on W2 white (G15)", "voltage module S")
-        w("12V_to_relay_COM", [(px + 2, YOUT, pz - 1.5), (px + 2, YIN, pz - 1.5), (9.0, -30.0, 24.0), (5.0, COM[1] + 4, 25.0),
-                               (COM[0], COM[1] + 4, COM[2] + 5), COM], "red", "right gland", "2Relay K1 COM")
+        w("12V_to_relay_COM", [(px + 2, YOUT, pz - 1.5), (px + 2, YIN, pz - 1.5), (9.0, -30.0, 26.0), (2.0, 11.0, 28.5),
+                               (COM[0], 11.0, 28.5), (COM[0], COM[1], 25.0), COM], "red", "right gland", "2Relay relay 2 A (+12 V)")
     else:
         w("12V_to_relay_COM", [(px + 2, YOUT, pz - 1.5), (px + 2, YIN, pz - 1.5), (8.0, -38.5, 12.0), (COM[0], -38.5, 12.0),
                                (COM[0], COM[1] - 3, COM[2]), COM], "red", "right gland", "relay COM")

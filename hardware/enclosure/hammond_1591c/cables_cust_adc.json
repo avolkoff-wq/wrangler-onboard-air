@@ -116,12 +116,12 @@
    "name": "sensor_GND_to_ADC",
    "pts": [
     [
-     10.0,
+     15.5,
      -80.0,
      16.5
     ],
     [
-     10.0,
+     15.5,
      -42.0,
      16.5
     ],
@@ -145,19 +145,19 @@
    "d": 1.8,
    "from": "right gland",
    "to": "ADC GND",
-   "route": 64.2,
+   "route": 62.7,
    "cut": 85
   },
   {
    "name": "sensor_signal_to_ADC",
    "pts": [
     [
-     12.0,
+     17.5,
      -80.0,
      19.5
     ],
     [
-     12.0,
+     17.5,
      -42.0,
      19.5
     ],
@@ -181,19 +181,19 @@
    "d": 1.8,
    "from": "right gland",
    "to": "ADC IN",
-   "route": 63.0,
+   "route": 63.4,
    "cut": 85
   },
   {
    "name": "sensor_5V_to_X4",
    "pts": [
     [
-     11.0,
+     16.5,
      -80.0,
      18.0
     ],
     [
-     11.0,
+     16.5,
      -42.0,
      18.0
     ],
@@ -217,7 +217,7 @@
    "d": 1.8,
    "from": "right gland",
    "to": "-X4 solder onto the red conductor of W2",
-   "route": 111.7,
+   "route": 113.8,
    "cut": 135
   },
   {
@@ -239,17 +239,17 @@
      13.0
     ],
     [
-     14.4,
+     19.9,
      -40.5,
      13.0
     ],
     [
-     15.4,
+     20.9,
      -42.0,
      18.0
     ],
     [
-     15.4,
+     20.9,
      -80.0,
      18.0
     ]
@@ -258,19 +258,19 @@
    "d": 1.8,
    "from": "relay NO",
    "to": "right gland, on to V1 and the ARB violet wire (-X3)",
-   "route": 79.6,
-   "cut": 100
+   "route": 85.1,
+   "cut": 110
   },
   {
    "name": "GND_to_DinMeter_minus",
    "pts": [
     [
-     -14.0,
+     -4.0,
      -80.0,
      16.5
     ],
     [
-     -14.0,
+     -4.0,
      -42.0,
      16.5
     ],
@@ -299,19 +299,19 @@
    "d": 1.8,
    "from": "left gland",
    "to": "DinMeter terminal -",
-   "route": 120.3,
-   "cut": 145
+   "route": 115.7,
+   "cut": 140
   },
   {
    "name": "12V_to_DinMeter_plus",
    "pts": [
     [
-     -12.0,
+     -2.0,
      -80.0,
      19.5
     ],
     [
-     -12.0,
+     -2.0,
      -42.0,
      19.5
     ],
@@ -340,19 +340,19 @@
    "d": 1.8,
    "from": "left gland",
    "to": "DinMeter terminal +",
-   "route": 119.3,
-   "cut": 140
+   "route": 114.5,
+   "cut": 135
   },
   {
    "name": "12V_to_relay_COM",
    "pts": [
     [
-     -14.5,
+     -4.5,
      -80.0,
      18.0
     ],
     [
-     -14.5,
+     -4.5,
      -42.0,
      18.0
     ],
@@ -376,8 +376,8 @@
    "d": 1.8,
    "from": "left gland",
    "to": "relay COM",
-   "route": 50.3,
-   "cut": 75
+   "route": 59.0,
+   "cut": 80
   }
  ]
 }

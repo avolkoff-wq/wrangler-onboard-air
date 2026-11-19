@@ -12,7 +12,7 @@
 
 | Вариант | Схема | Датчик | Сборка | Готовый файл |
 |---|---|---|---|---|
-| **C, со спуском** | `power_schematic_def.png` | как A, плюс Unit 2Relay: канал 1 (G2, жёлтый) компрессор, канал 2 (G1, белый) клапан спуска | `pio run -e dinmeter-deflate` | `bin/wrangler_air_deflate.bin` |
+| **C, со спуском** | `power_schematic_def.png` | как A, плюс Unit 2Relay: реле 2 у разъёма Grove (G2, жёлтый) компрессор, реле 1 в дальнем конце (G1, белый) клапан спуска | `pio run -e dinmeter-deflate` | `bin/wrangler_air_deflate.bin` |
 | A, основной | `power_schematic.png` | 0-3,3 V, 1,2 MPa, прямо на G13 (PORT.A, Grove 2 м), без ADC и делителя | `pio run -e dinmeter-direct` | `bin/wrangler_air_direct.bin` |
 | старый | плата Perma-Proto | 0,5-4,5 V, 100 psi, на G1 через делитель 10k/20k | `pio run -e dinmeter` | `bin/wrangler_air_stage1.bin` |
 
@@ -97,7 +97,7 @@
 | G13 (PORT.A) | вариант A: датчик 0-3,3 V напрямую |
 | G2 (PORT.B) | K1 (подкачка / реле компрессора), HIGH = включено |
 | G13 (PORT.A) | старый вариант: K4 (спуск). При старте сразу LOW |
-| G1 (PORT.B, белый) | вариант C: K4, канал 2 Unit 2Relay → клапан спуска. При старте сразу LOW |
+| G1 (PORT.B, белый) | вариант C: K4, реле 1 Unit 2Relay → клапан спуска. При старте сразу LOW |
 | G41/G40, G42 | энкодер A/B, кнопка |
 | G46 | удержание питания |
 

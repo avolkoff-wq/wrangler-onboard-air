@@ -35,7 +35,8 @@ if TAG in ("cust", "cust_adc", "cust_def"):
     DIN_X, DIN_Z = 0.0, 19.0          # same height as in F100: the Grove 5 cm fold under the DinMeter plugs works; frame 4..34
     BOSS_CUT_Z = None
     SLOT_X, SLOT_Z = 8.0, 18.0
-    GLANDS = ((-12.0, 18.0), (12.0, 18.0))
+    # glands shifted right of the middle: the left one clears the relay bodies of the Unit 2Relay along the left wall
+    GLANDS = ((-2.0, 18.0), (17.5, 18.0))
     GLAND_SENSOR, GLAND_POWER = (1, 0) if ADC_IN else (0, 1)
     RXC, RY0, AXC, AY0 = -15.5, (-42.0 if REL2 else -34.0), 15.5, -18.0
     REL_ACROSS = False
@@ -170,13 +171,15 @@ def rbx(slx, sly, sz, lx, ly, cz):
     return bx(sly, slx, sz, x, y, cz) if REL_ACROSS else bx(slx, sly, sz, x, y, cz)
 REL_LEN = 56.0 if REL2 else 48.0
 if REL2:
-    # M5 Unit 2Relay 56 x 24 x 19 (shop.m5stack.com): channel 1 (YE, G2) next to the Grove plug, channel 2 (WH, G1) at the far end,
-    # each relay with its own VH3.96-4P terminal on the long side towards the box middle. Plug and terminal sides: check on the real unit.
+    # M5 Unit 2Relay 56 x 24 (docs.m5stack.com/en/unit/Unit_2Relay): relay 1 (Grove WH = G1, deflate valve) at the far end,
+    # relay 2 (Grove YE = G2, compressor) next to the Grove plug. Each relay has a VH3.96-4P header right behind it (towards
+    # the Grove end), pins across the module: C A B C. The contact switches A-B; the two C pins are only linked to each other.
+    # Wires enter the plugs from the top. Relay height and plug size: check on the real unit.
     rel = cq.Assembly(name="unit_2relay")
     rel.add(rbx(24, 56, 6, 0, 28, Z0 + 3), name="case", color=cq.Color(0.93, 0.94, 0.95))
-    for ch, ly in ((1, 42.0), (2, 14.0)):
-        rel.add(rbx(13, 19, 13, -4.5, ly, Z0 + 6 + 6.5), name=f"relay_{ch}", color=cq.Color(0.10, 0.10, 0.11))
-        rel.add(rbx(8, 16, 10, 7.5, ly, Z0 + 6 + 5), name=f"terminal_K{ch}", color=cq.Color(0.98, 0.45, 0.15))
+    for ch, ly in ((1, 10.0), (2, 36.0)):
+        rel.add(rbx(20, 16, 13, 0, ly, Z0 + 6 + 6.5), name=f"relay_{ch}", color=cq.Color(0.10, 0.10, 0.11))
+        rel.add(rbx(16, 6, 10, 0, ly + 12.5, Z0 + 6 + 5), name=f"terminal_K{ch}", color=cq.Color(0.98, 0.45, 0.15))
     rel.add(rbx(9.9, 6.5, 4.6, 0, 56 + 3.25, Z0 + 4), name="grove_plug", color=cq.Color(0.97, 0.97, 0.97))
 else:
     rel = cq.Assembly(name="mini_relay")
@@ -187,9 +190,9 @@ else:
 REL_GROVE = (*rw(0, REL_LEN + 6.5), Z0 + 4)              # where the Grove cable leaves the relay plug
 REL_GROVE_DIR = (-1, 0, 0) if REL_ACROSS else (0, 1, 0)   # direction the cable leaves the plug
 REL_PIN = {k: (*rw(lx, 0), Z0 + 15) for k, lx in (("COM", -3.96), ("NO", 0.0), ("NC", 3.96))}
-if REL2:   # wire entries on top of the VH3.96 plugs: COM and NO of each channel, 3.96 apart along the module
-    REL_PIN = {f"{p}{ch}": (*rw(9.0, ly + d), Z0 + 17) for ch, ly in ((1, 42.0), (2, 14.0)) for p, d in (("COM", 1.98), ("NO", -1.98))}
-    REL_PIN["COM"], REL_PIN["NO"] = REL_PIN["COM1"], REL_PIN["NO1"]
+if REL2:   # wire entries on top of the VH3.96 plugs: A (+12 V in, "COM") and B (out, "NO") of each relay, 3.96 apart across the module
+    REL_PIN = {f"{p}{ch}": (*rw(lx, ly + 12.5), Z0 + 17) for ch, ly in ((1, 10.0), (2, 36.0)) for p, lx in (("COM", -1.98), ("NO", 1.98))}
+    REL_PIN["COM"], REL_PIN["NO"] = REL_PIN["COM2"], REL_PIN["NO2"]      # compressor = relay 2
 REL_PIN_DIR = (1, 0, 0) if REL_ACROSS else (0, -1, 0)     # direction a wire leaves the terminal
 # footprints for the 2D drawing: (x0, y0, x1, y1)
 def rfoot(slx, sly, lx, ly):
@@ -197,8 +200,8 @@ def rfoot(slx, sly, lx, ly):
     return (min(xa, xb), min(ya, yb), max(xa, xb), max(ya, yb))
 REL_FOOT = {"case": rfoot(24, 48, 0, 24), "term": rfoot(12, 10, 0, 5), "plug": rfoot(9.9, 6.5, 0, 51.25)}
 if REL2:
-    REL_FOOT = {"case": rfoot(24, 56, 0, 28), "term": rfoot(8, 16, 7.5, 42), "term2": rfoot(8, 16, 7.5, 14), "plug": rfoot(9.9, 6.5, 0, 59.25),
-                "relay1": rfoot(13, 19, -4.5, 42), "relay2": rfoot(13, 19, -4.5, 14)}
+    REL_FOOT = {"case": rfoot(24, 56, 0, 28), "term": rfoot(16, 6, 0, 22.5), "term2": rfoot(16, 6, 0, 48.5), "plug": rfoot(9.9, 6.5, 0, 59.25),
+                "relay1": rfoot(20, 16, 0, 10), "relay2": rfoot(20, 16, 0, 36)}
 
 # ---------- Unit ADC v1.1 flat on the box bottom, long side along y: Grove plug up, terminal down ----------
 adc = cq.Assembly(name="adc_v11")

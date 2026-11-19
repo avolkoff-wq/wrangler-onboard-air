@@ -7,7 +7,7 @@
 #define BENCH_USB 0     // 1 = bench builds only (dinmeter-bench, *-sim): USB serial log mirror, LIVE stream, commands
 #endif
 #ifndef DEFLATE
-#define DEFLATE 0       // 1 = schematic C: Unit 2Relay, channel 2 (PORT.B white, G1) opens the deflate valve. Only with SENSOR_DIRECT
+#define DEFLATE 0       // 1 = schematic C: Unit 2Relay relay 1 (PORT.B white, G1) opens the deflate valve. Only with SENSOR_DIRECT
 #endif
 #if SENSOR_DIRECT && DEFLATE && BENCH_USB && !BENCH_SIM
 #define FW_VERSION "0.4.0-bench"
@@ -32,7 +32,7 @@ constexpr int PIN_K1       = 2;   // G2, PORT.B yellow: M5 Mini Relay (DIN) / K1
 #if SENSOR_DIRECT
 constexpr int PIN_SENSOR   = 13;  // G13, PORT.A yellow: sensor output 0-3.3 V (ADC2: not read while Wi-Fi is on, OTA only)
 #if DEFLATE
-constexpr int PIN_K4       = 1;   // G1, PORT.B white: Unit 2Relay channel 2 -> deflate valve -Y1 (schematic C)
+constexpr int PIN_K4       = 1;   // G1, PORT.B white: Unit 2Relay relay 1 (far end) -> deflate valve -Y1 (schematic C)
 #else
 constexpr int PIN_K4       = -1;  // PORT.A is taken by the sensor: no deflate output in this build
 #endif

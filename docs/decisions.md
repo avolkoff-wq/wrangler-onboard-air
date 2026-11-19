@@ -109,3 +109,9 @@
 - The exponential choked model stays within 1 % of the full model down to 0.5 bar (subsonic only at the very end).
 - Bug fixed: a CUSTOM run on fewer wheels scaled tau by n/4 (valve-limited assumption). With cores in parallel tau(1 wheel) is ~0.69 x tau(4), not 0.25 x. Now tauWheels(n) from the core/valve split, and such a run never writes its learning: the 4-wheel values are set aside and restored after the run.
 - Field check (bench step 5 and 6): LEARN DEFLATE on 1 wheel and on 4 wheels. tau4 / tau1 near 1.4 = cores dominate as assumed; near 4 = the valve dominates.
+
+## 2026-11-19 Unit 2Relay as it really is, entries grouped by gland
+- From docs.m5stack.com/en/unit/Unit_2Relay (owner noticed the contacts were drawn wrong): Grove pin order GND, 5V, RELAY-2 (yellow), RELAY-1 (white). Relay 1 sits at the far end, relay 2 next to the Grove plug. Each relay has a VH3.96-4P header right behind it, pins across the module C A B C: the contact switches A-B, the two C pins are only linked to each other.
+- Same firmware pins: compressor on G2 (yellow) = relay 2, valve on G1 (white) = relay 1. Wiring: +12 V to A of relay 2, jumper A2 -> A1; B2 violet to the ARB, B1 orange to the valve. C pins unused.
+- The relay bodies are about as wide as the module, so the left gland at x -12 would sit right behind relay 1. Glands moved to x -2 (sensor + ARB) and x +17.5 (power + valve); 2Relay back at the gland end (y -42). Printed box exported again (box_cust_adc_body/lid .stl/.step).
+- Schematic C redrawn with the entries grouped exactly as they pass the glands: -X1 right gland 1-6 (RD DinMeter, RD module, BK module, BK DinMeter, RD relay 2 A, OG valve), -X5 left gland 7 (VT) + -W2 Grove.
