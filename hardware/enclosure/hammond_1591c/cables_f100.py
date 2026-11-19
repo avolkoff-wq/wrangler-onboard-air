@@ -90,14 +90,15 @@ if not L.REL_ACROSS and L.TAG != "cust_adc":
     gx = sx + 1.2
     w2 = [A, (A[0], A[1] - 4, A[2]), (-8.0, 8.0, 24.0), (-8.0, -35.5, 24.0), (gx, -39.0, 20.0), (gx, YIN, sz), (gx, YOUT, sz)]
     if L.TAG == "cust_def":
-        # schematic C: Unit 2Relay. Left gland M12: Grove 2 m + violet (relay 2 B); right: 6 power wires + orange (relay 1 B)
+        # schematic C: Unit 2Relay. Left gland M12: outputs violet (relay 2 B) and orange (relay 1 B) + Grove 2 m; right: 6 power wires
         w2 = [A, (A[0], A[1] - 4, A[2]), (-8.0, 8.0, 25.0), (-8.0, -28.0, 25.0), (sx - 0.5, -36.0, 21.0), (sx - 0.5, YIN, sz), (sx - 0.5, YOUT, sz)]
         # relay 2 (Grove YE, G2) = compressor, relay 1 (Grove WH, G1) = valve; wires enter the plugs from the top
         C1, N1, C2, N2 = (L.REL_PIN[k] for k in ("COM1", "NO1", "COM2", "NO2"))
-        w("relay_NO_to_ARB", [N2, (N2[0], N2[1], 23.0), (N2[0], -26.0, 23.0), (sx + 2.5, -32.0, 22.0), (sx + 2.5, -40.0, sz), (sx + 2.5, YIN, sz), (sx + 2.5, YOUT, sz)],
+        w("relay_NO_to_ARB", [N2, (N2[0], N2[1], 23.0), (N2[0], -26.0, 23.0), (sx + 2.0, -32.0, 22.0), (sx + 2.0, -40.0, sz - 1.2), (sx + 2.0, YIN, sz - 1.2), (sx + 2.0, YOUT, sz - 1.2)],
           "violet", "2Relay relay 2 B (compressor)", "left gland, on to V1 and the ARB violet wire (-X3)")
-        w("relay_K2_NO_to_valve", [N1, (N1[0], N1[1], 21.5), (4.0, N1[1], 21.5), (px - 3.0, -38.0, 19.0),
-                                   (px - 2.5, YIN, pz + 1.5), (px - 2.5, YOUT, pz + 1.5)], "orange", "2Relay relay 1 B (valve)", "right gland, to the deflate valve -Y1 (+)")
+        # valve output leaves with the other outputs and the sensor cable through the left gland (all go to the manifold / ARB side)
+        w("relay_K2_NO_to_valve", [N1, (N1[0], N1[1], 22.0), (-4.3, N1[1] - 1.5, 22.0), (-4.3, -32.0, 21.0), (sx + 1.6, -40.0, sz + 1.8),
+                                   (sx + 1.6, YIN, sz + 1.8), (sx + 1.6, YOUT, sz + 1.8)], "orange", "2Relay relay 1 B (valve)", "left gland, to the deflate valve -Y1 (+)")
         # relay 1 A has its own +12 V wire from the splice -X2 outside the box (no jumper inside)
         w("12V_to_relay1_A", [(px - 4.0, YOUT, pz), (px - 4.0, YIN, pz), (6.0, -34.0, 27.0), (C1[0], -26.0, 29.0), (C1[0], C1[1], 24.0), C1],
           "red", "right gland (-X2)", "2Relay relay 1 A")

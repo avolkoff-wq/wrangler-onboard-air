@@ -117,3 +117,4 @@
 - Schematic C redrawn with the entries grouped exactly as they pass the glands: -X1 right gland 1-6 (RD DinMeter, RD module, BK module, BK DinMeter, RD relay 2 A, OG valve), -X5 left gland 7 (VT) + -W2 Grove.
 - Same day, owner: no splice inside the box at all. Relay 1 A gets its own red wire from -X2 (no A2-A1 jumper). -X1 order: 1-2 grounds (DinMeter, module), 3-6 +12 V (module, DinMeter, relay 2 A, relay 1 A), 7 output OG to the valve; -X5: 8 output VT to the ARB plus the Grove to the sensor. Right gland now 7 wires (hex bundle ~5.3 mm, same as 6) in the 9.5 mm adhesive heat-shrink jacket.
 - -X2 splice outside: AUX1 after -F1 into 4 wires; -X2a: ground into 2 wires.
+- Owner: the valve wire is an output, so it moves to the outputs. Right gland = power in only, 6 wires (1-2 grounds, 3-6 +12 V). Left gland = outputs 7 OG (valve) and 8 VT (ARB) plus the Grove to the sensor; valve and sensor both sit at the manifold, so they leave together.

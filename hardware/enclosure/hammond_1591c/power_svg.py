@@ -440,12 +440,12 @@ def power_svg_iec_def():
     o.append('<rect x="290" y="40" width="760" height="760" class="box"/>')
     lab(296, 34, "-A0  своя коробка 60×100×36", "d", "start")
     # -X1: grounds 1-2 at one end, +12 V 3-6, valve 7 at the other end. Every splice is outside the box.
-    T = {1: 90, 2: 120, 3: 150, 4: 180, 5: 230, 6: 260, 7: 290, 8: 470}
-    G2 = 520                                   # -W2 Grove through the left gland
-    o.append(f'<rect x="270" y="{T[1]-16}" width="40" height="{T[7]-T[1]+32}" class="b"/>')
-    lab(264, T[1] - 22, "-X1", "d", "end"); lab(316, T[1] - 22, "ввод M12 правый: питание + клапан, 7 проводов", "c", "start")
-    o.append(f'<rect x="270" y="{T[8]-16}" width="40" height="{G2-T[8]+32}" class="b"/>')
-    lab(264, T[8] - 22, "-X5", "d", "end"); lab(316, G2 + 34, "ввод M12 левый: датчик + ARB", "c", "start")
+    T = {1: 90, 2: 120, 3: 150, 4: 180, 5: 230, 6: 260, 7: 400, 8: 590}
+    G2 = 640                                   # -W2 Grove through the left gland
+    o.append(f'<rect x="270" y="{T[1]-16}" width="40" height="{T[6]-T[1]+32}" class="b"/>')
+    lab(264, T[1] - 22, "-X1", "d", "end"); lab(316, T[1] - 22, "ввод M12 правый: питание, 6 проводов (массы 1-2, +12 В 3-6)", "c", "start")
+    o.append(f'<rect x="270" y="{T[7]-16}" width="40" height="{G2-T[7]+32}" class="b"/>')
+    lab(264, T[7] - 22, "-X5", "d", "end"); lab(316, G2 + 34, "ввод M12 левый: выходы 7-8 (клапан, ARB) + датчик", "c", "start")
     for k in range(1, 9):
         y = T[k]
         o.append(f'<circle cx="270" cy="{y}" r="3" class="t"/><circle cx="310" cy="{y}" r="3" class="t"/>')
@@ -485,14 +485,14 @@ def power_svg_iec_def():
     lab(170, MY + 18, "-X3", "c"); lab(262, MY + 18, "VT 0.5", "c", "end")
     lab(20, MY + 46, "внутри ARB: реле давления,", "c", "start"); lab(20, MY + 60, "2 реле 12 В 40 А", "c", "start")
     # sensor -B1 on the 2 m Grove, connector -X6 at the sensor (3 conductors used, WH unused there)
-    S = {"+5V": 655, "GND": 685, "OUT": 715}
-    comp(20, 620, 100, 120, "-B1", "датчик", ""); lab(28, 732, "0–3,3 В", "c", "start")
+    S = {"+5V": 735, "GND": 765, "OUT": 795}
+    comp(20, 700, 100, 120, "-B1", "датчик", ""); lab(28, 812, "0–3,3 В", "c", "start")
     for t, y in S.items():
         pinl(120, y, t, "r")
-    o.append('<rect x="176" y="640" width="22" height="90" class="b"/>'); lab(187, 634, "-X6", "d"); lab(187, 748, "JWPF 3P", "c")
+    o.append('<rect x="176" y="720" width="22" height="90" class="b"/>'); lab(187, 714, "-X6", "d"); lab(187, 828, "JWPF 3P", "c")
     L((123, S["+5V"]), (176, S["+5V"]), c="RD"); L((123, S["GND"]), (176, S["GND"]), c="BK"); L((123, S["OUT"]), (176, S["OUT"]), c="YE")
     grove4([(281, G2), (240, G2), (240, S["GND"]), (201, S["GND"])], order=("BK", "RD", "YE"))
-    lab(250, 700, "-W2 Grove 2 м", "c", "start"); lab(250, 714, "BK RD YE к датчику", "c", "start")
+    lab(250, 780, "-W2 Grove 2 м", "c", "start"); lab(250, 794, "BK RD YE к датчику", "c", "start")
 
     # ---- inside ----
     comp(820, 70, 200, 130, "-A1", "M5Stack DinMeter", "12 В → 5 В")
@@ -500,19 +500,19 @@ def power_svg_iec_def():
     L((313, T[1]), (817, T[1]), c="BK"); L((313, T[4]), (817, T[4]), c="RD")
     pinl(870, 200, "PORT.A"); pinl(970, 200, "PORT.B")
     # -A3 voltage module: own BK / RD from -X1 2 and 3, output S on G15 (the white conductor of -W2, cut off in the box at -X6a)
-    comp(560, 105, 120, 62, "-A3", "", ""); lab(652, 124, "модуль 0–25 В", "c")
-    pinl(560, T[2], "GND"); pinl(560, T[3], "VCC"); pinl(680, 135, "S", "r")
+    comp(560, 105, 160, 62, "-A3", "", ""); lab(650, 124, "модуль 0–25 В", "c")
+    pinl(560, T[2], "GND"); pinl(560, T[3], "VCC"); pinl(720, 135, "S", "r")
     L((313, T[2]), (557, T[2]), c="BK"); L((313, T[3]), (557, T[3]), c="RD")
-    L((683, 135), (817, 135), c="WH", w=2.5); lab(750, 129, "WH, -X6a", "c")
+    L((723, 135), (817, 135), c="WH", w=2.5); lab(770, 129, "WH, -X6a", "c")
     lab(620, 198, "делитель 1:5, 14,4 В → 2,9 В на G15", "c")
     # -W2 from PORT.A: BK RD YE (G13) to the sensor through the left gland
     grove4([(870, 203), (870, G2), (313, G2)], order=("BK", "RD", "YE"))
-    lab(880, 470, "-W2: BK RD YE, YE G13 = давление", "c", "start")
-    lab(880, 486, "белая жила (G15) отрезана в коробке", "c", "start")
+    lab(880, 470, "-W2: YE G13 = давление", "c", "start")
+    lab(880, 486, "WH G15 отрезана в коробке", "c", "start")
     # -K1 Unit 2Relay, contacts drawn detached: relay 1 (valve) inside, relay 2 (compressor) around it.
     # Each relay A gets its own +12 V wire from -X2 outside the box, no jumper inside.
     o.append('<rect x="380" y="212" width="160" height="134" class="box"/>'); lab(460, 362, "-K1 Unit 2Relay, 2 × 8 A", "d")
-    A2, A1, B1, B2 = T[5], T[6], T[7], 330
+    A2, A1, B1, B2 = T[5], T[6], 290, 330
     for y, t in ((A2, "A2"), (A1, "A1"), (B1, "B1"), (B2, "B2")):
         o.append(f'<circle cx="400" cy="{y}" r="3" class="t"/>'); lab(408, y - 4, t, "n", "start")
     o.append(f'<line x1="403" y1="{A1}" x2="432" y2="{A1}" stroke="#111" stroke-width="2"/><line x1="432" y1="{A1}" x2="452" y2="{B1-10}" stroke="#111" stroke-width="2"/>'
@@ -520,8 +520,9 @@ def power_svg_iec_def():
     o.append(f'<line x1="403" y1="{A2}" x2="478" y2="{A2}" stroke="#111" stroke-width="2"/><line x1="478" y1="{A2}" x2="500" y2="{A2+20}" stroke="#111" stroke-width="2"/>'
              f'<line x1="403" y1="{B2}" x2="506" y2="{B2}" stroke="#111" stroke-width="2"/><line x1="506" y1="{B2}" x2="506" y2="{A2+22}" stroke="#111" stroke-width="2"/>')
     lab(548, 262, "-K1.1 реле 1: клапан", "c", "start"); lab(548, 330, "-K1.2 реле 2: компрессор", "c", "start")
-    L((313, A2), (397, A2), c="RD"); L((313, A1), (397, A1), c="RD"); L((313, B1), (397, B1), c="OG")
-    L((397, B2), (340, B2), (340, T[8]), (313, T[8]), c="VT")
+    L((313, A2), (397, A2), c="RD"); L((313, A1), (397, A1), c="RD")
+    L((397, B1), (335, B1), (335, T[7]), (313, T[7]), c="OG")
+    L((397, B2), (350, B2), (350, T[8]), (313, T[8]), c="VT")
     grove4([(970, 203), (970, 300), (543, 300)])
     o.append('<circle cx="540" cy="300" r="3" class="t"/>'); lab(720, 284, "-W1 Grove 5 см: WH G1 → реле 1, YE G2 → реле 2", "c")
 

@@ -129,8 +129,8 @@ for gi, (gx, gz) in enumerate(L.GLANDS):
     a, b = P(gx - nr, -L.Y_IN + 5), P(gx + nr, -L.Y_IN); o.append(R(*a, *b, "plug"))           # lock nut
     a, b = P(gx - 8, -L.TOP_Y), P(gx + 8, -L.TOP_Y - 4); o.append(R(*a, *b, "post"))         # hex
     a, b = P(gx - 6.5, -L.TOP_Y - 4), P(gx + 6.5, -L.TOP_Y - 16); o.append(R(*a, *b, "post", 6))  # dome nut
-o.append(T(P(L.GLANDS[L.GLAND_POWER][0], 0)[0], P(0, -L.TOP_Y - 16)[1] + 16, ("питание + клапан" if L.REL2 else "питание"), "note"))
-o.append(T(P(L.GLANDS[L.GLAND_SENSOR][0], 0)[0], P(0, -L.TOP_Y - 16)[1] + 16, "датчик + ARB", "note"))
+o.append(T(P(L.GLANDS[L.GLAND_POWER][0], 0)[0], P(0, -L.TOP_Y - 16)[1] + 16, ("питание, 6" if L.REL2 else "питание"), "note"))
+o.append(T(P(L.GLANDS[L.GLAND_SENSOR][0], 0)[0], P(0, -L.TOP_Y - 16)[1] + 16, ("выходы + датчик" if L.REL2 else "датчик + ARB"), "note"))
 # dims
 o.append(dim_h(*[P(x, 0)[0] for x in (-L.W / 2, L.W / 2)], P(0, L.TOP_Y)[1] - 28, f"{L.W:g}"))
 o.append(dim_h(*[P(x, 0)[0] for x in (-L.IN_W / 2, L.IN_W / 2)], P(0, -L.TOP_Y)[1] + 115, (f"{L.IN_W:g} внутри" if L.SNAP else "≈63 внутри"), above=False))
