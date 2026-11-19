@@ -36,7 +36,17 @@ struct Settings {
   // hour meter: compressor (K1) and valve (K4) seconds, compressor seconds at the last filter service (menu HOURS)
   uint32_t cmpSec = 0, ventSec = 0, svcSec = 0;
   float svcHours() const { return (cmpSec - svcSec) / 3600.0f; }
-  float airL() const { return airVL(tyre); }
+  // CUSTOM can run on fewer wheels (spare, one wheel after a repair): wheels is saved, wk = active wheels / 4 is
+  // runtime only. While wk != 1 the learned values in RAM are scaled to that air volume, save() always writes them
+  // back for 4 wheels, so a power cut mid-run never leaves scaled learning behind.
+  uint8_t wheels = 4;             // CUSTOM wheel count, 1..4
+  float wk = 1.0f;
+  void useWheels(uint8_t n) {
+    const float k = constrain((int)n, 1, 4) / 4.0f, r = k / wk;
+    if (fabsf(r - 1) < 1e-4f) return;
+    rate /= r; kTop /= r; tauD *= r; c *= r; wk = k;
+  }
+  float airL() const { return airVL(tyre) * wk; }
   float presetBar(int i) const { return i == P_CUSTOM ? custom : PRESETS[i].bar; }
 
   void load() {
@@ -64,6 +74,7 @@ struct Settings {
     tauD         = p.getFloat("tauD", tauD);
     learnedD     = p.getBool ("lrnD", learnedD);
     bootN        = p.getUInt ("boot", bootN);
+    wheels       = constrain((int)p.getUChar("wheels", wheels), 1, 4);
     tyre         = p.getUChar("tyre", tyre); if (tyre >= N_TYRE_SIZES) tyre = 0;
     cmpSec       = p.getUInt ("cmpSec", cmpSec);
     ventSec      = p.getUInt ("ventSec", ventSec);
@@ -82,22 +93,23 @@ struct Settings {
     p.putBool ("offAuto", offAuto);
     p.putFloat("offMan", offManual);
     p.putFloat("offset", offset);
-    p.putFloat("c", c);
+    p.putFloat("c", c / wk);
     p.putBool ("setAuto", settleAuto);
     p.putFloat("setMan", settleManual);
     p.putFloat("setLrn", settleLearn);
-    p.putFloat("rate", rate);
-    p.putFloat("kTop", kTop);
+    p.putFloat("rate", rate * wk);    // stored for 4 wheels (see useWheels)
+    p.putFloat("kTop", kTop * wk);
     p.putFloat("bias", bias);
     p.putFloat("dev", dev);
     p.putBool ("learned", learned);
     p.putBool ("topL", topLearned);
     p.putFloat("calA", calA);
     p.putFloat("calB", calB);
-    p.putFloat("tauD", tauD);
+    p.putFloat("tauD", tauD / wk);
     p.putBool ("lrnD", learnedD);
     p.putUInt ("boot", bootN);
     p.putUChar("tyre", tyre);
+    p.putUChar("wheels", wheels);
     p.putUInt ("cmpSec", cmpSec);
     p.putUInt ("ventSec", ventSec);
     p.putUInt ("svcSec", svcSec);
@@ -106,11 +118,12 @@ struct Settings {
   // other tyre size: everything learned is scaled by the air volume, so the learning carries over
   // (rise rates ~ 1/V, deflate time constant ~ V, flow offset per rise rate ~ V; the offset itself is a flow effect and stays)
   void setTyre(uint8_t i) {
-    if (i >= N_TYRE_SIZES || i == tyre) return;
+    if (i >= N_TYRE_SIZES || i == tyre || wk != 1.0f) return;
     const float k = airVL(i) / airVL(tyre);
     rate /= k; kTop /= k; tauD *= k; c *= k; tyre = i; save();
   }
   void resetLearning() {
+    wk = 1.0f;
     offset = DEFAULT_OFFSET; c = 0; rate = inflRate(1.5f, airL()); kTop = rate * 0.6f;
     bias = 0; dev = 0.05f; settleLearn = SETTLE_MS / 1000.0f; learned = false; topLearned = false;
     tauD = tauModel(airL()); learnedD = false; save();

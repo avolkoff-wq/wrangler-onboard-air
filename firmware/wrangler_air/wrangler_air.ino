@@ -88,6 +88,8 @@ float offVal(int i) { return i * 0.05f; }
 float setVal(int i) { return 0.5f + i * 0.5f; }
 int editItem = M_OFFSET, editIdx = 0;
 float customEdit = 2.0f;   // value being set on the CUSTOM screen
+int customStep = 0;        // CUSTOM screen: 0 = pressure, 1 = number of wheels
+uint8_t customWheels = 4;
 uint32_t resetArm = 0;   // RESET LEARNING waits for a second press
 int offIdx() { return settings.offAuto ? 0 : constrain((int)roundf(settings.offManual / 0.05f), 1, OFF_N); }
 int setIdx() { return settings.settleAuto ? 0 : constrain((int)roundf((settings.settleManual - 0.5f) / 0.5f), 1, SET_N); }
@@ -464,7 +466,11 @@ void drawIdle(bool edit) {
   const uint16_t numc = edit ? TFT_CYAN : dead ? dim : TFT_GREENYELLOW;
   const uint16_t namec = edit ? TFT_CYAN : dead ? dim : low ? TFT_ORANGE : TFT_WHITE;
   const uint16_t unitc = dead ? dim : C_LGREY;
-  const String name = PRESETS[p].name, nowT = "actual " + fmt(max(0.0f, now));
+  const bool wsel = edit && customStep == 1;                              // CUSTOM, second step: wheel count
+  const uint8_t nw = edit ? customWheels : settings.wheels;
+  const String name = String(PRESETS[p].name) + (p == P_CUSTOM && (nw < 4 || wsel) ? (portrait() ? " x" + String(nw) : "  " + String(nw) + (nw == 1 ? " WHEEL" : " WHEELS")) : ""),
+               nowT = "actual " + fmt(max(0.0f, now));
+  const String valS = wsel ? String(nw) : fmt(bar), unitS = wsel ? (nw == 1 ? "wheel" : "wheels") : unitName();
   // "now x.x", triangle, word; one line centred at y, or two lines (portrait)
   auto dirLine = [&](int y, bool twoLines) {
     canvas.setFont(F_TEXT);
@@ -489,7 +495,7 @@ void drawIdle(bool edit) {
   };
   const bool hint = dir == D_UP || dir == D_DOWN;                      // "press to start" only when a start would do something
   auto idleHint = [&]() {
-    if (edit) { drawHint("turn: 0.1  press: OK  hold: cancel"); return; }
+    if (edit) { drawHint(wsel ? "turn: wheels  press: OK  hold: back" : "turn: 0.1  press: next  hold: cancel"); return; }
     if (armed && !dead) {   // ARMED: white hint, a bar running out over ARM_MS under it
       drawHint("PRESS AGAIN: START  turn: cancel", TFT_WHITE, H() - 4);
       const float left = 1.0f - constrain((float)(millis() - armT) / ARM_MS, 0.0f, 1.0f);
@@ -504,8 +510,8 @@ void drawIdle(bool edit) {
   if (!portrait()) {
     drawPresetIcon(p, 6, 6, 104);
     iconDim = false;
-    bigValue(fmt(bar), false, W() - 8, 2, numc, 1);
-    textAt(unitName(), W() - 8, 56, F_TEXT, unitc, top_right);
+    bigValue(valS, false, W() - 8, 2, numc, 1);
+    textAt(unitS, W() - 8, 56, F_TEXT, unitc, top_right);
     if (!edit && filtersDue()) {   // small, not blocking: left of the unit, right of the icon
       canvas.setFont(F_TEXT); const int uw = canvas.textWidth(unitName());
       textAt("CLEAN FILTERS", W() - 8 - uw - 6, 58, &fonts::Font2, dead ? dim : TFT_ORANGE, top_right);
@@ -522,8 +528,8 @@ void drawIdle(bool edit) {
     drawPresetIcon(p, 6, !strcmp(PRESETS[p].name, "ROCK") ? 14 : 8, 123);   // tilted ROCK SUV would touch the top edge
     iconDim = false;
     textAt(name, W() / 2, 84, F_MID, namec, top_center, F_TEXT, W() - 6);
-    bigValue(fmt(bar), false, W() / 2, 100, numc, 0);
-    textAt(String(unitName()) + (low && !edit ? "  LOW" : ""), W() / 2, 150, F_TEXT, low && !edit && !dead ? TFT_ORANGE : unitc, top_center);
+    bigValue(valS, false, W() / 2, 100, numc, 0);
+    textAt(unitS + (low && !edit ? "  LOW" : ""), W() / 2, 150, F_TEXT, low && !edit && !dead ? TFT_ORANGE : unitc, top_center);
     if (!edit) {
       canvas.fillRect(10, 169, W() - 20, 2, dead ? dim : dc);
       if (dead) {
@@ -933,8 +939,8 @@ void drawHours(bool confirm) {
   const uint32_t svc = settings.cmpSec - settings.svcSec;
   if (!confirm) {
     drawLines({ {"HOURS", F_TEXT, TFT_CYAN},
-                {"compressor " + hmm(settings.cmpSec), F_TEXT, TFT_WHITE},
-                {"since filter service " + hmm(svc), F_TEXT, filtersDue() ? TFT_ORANGE : TFT_WHITE, F_SMALL},
+                {"compressor total " + hmm(settings.cmpSec), F_TEXT, TFT_WHITE, F_SMALL},
+                {"since cleaning " + hmm(svc), F_TEXT, filtersDue() ? TFT_ORANGE : TFT_WHITE, F_SMALL},
                 {DEFLATE ? "valve " + hmm(settings.ventSec) : "", F_TEXT, TFT_WHITE} }, 0, H() - 18);
     drawHint("press: back  hold: filters cleaned");
   } else {
@@ -997,17 +1003,15 @@ void splash() {
     }
     // title fades in
     const uint8_t v = 255 * fade;
-    const uint16_t white = canvas.color565(v, v, v), amb = canvas.color565(255 * fade, 165 * fade, 0), gv = canvas.color565(110 * fade, 110 * fade, 110 * fade);
+    const uint16_t white = canvas.color565(v, v, v), amb = canvas.color565(255 * fade, 165 * fade, 0);
     canvas.setFont(&fonts::FreeSansBold18pt7b); canvas.setTextDatum(top_left);
     if (port) {
-      textAt("VOLKOV", w / 2, 30, &fonts::FreeSansBold18pt7b, white, top_center);
-      textAt("AIR", w / 2, 70, &fonts::FreeSansBold18pt7b, amb, top_center);
-      textAt(FW_VERSION, w / 2, 112, &fonts::Font2, gv, top_center);
+      textAt("VOLKOV", w / 2, 40, &fonts::FreeSansBold18pt7b, white, top_center);
+      textAt("AIR", w / 2, 80, &fonts::FreeSansBold18pt7b, amb, top_center);
     } else {
       const int tw = canvas.textWidth("VOLKOV "), aw = canvas.textWidth("AIR"), x0 = (w - tw - aw) / 2;
-      textAt("VOLKOV ", x0, 18, &fonts::FreeSansBold18pt7b, white, top_left);
-      textAt("AIR", x0 + tw, 18, &fonts::FreeSansBold18pt7b, amb, top_left);
-      textAt(FW_VERSION, w / 2, 58, &fonts::Font2, gv, top_center);
+      textAt("VOLKOV ", x0, 30, &fonts::FreeSansBold18pt7b, white, top_left);
+      textAt("AIR", x0 + tw, 30, &fonts::FreeSansBold18pt7b, amb, top_left);
     }
     canvas.pushSprite(0, 0);
     while (millis() - t0 < FRAME_MS) delay(1);
@@ -1051,6 +1055,7 @@ void loop() {
   M5.update();
   sensor.update();
   pump.update();
+  if (!pump.busy()) settings.useWheels(4);   // a CUSTOM run on fewer wheels is over: learning back to the 4-wheel volume
   cal.update();
   countHours();
   traceStep();
@@ -1083,8 +1088,8 @@ void loop() {
       else if (b == input::Btn::SHORT) {
         if (pump.state() == PState::DONE || pump.state() == PState::ERROR) pump.clearResult();
         else if (noAir) { disarm("NO_AIR"); beep(); }                  // CONNECT SYSTEM: nothing to start
-        else if (armed) { armed = false; pump.start(); }               // second press within ARM_MS: go
-        else if (settings.preset == P_CUSTOM) { customEdit = settings.custom; screen = Screen::CUSTOM; }   // check the value first
+        else if (armed) { armed = false; settings.useWheels(settings.preset == P_CUSTOM ? settings.wheels : 4); pump.start(); }               // second press within ARM_MS: go
+        else if (settings.preset == P_CUSTOM) { customEdit = settings.custom; customWheels = settings.wheels; customStep = 0; screen = Screen::CUSTOM; }   // check the value first
         else arm();
       }
       if (b == input::Btn::LONG && !pump.busy()) { disarm("LONG"); screen = Screen::MENU; menuPos = 0; }
@@ -1145,14 +1150,20 @@ void loop() {
 
     case Screen::CUSTOM:   // CUSTOM preset: turn 0.1 bar, press = save and arm, long = cancel
       updateNoAir();
-      if (steps) customEdit = roundf(constrain(customEdit + steps * TARGET_STEP, TARGET_MIN, TARGET_MAX) * 10) / 10.0f;
-      if (b == input::Btn::SHORT) {
-        settings.custom = settings.target = customEdit; settings.save();
-        wlog::ev("CUSTOM_SET", wlog::kv("custom", settings.custom, 2));
-        screen = Screen::MAIN;
-        arm();                                                         // then press again to start
+      if (customStep == 0) {   // pressure, 0.1 steps
+        if (steps) customEdit = roundf(constrain(customEdit + steps * TARGET_STEP, TARGET_MIN, TARGET_MAX) * 10) / 10.0f;
+        if (b == input::Btn::SHORT) customStep = 1;
+        if (b == input::Btn::LONG) screen = Screen::MAIN;
+      } else {                 // number of wheels on the line: the air volume and the learning scale with it
+        if (steps) customWheels = constrain((int)customWheels + steps, 1, 4);
+        if (b == input::Btn::SHORT) {
+          settings.custom = settings.target = customEdit; settings.wheels = customWheels; settings.save();
+          wlog::ev("CUSTOM_SET", wlog::kv("custom", settings.custom, 2) + wlog::kv("wheels", String(settings.wheels)));
+          screen = Screen::MAIN;
+          arm();                                                       // then press again to start
+        }
+        if (b == input::Btn::LONG) customStep = 0;
       }
-      if (b == input::Btn::LONG) screen = Screen::MAIN;
       if (screen == Screen::CUSTOM) drawCustom();
       break;
 

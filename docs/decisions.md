@@ -79,3 +79,8 @@
 ## 2026-11-19 Boot splash
 - VOLKOV AIR (AIR amber), version below, a generic SUV drives over two bumps; 1.6 s, a press skips it. No Jeep grille or logo. Mock-up: docs/screen/splash.gif. Outputs stay off during the splash.
 - Power off by switching AUX1 is fine: NVS and LittleFS survive a cut; mid-run the relays drop, the NC valve closes, only that run's hour-meter minutes and trace tail are lost.
+
+## 2026-11-19 CUSTOM wheel count, hours labels, splash
+- CUSTOM: after the pressure, a second step picks 1-4 wheels on the line. The run scales the learned values to that air volume (rate, kTop x4/n, tauD, c x n/4); NVS always keeps the 4-wheel values, so learning carries over and a power cut mid-run leaves nothing scaled. Main screen shows "CUSTOM  2 WHEELS" (portrait "CUSTOM x2") when below 4.
+- HOURS: "compressor total" and "since cleaning".
+- Splash: no firmware version.
