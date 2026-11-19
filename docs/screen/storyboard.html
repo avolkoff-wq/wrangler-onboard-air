@@ -1,0 +1,45 @@
+<title>DinMeter Screen Storyboard</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Inter:wght@400;500;600&display=swap">
+<style>
+:root{--bg:#eef0ec;--fg:#1d2321;--muted:#5d6763;--line:#cfd5d1;--card:#fff;--accent:#e8613a}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#141816;--fg:#e6ebe8;--muted:#98a39e;--line:#2c3330;--card:#1c211f;--accent:#ff7a50;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#141816;--fg:#e6ebe8;--muted:#98a39e;--line:#2c3330;--card:#1c211f;--accent:#ff7a50;color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font:15px/1.5 Inter,system-ui,sans-serif}
+.wrap{max-width:1180px;margin:0 auto;padding-block:28px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1{font:700 clamp(30px,5vw,44px)/1.05 "Barlow Condensed",system-ui,sans-serif;margin:0 0 6px}
+h2{font:700 26px/1.1 "Barlow Condensed",system-ui,sans-serif;margin:34px 0 6px;text-wrap:balance}
+p{max-width:72ch;margin:0 0 14px;color:var(--muted)}
+figure{margin:0 0 10px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px}
+figure img{display:block;width:100%;height:auto;border-radius:6px}
+figcaption{font-size:13px;color:var(--muted);margin-top:6px}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
+.two>*{min-width:0}
+b{color:var(--fg)}
+</style>
+<div class="wrap">
+<h1>DinMeter: экраны</h1>
+<p>Состояние на 19.11.2026, все прошивки. Макеты нарисованы скриптом в масштабе экрана 240×135; на настоящем DinMeter ещё не проверены.</p>
+
+<h2>Заставка</h2>
+<p>1,6 с после включения, нажатие пропускает. VOLKOV AIR, машинка переезжает кочки.</p>
+<div class="two">
+<figure><img src="splash.gif" alt="Заставка VOLKOV AIR, анимация"><figcaption>анимация</figcaption></figure>
+<figure><img src="splash_frames.png" alt="Три кадра заставки"><figcaption>кадры</figcaption></figure>
+</div>
+
+<h2>Режимы, работа, CUSTOM</h2>
+<p>Поворот ручки листает режимы. Строка <b>actual</b> показывает текущее давление и что будет: ▲ INFLATE, ▼ DEFLATE или = OK. При 0 bar всё серое и CONNECT SYSTEM. CUSTOM: шаг 1 давление по 0,1, шаг 2 число колёс 1-4. Во время работы фон янтарный (качает) или синий (спускает).</p>
+<figure><img src="final_landscape.png" alt="Экраны в горизонтальном положении"><figcaption>горизонтально</figcaption></figure>
+<figure><img src="final_portrait.png" alt="Экраны в вертикальном положении"><figcaption>вертикально</figcaption></figure>
+
+<h2>Направление на главном экране</h2>
+<div class="two">
+<figure><img src="idle_dir_landscape.png" alt="INFLATE, DEFLATE, OK горизонтально"><figcaption>горизонтально</figcaption></figure>
+<figure><img src="idle_dir_portrait.png" alt="INFLATE, DEFLATE, OK вертикально"><figcaption>вертикально</figcaption></figure>
+</div>
+
+<h2>Управление и меню</h2>
+<p>Старт в два нажатия за 3 с, удержание 2 с открывает меню, внизу каждого экрана подсказка.</p>
+<figure><img src="menu.png" alt="Схема управления и меню"><figcaption>схема меню</figcaption></figure>
+</div>

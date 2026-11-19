@@ -188,32 +188,37 @@ def tw(d, t, f):
     return d.textlength(t, font=f)
 
 
-def idle(name, bar, psi=False, edit=False, portrait=False):
+def idle(name, bar, psi=False, edit=False, portrait=False, wheels=None):
+    """wheels: CUSTOM second step, number of wheels on the line (1-4)"""
     W, H = (135, 240) if portrait else (240, 135)
     im = Image.new("RGB", (W, H)); d = ImageDraw.Draw(im)
     val = f"{bar * 14.5038:.0f}" if psi else f"{bar:.1f}"
     unit = "psi" if psi else "bar"
+    iname = name
+    if wheels:
+        val, unit = str(wheels), ("wheel" if wheels == 1 else "wheels")
+        name = name + (f" x{wheels}" if portrait else f"  {wheels} WHEEL" + ("" if wheels == 1 else "S"))
     low = bar < 0.8
     numc = CYAN if edit else GY
     namec = CYAN if edit else (ORANGE if low else WHITE)
     if not portrait:
-        icon(d, name, 6, 8, 112)                                    # 112 x 69
+        icon(d, iname, 6, 8, 112)                                    # 112 x 69
         fb = FB(50); d.text((W - 8 - tw(d, val, fb), 4), val, font=fb, fill=numc)
         fu = FB(14); d.text((W - 8 - tw(d, unit, fu), 60), unit, font=fu, fill=LGREY)
         fn = FB(20 if len(name) < 9 else 17)
         t = name + ("  LOW" if low and not edit else "")
         d.text(((W - tw(d, t, fn)) / 2, 86), t, font=fn, fill=namec)
-        h = "turn 0.1   press: OK + start" if edit else "press: start"
+        h = ("turn: wheels  press: OK" if wheels else "turn: 0.1  press: next") if edit else "press: start"
         fh = FS(12); d.text(((W - tw(d, h, fh)) / 2, 115), h, font=fh, fill=GREY)
     else:
-        icon(d, name, 6, 8, 123)                                    # 123 x 76
+        icon(d, iname, 6, 8, 123)                                    # 123 x 76
         fn = FB(17 if len(name) < 9 else 14)
         d.text(((W - tw(d, name, fn)) / 2, 92), name, font=fn, fill=namec)
         fb = FB(52); d.text(((W - tw(d, val, fb)) / 2, 116), val, font=fb, fill=numc)
         fu = FB(14); d.text(((W - tw(d, unit, fu)) / 2, 172), unit, font=fu, fill=LGREY)
         if low and not edit:
             fl = FB(14); d.text(((W - tw(d, "LOW", fl)) / 2, 192), "LOW", font=fl, fill=ORANGE)
-        h = "turn 0.1, press OK" if edit else "press: start"
+        h = ("turn: wheels, press OK" if wheels else "turn 0.1, press: next") if edit else "press: start"
         fh = FS(12); d.text(((W - tw(d, h, fh)) / 2, 218), h, font=fh, fill=GREY)
     return im
 
