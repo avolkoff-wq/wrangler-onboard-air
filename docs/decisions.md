@@ -85,3 +85,7 @@
 - HOURS: "compressor total" and "since cleaning".
 - Splash: no firmware version.
 - Silhouette: one shared generic 4-door off-roader for all icons and the splash (sim2.py SUV_* tables, firmware drawSuv): nose to the right, 3 side windows, rear spare, larger wheels with 6 hub holes in round arches. Drawn from scratch after the owner's reference picture, mirrored; no brand grille or logo.
+
+## 2026-11-19 Over-pressure
+- The owner has a 4 bar relief valve on the wheel line, so the firmware over-pressure stop is a second layer, not the only protection.
+- Supply-voltage monitor dropped: no divider resistors wanted, and the DinMeter only measures its own battery.
