@@ -439,13 +439,14 @@ def power_svg_iec_def():
     # All +12 V and ground splices (-X2, -X2a) are outside the box. Grove cables drawn as one line with the conductor count.
     o.append('<rect x="290" y="40" width="760" height="760" class="box"/>')
     lab(296, 34, "-A0  своя коробка 60×100×36", "d", "start")
-    T = {1: 90, 2: 120, 3: 150, 4: 180, 5: 230, 6: 260, 7: 470}
+    # -X1: grounds 1-2 at one end, +12 V 3-6, valve 7 at the other end. Every splice is outside the box.
+    T = {1: 90, 2: 120, 3: 150, 4: 180, 5: 230, 6: 260, 7: 290, 8: 470}
     G2 = 520                                   # -W2 Grove through the left gland
-    o.append(f'<rect x="270" y="{T[1]-16}" width="40" height="{T[6]-T[1]+32}" class="b"/>')
-    lab(264, T[1] - 22, "-X1", "d", "end"); lab(316, T[1] - 22, "ввод M12 правый: питание + клапан, 6 проводов", "c", "start")
-    o.append(f'<rect x="270" y="{T[7]-16}" width="40" height="{G2-T[7]+32}" class="b"/>')
-    lab(264, T[7] - 22, "-X5", "d", "end"); lab(316, G2 + 34, "ввод M12 левый: датчик + ARB", "c", "start")
-    for k in range(1, 8):
+    o.append(f'<rect x="270" y="{T[1]-16}" width="40" height="{T[7]-T[1]+32}" class="b"/>')
+    lab(264, T[1] - 22, "-X1", "d", "end"); lab(316, T[1] - 22, "ввод M12 правый: питание + клапан, 7 проводов", "c", "start")
+    o.append(f'<rect x="270" y="{T[8]-16}" width="40" height="{G2-T[8]+32}" class="b"/>')
+    lab(264, T[8] - 22, "-X5", "d", "end"); lab(316, G2 + 34, "ввод M12 левый: датчик + ARB", "c", "start")
+    for k in range(1, 9):
         y = T[k]
         o.append(f'<circle cx="270" cy="{y}" r="3" class="t"/><circle cx="310" cy="{y}" r="3" class="t"/>')
         lab(290, y + 4, str(k), "n")
@@ -454,18 +455,18 @@ def power_svg_iec_def():
     def cab(*pts, n, at, vertical, c="BK"):
         L(*pts, c=c, w=3); slash(*at, n, vertical)
 
-    # ---- outside ----
-    lab(20, T[1] + 4, "AUX1", "d", "start"); L((60, T[1]), (267, T[1]), c="RD")
-    fuse_h(110, T[1], "", ""); lab(110, T[1] + 24, "-F1 3 A", "d")
-    L((170, T[1]), (170, T[5]), (267, T[5]), c="RD"); L((170, T[2]), (267, T[2]), c="RD")
-    dot(170, T[1]); dot(170, T[2]); lab(160, T[1] - 10, "-X2", "c", "end")
-    for k in (1, 2, 5):
-        lab(262, T[k] - 6, "RD 0.5", "c", "end")
-    L((235, T[3]), (235, T[4] + 18), c="BK"); L((235, T[3]), (267, T[3]), c="BK"); L((235, T[4]), (267, T[4]), c="BK")
-    dot(235, T[3]); dot(235, T[4]); ground(235, T[4] + 18); lab(222, T[3] + 4, "-X2a", "c", "end"); lab(222, T[4] + 26, "масса 31", "c", "end")
-    lab(262, T[3] - 6, "BK", "c", "end"); lab(262, T[4] - 6, "BK", "c", "end")
+    # ---- outside: -X2a ground splice (2 wires), -X2 +12 V splice after -F1 (4 wires) ----
+    L((200, T[1]), (267, T[1]), c="BK"); L((235, T[1]), (235, T[2]), (267, T[2]), c="BK"); dot(235, T[1])
+    L((200, T[1]), (200, T[1] + 8), c="BK"); ground(200, T[1] + 8)
+    lab(186, T[1] + 4, "масса 31", "d", "end"); lab(242, T[2] - 8, "-X2a", "c", "start")
+    lab(262, T[1] - 6, "BK 0.5", "c", "end")
+    lab(20, T[3] + 4, "AUX1", "d", "start"); L((60, T[3]), (267, T[3]), c="RD")
+    fuse_h(110, T[3], "", ""); lab(110, T[3] + 24, "-F1 3 A", "d")
+    L((170, T[3]), (170, T[6]), (267, T[6]), c="RD"); L((170, T[4]), (267, T[4]), c="RD"); L((170, T[5]), (267, T[5]), c="RD")
+    dot(170, T[3]); dot(170, T[4]); dot(170, T[5]); lab(160, T[3] - 10, "-X2", "c", "end")
+    lab(262, T[3] - 6, "RD 0.5", "c", "end")
     # deflate valve -Y1 with its flyback diode -V3, ground at the manifold
-    VY = T[6]
+    VY = T[7]
     L((60, VY), (267, VY), c="OG"); lab(262, VY - 6, "OG 0.5", "c", "end")
     o.append(f'<rect x="20" y="{VY+20}" width="100" height="60" class="b"/>'); lab(26, VY + 14, "-Y1", "d", "start")
     lab(70, VY + 44, "клапан 2W040-10", "d"); lab(70, VY + 60, "12 В, NC, Ø4", "c")
@@ -474,7 +475,7 @@ def power_svg_iec_def():
     L((140, VY), (140, VY + 26), c="OG"); diode_v(140, VY + 44, "-V3"); L((140, VY + 52), (140, VY + 90), (90, VY + 90), c="BK"); dot(140, VY); dot(90, VY + 90)
     lab(160, VY + 76, "1N4007", "c", "start")
     # compressor -M1: AUX2 bypass diode -V2 and relay path diode -V1 meet at -X3 on the ARB violet wire
-    MY = T[7]
+    MY = T[8]
     lab(20, MY - 56, "AUX2", "d", "start"); L((60, MY - 60), (170, MY - 60), (170, MY), c="VT")
     diode_v(170, MY - 32, "-V2")
     comp(20, MY - 30, 100, 60, "-M1", "ARB CKMTA12", "")
@@ -490,40 +491,39 @@ def power_svg_iec_def():
         pinl(120, y, t, "r")
     o.append('<rect x="176" y="640" width="22" height="90" class="b"/>'); lab(187, 634, "-X6", "d"); lab(187, 748, "JWPF 3P", "c")
     L((123, S["+5V"]), (176, S["+5V"]), c="RD"); L((123, S["GND"]), (176, S["GND"]), c="BK"); L((123, S["OUT"]), (176, S["OUT"]), c="YE")
-    cab((281, G2), (240, G2), (240, S["GND"]), (201, S["GND"]), n=4, at=(240, 600), vertical=True, c="WH")
+    grove4([(281, G2), (240, G2), (240, S["GND"]), (201, S["GND"])], order=("BK", "RD", "YE"))
     lab(250, 700, "-W2 Grove 2 м", "c", "start"); lab(250, 714, "BK RD YE к датчику", "c", "start")
 
     # ---- inside ----
     comp(820, 70, 200, 130, "-A1", "M5Stack DinMeter", "12 В → 5 В")
-    pinl(820, T[1], "+12 V"); pinl(820, T[4], "GND")
-    L((313, T[1]), (817, T[1]), c="RD"); L((313, T[4]), (817, T[4]), c="BK")
+    pinl(820, T[1], "GND"); pinl(820, T[4], "+12 V"); pinl(820, 135, "G15")
+    L((313, T[1]), (817, T[1]), c="BK"); L((313, T[4]), (817, T[4]), c="RD")
     pinl(870, 200, "PORT.A"); pinl(970, 200, "PORT.B")
-    # -A3 voltage module, its own RD / BK from -X1 3 and 4 (spliced at -X2 / -X2a)
-    comp(600, 105, 120, 62, "-A3", "", ""); lab(640, 99, "модуль 0–25 В", "d", "start")
-    pinl(600, T[2], "VCC"); pinl(600, T[3], "GND"); pinl(660, 167, "S")
-    L((313, T[2]), (597, T[2]), c="RD"); L((313, T[3]), (597, T[3]), c="BK")
-    lab(730, 128, "делитель 1:5", "c", "start"); lab(730, 142, "14,4 В → 2,9 В", "c", "start")
-    # -W2 from PORT.A: white conductor (G15) split off at -X6a to -A3 S, BK RD YE (G13) on to the left gland
-    cab((870, 203), (870, G2), (313, G2), n=4, at=(870, 300), vertical=True, c="WH")
-    dot(870, 225); lab(860, 244, "-X6a: WH отрезана", "c", "end")
-    L((870, 225), (660, 225), (660, 170), c="WH", w=2.5); lab(668, 214, "WH G15", "c", "start")
-    lab(880, 470, "-W2: YE G13 = давление", "c", "start")
-    # -K1 Unit 2Relay, driven by -W1 from PORT.B (YE G2 = channel 1, WH G1 = channel 2)
-    o.append('<rect x="380" y="285" width="160" height="165" class="box"/>'); lab(460, 466, "-K1 Unit 2Relay, 2 × 8 A", "d")
-    o.append('<rect x="400" y="292" width="120" height="70" class="b"/><rect x="400" y="372" width="120" height="70" class="b"/>')
-    lab(478, 357, "реле 1 клапан", "c"); lab(478, 437, "реле 2 компр.", "c"); lab(528, 330, "-K1.1", "d", "start"); lab(528, 420, "-K1.2", "d", "start")
-    P2C, P2N, P1C, P1N = 305, 340, 385, 420
-    for yc, yn in ((P2C, P2N), (P1C, P1N)):
-        o.append(f'<line x1="403" y1="{yc}" x2="440" y2="{yc}" stroke="#111" stroke-width="2"/><line x1="440" y1="{yc}" x2="466" y2="{yn-10}" stroke="#111" stroke-width="2"/>'
-                 f'<line x1="403" y1="{yn}" x2="472" y2="{yn}" stroke="#111" stroke-width="2"/>')
-        o.append(f'<circle cx="400" cy="{yc}" r="3" class="t"/><circle cx="400" cy="{yn}" r="3" class="t"/>')
-        lab(408, yc - 4, "A", "n", "start"); lab(408, yn - 4, "B", "n", "start")
-    L((313, T[5]), (385, T[5]), (385, P2C), (397, P2C), c="RD")
-    L((385, P2C), (385, P1C), (397, P1C), c="RD", w=2); dot(385, P2C); 
-    L((313, T[6]), (365, T[6]), (365, P2N), (397, P2N), c="OG")
-    L((313, T[7]), (370, T[7]), (370, P1N), (397, P1N), c="VT")
-    cab((970, 203), (970, 395), (523, 395), n=4, at=(700, 395), vertical=False, c="WH")
-    o.append('<circle cx="520" cy="395" r="3" class="t"/>'); lab(700, 414, "-W1 Grove 5 см: WH G1 → реле 1, YE G2 → реле 2", "c")
+    # -A3 voltage module: own BK / RD from -X1 2 and 3, output S on G15 (the white conductor of -W2, cut off in the box at -X6a)
+    comp(560, 105, 120, 62, "-A3", "", ""); lab(652, 124, "модуль 0–25 В", "c")
+    pinl(560, T[2], "GND"); pinl(560, T[3], "VCC"); pinl(680, 135, "S", "r")
+    L((313, T[2]), (557, T[2]), c="BK"); L((313, T[3]), (557, T[3]), c="RD")
+    L((683, 135), (817, 135), c="WH", w=2.5); lab(750, 129, "WH, -X6a", "c")
+    lab(620, 198, "делитель 1:5, 14,4 В → 2,9 В на G15", "c")
+    # -W2 from PORT.A: BK RD YE (G13) to the sensor through the left gland
+    grove4([(870, 203), (870, G2), (313, G2)], order=("BK", "RD", "YE"))
+    lab(880, 470, "-W2: BK RD YE, YE G13 = давление", "c", "start")
+    lab(880, 486, "белая жила (G15) отрезана в коробке", "c", "start")
+    # -K1 Unit 2Relay, contacts drawn detached: relay 1 (valve) inside, relay 2 (compressor) around it.
+    # Each relay A gets its own +12 V wire from -X2 outside the box, no jumper inside.
+    o.append('<rect x="380" y="212" width="160" height="134" class="box"/>'); lab(460, 362, "-K1 Unit 2Relay, 2 × 8 A", "d")
+    A2, A1, B1, B2 = T[5], T[6], T[7], 330
+    for y, t in ((A2, "A2"), (A1, "A1"), (B1, "B1"), (B2, "B2")):
+        o.append(f'<circle cx="400" cy="{y}" r="3" class="t"/>'); lab(408, y - 4, t, "n", "start")
+    o.append(f'<line x1="403" y1="{A1}" x2="432" y2="{A1}" stroke="#111" stroke-width="2"/><line x1="432" y1="{A1}" x2="452" y2="{B1-10}" stroke="#111" stroke-width="2"/>'
+             f'<line x1="403" y1="{B1}" x2="458" y2="{B1}" stroke="#111" stroke-width="2"/><line x1="458" y1="{B1}" x2="458" y2="{B1-8}" stroke="#111" stroke-width="2"/>')
+    o.append(f'<line x1="403" y1="{A2}" x2="478" y2="{A2}" stroke="#111" stroke-width="2"/><line x1="478" y1="{A2}" x2="500" y2="{A2+20}" stroke="#111" stroke-width="2"/>'
+             f'<line x1="403" y1="{B2}" x2="506" y2="{B2}" stroke="#111" stroke-width="2"/><line x1="506" y1="{B2}" x2="506" y2="{A2+22}" stroke="#111" stroke-width="2"/>')
+    lab(548, 262, "-K1.1 реле 1: клапан", "c", "start"); lab(548, 330, "-K1.2 реле 2: компрессор", "c", "start")
+    L((313, A2), (397, A2), c="RD"); L((313, A1), (397, A1), c="RD"); L((313, B1), (397, B1), c="OG")
+    L((397, B2), (340, B2), (340, T[8]), (313, T[8]), c="VT")
+    grove4([(970, 203), (970, 300), (543, 300)])
+    o.append('<circle cx="540" cy="300" r="3" class="t"/>'); lab(720, 284, "-W1 Grove 5 см: WH G1 → реле 1, YE G2 → реле 2", "c")
 
     # title block
     o.append('<rect x="650" y="845" width="400" height="44" class="b"/>')

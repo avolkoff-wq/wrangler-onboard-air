@@ -98,7 +98,9 @@ if not L.REL_ACROSS and L.TAG != "cust_adc":
           "violet", "2Relay relay 2 B (compressor)", "left gland, on to V1 and the ARB violet wire (-X3)")
         w("relay_K2_NO_to_valve", [N1, (N1[0], N1[1], 21.5), (4.0, N1[1], 21.5), (px - 3.0, -38.0, 19.0),
                                    (px - 2.5, YIN, pz + 1.5), (px - 2.5, YOUT, pz + 1.5)], "orange", "2Relay relay 1 B (valve)", "right gland, to the deflate valve -Y1 (+)")
-        w("jumper_COM1_COM2", [C2, (C2[0], C2[1], 23.0), (C1[0], C1[1], 23.0), C1], "red", "2Relay relay 2 A", "2Relay relay 1 A")
+        # relay 1 A has its own +12 V wire from the splice -X2 outside the box (no jumper inside)
+        w("12V_to_relay1_A", [(px - 4.0, YOUT, pz), (px - 4.0, YIN, pz), (6.0, -34.0, 27.0), (C1[0], -26.0, 29.0), (C1[0], C1[1], 24.0), C1],
+          "red", "right gland (-X2)", "2Relay relay 1 A")
     else:
         # violet: relay NO straight down into the left gland, beside the Grove
         vx = sx - 3.6

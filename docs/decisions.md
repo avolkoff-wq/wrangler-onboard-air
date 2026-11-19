@@ -115,3 +115,5 @@
 - Same firmware pins: compressor on G2 (yellow) = relay 2, valve on G1 (white) = relay 1. Wiring: +12 V to A of relay 2, jumper A2 -> A1; B2 violet to the ARB, B1 orange to the valve. C pins unused.
 - The relay bodies are about as wide as the module, so the left gland at x -12 would sit right behind relay 1. Glands moved to x -2 (sensor + ARB) and x +17.5 (power + valve); 2Relay back at the gland end (y -42). Printed box exported again (box_cust_adc_body/lid .stl/.step).
 - Schematic C redrawn with the entries grouped exactly as they pass the glands: -X1 right gland 1-6 (RD DinMeter, RD module, BK module, BK DinMeter, RD relay 2 A, OG valve), -X5 left gland 7 (VT) + -W2 Grove.
+- Same day, owner: no splice inside the box at all. Relay 1 A gets its own red wire from -X2 (no A2-A1 jumper). -X1 order: 1-2 grounds (DinMeter, module), 3-6 +12 V (module, DinMeter, relay 2 A, relay 1 A), 7 output OG to the valve; -X5: 8 output VT to the ARB plus the Grove to the sensor. Right gland now 7 wires (hex bundle ~5.3 mm, same as 6) in the 9.5 mm adhesive heat-shrink jacket.
+- -X2 splice outside: AUX1 after -F1 into 4 wires; -X2a: ground into 2 wires.
