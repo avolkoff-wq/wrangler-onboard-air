@@ -36,15 +36,28 @@ struct Settings {
   // hour meter: compressor (K1) and valve (K4) seconds, compressor seconds at the last filter service (menu HOURS)
   uint32_t cmpSec = 0, ventSec = 0, svcSec = 0;
   float svcHours() const { return (cmpSec - svcSec) / 3600.0f; }
-  // CUSTOM can run on fewer wheels (spare, one wheel after a repair): wheels is saved, wk = active wheels / 4 is
-  // runtime only. While wk != 1 the learned values in RAM are scaled to that air volume, save() always writes them
-  // back for 4 wheels, so a power cut mid-run never leaves scaled learning behind.
+  // CUSTOM can run on fewer wheels (spare, one wheel after a repair): wheels is saved, wk = active wheels / 4 is runtime only.
+  // For such a run the 4-wheel learning is put aside (L4), the RAM values are scaled to that run, the run may correct them
+  // for itself, and at the end L4 comes back unchanged: save() always writes L4 while wk != 1, so a 1-wheel run never
+  // teaches the 4-wheel values and a power cut mid-run leaves nothing scaled behind.
+  // Scaling: inflate is compressor-limited, rise rate ~ 1/n. Deflate goes through n valve cores in parallel and then the one
+  // vent valve in series, so tau(n) / tau(4) = (n / 4) * S(4) / S(n), S(n) = series(n * core, valve) (config.h).
   uint8_t wheels = 4;             // CUSTOM wheel count, 1..4
   float wk = 1.0f;
+  struct Learn { float offset, c, rate, kTop, bias, dev, tauD; bool learned, topLearned, learnedD; } L4{};
+  Learn learnNow() const { return {offset, c, rate, kTop, bias, dev, tauD, learned, topLearned, learnedD}; }
+  void learnSet(const Learn& l) {
+    offset = l.offset; c = l.c; rate = l.rate; kTop = l.kTop; bias = l.bias; dev = l.dev; tauD = l.tauD;
+    learned = l.learned; topLearned = l.topLearned; learnedD = l.learnedD;
+  }
   void useWheels(uint8_t n) {
-    const float k = constrain((int)n, 1, 4) / 4.0f, r = k / wk;
-    if (fabsf(r - 1) < 1e-4f) return;
-    rate /= r; kTop /= r; tauD *= r; c *= r; wk = k;
+    const float k = constrain((int)n, 1, 4) / 4.0f;
+    if (fabsf(k - wk) < 1e-4f) return;
+    if (wk != 1.0f) learnSet(L4);                      // back to the 4-wheel values first
+    wk = k;
+    if (k == 1.0f) return;
+    L4 = learnNow();
+    rate /= k; kTop /= k; c *= k; tauD *= tauWheels(constrain((int)n, 1, 4));
   }
   float airL() const { return airVL(tyre) * wk; }
   float presetBar(int i) const { return i == P_CUSTOM ? custom : PRESETS[i].bar; }
@@ -85,6 +98,7 @@ struct Settings {
   }
   void save() const {
     Preferences p; p.begin("air", false);
+    const Learn w = wk != 1.0f ? L4 : learnNow();
     p.putUChar("preset", preset);
     p.putFloat("custom", custom);
     p.putFloat("target", target);
@@ -92,21 +106,21 @@ struct Settings {
     p.putUChar("rot", rot);
     p.putBool ("offAuto", offAuto);
     p.putFloat("offMan", offManual);
-    p.putFloat("offset", offset);
-    p.putFloat("c", c / wk);
+    p.putFloat("offset", w.offset);
+    p.putFloat("c", w.c);
     p.putBool ("setAuto", settleAuto);
     p.putFloat("setMan", settleManual);
     p.putFloat("setLrn", settleLearn);
-    p.putFloat("rate", rate * wk);    // stored for 4 wheels (see useWheels)
-    p.putFloat("kTop", kTop * wk);
-    p.putFloat("bias", bias);
-    p.putFloat("dev", dev);
-    p.putBool ("learned", learned);
-    p.putBool ("topL", topLearned);
+    p.putFloat("rate", w.rate);      // always the 4-wheel values (see useWheels)
+    p.putFloat("kTop", w.kTop);
+    p.putFloat("bias", w.bias);
+    p.putFloat("dev", w.dev);
+    p.putBool ("learned", w.learned);
+    p.putBool ("topL", w.topLearned);
     p.putFloat("calA", calA);
     p.putFloat("calB", calB);
-    p.putFloat("tauD", tauD / wk);
-    p.putBool ("lrnD", learnedD);
+    p.putFloat("tauD", w.tauD);
+    p.putBool ("lrnD", w.learnedD);
     p.putUInt ("boot", bootN);
     p.putUChar("tyre", tyre);
     p.putUChar("wheels", wheels);

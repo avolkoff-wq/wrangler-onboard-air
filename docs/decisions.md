@@ -95,3 +95,17 @@
 - Taken instead: a ready 0-25 V voltage module (30k / 7.5k divider on the board, 1:5), flat on the floor in the free right half of the cust_def box on 3M VHB. VCC and GND by jumpers from the DinMeter terminal, output S on G15 = the white conductor of the PORT.A Grove (cut inside the box, solder-seal splice -X6a; the white wire is unused at the sensor). 14.4 V gives 2.9 V on G15.
 - G15 is ADC2 like G13: not readable while Wi-Fi is on. Firmware use (voltage on screen, ENGINE OFF? below ~12.8 V, log and run graphs) to be added.
 - Change the same day (owner): every +12 V and ground splice is made outside the box at -X2 / -X2a, ready wires go into the box. Right gland now carries 6 wires (BK DinMeter, BK module, RD DinMeter, RD relay COM, RD module, OG valve), ~5.3 mm bundle; a 9.5 mm 3:1 adhesive heat-shrink jacket over the bundle at the gland makes it round so the M12 (3-6.5 mm) seals.
+
+## 2026-11-19 Deflate flow check: is the vent valve the bottleneck?
+- Path: 4 valve cores with chucks in parallel, then hoses, tee, manifold, 1/8 x 3/8 nipple, valve 2W040-10 (4 mm), muffler. Isentropic orifice model, choked and subsonic, 4 x 255/75R17 = 210 L:
+
+| core, each | valve chain (valve + nipple + muffler) | total | valve chain slows by | 2.5 -> 1.2 | 2.5 -> 0.8 | 2.5 -> 0.5 bar |
+|---|---|---|---|---|---|---|
+| 1.0 mm2 | 7.1 mm2 | 3.5 mm2 | 13 % | 140 s | 201 s | 256 s |
+| 2.0 mm2 | 7.1 mm2 | 5.3 mm2 | 33 % | 92 s | 131 s | 168 s |
+| 2.0 mm2 | 4.0 mm2 (valve Cv 0.23) | 3.6 mm2 | 56 % | 137 s | 197 s | 251 s |
+
+- Conclusion: the 4 cores are the main restriction; the valve chain adds 13-33 % with the expected valve, up to ~56 % if the seller's Cv 0.23 is true. Not a blocker: deflate takes 2-4 min, and tau is learned on the real system.
+- The exponential choked model stays within 1 % of the full model down to 0.5 bar (subsonic only at the very end).
+- Bug fixed: a CUSTOM run on fewer wheels scaled tau by n/4 (valve-limited assumption). With cores in parallel tau(1 wheel) is ~0.69 x tau(4), not 0.25 x. Now tauWheels(n) from the core/valve split, and such a run never writes its learning: the 4-wheel values are set aside and restored after the run.
+- Field check (bench step 5 and 6): LEARN DEFLATE on 1 wheel and on 4 wheels. tau4 / tau1 near 1.4 = cores dominate as assumed; near 4 = the valve dominates.

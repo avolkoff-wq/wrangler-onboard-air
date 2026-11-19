@@ -134,7 +134,12 @@ constexpr float inflRate(float p, float vL) { return (ARB_Q0_LPM + (ARB_Q2_LPM -
 // Deflate: 4 valve cores in parallel and the 4 mm valve in series, choked flow -> p_abs(t) = p_abs0 * exp(-t / tau)
 constexpr float DEFL_AREA_MM2 = 5.9f;                      // effective flow area (cores ~8 mm2 with the valve ~8.8 mm2 in series)
 constexpr float tauModel(float vL) { return (vL / 1000) / (0.0404f * DEFL_AREA_MM2 * 1e-6f * 287 * 17.12f); }   // s
-constexpr float TAU_D_DEFAULT = tauModel(AIR_V_L);         // ~170 s for 4 x 255/75R17
+constexpr float TAU_D_DEFAULT = tauModel(AIR_V_L);
+// split of that area for fewer wheels (CUSTOM): one valve core with the chuck ~2 mm2, vent valve + nipple + muffler ~7 mm2,
+// both assumptions (valve Cv from 0.23 to 0.6 in seller tables). Only the ratio is used: tau(n) / tau(4).
+constexpr float DEFL_CORE_MM2 = 2.0f, DEFL_VALVE_MM2 = 7.1f;
+inline float defSeries(float a, float b) { return 1.0f / sqrtf(1.0f / (a * a) + 1.0f / (b * b)); }
+inline float tauWheels(int n) { return (n / 4.0f) * defSeries(4 * DEFL_CORE_MM2, DEFL_VALVE_MM2) / defSeries(n * DEFL_CORE_MM2, DEFL_VALVE_MM2); }         // ~170 s for 4 x 255/75R17
 constexpr float VENT_FIRST_FRAC = 0.6f;    // first vent before anything is learned: only 60 % of the drop
 constexpr float VENT_MIN_S    = 0.3f;
 constexpr float VENT_MAX_S    = 90.0f;     // one valve opening never longer than this
