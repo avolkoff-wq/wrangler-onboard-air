@@ -11,21 +11,38 @@ ORANGE, SKY, CYAN, GY, SANDC, ROCKC = (255, 165, 0), (135, 206, 235), (0, 255, 2
 PRESETS = [("HIGHWAY", 2.5), ("ROUGH ROAD", 1.8), ("GRAVEL", 1.5), ("TRAIL", 1.2), ("ROCK", 1.0), ("SAND", 0.8), ("RECOVERY", 0.5), ("CUSTOM", 2.0)]
 
 
+# shared silhouette spec (firmware drawSuv() mirrors it): generic boxy 4-door off-roader, nose to the right,
+# 3 side windows, rear spare, large wheels in round arches. Units: wheels at x 4 / 29, r 6.2, centre 5.6 above ground.
+SUV_BODY = [[(-4, 6), (37, 6), (37, 14), (26, 15), (-4, 15)],      # lower body, hood falls to the nose
+            [(-3, 15), (26, 15), (21.5, 23.5), (-3, 23.5)],         # cabin, raked windscreen
+            [(36, 4.5), (39, 4.5), (39, 8), (36, 8)],               # front bumper
+            [(-6.5, 8.5), (-4, 8.5), (-4, 17.5), (-6.5, 17.5)]]     # spare wheel on the tailgate
+SUV_WIN = [[(-1.5, 16.5), (5.5, 16.5), (5.5, 22), (-1.5, 22)],
+           [(7, 16.5), (13, 16.5), (13, 22), (7, 22)],
+           [(14.5, 16.5), (23.4, 16.5), (20.6, 22), (14.5, 22)]]
+SUV_WHEELS, SUV_R, SUV_WY, SUV_ARCH, SUV_K = (4, 29), 6.2, 5.6, 7.5, 0.86
+
+
 def suv(d, x, y, s, ang=0.0, sink=0.0):
-    """filled boxy SUV side view, 40 x 22 units, (x, y) = rear wheel ground contact, s = px per unit"""
+    """filled boxy 4-door SUV side view, 46 x 24 units x SUV_K, (x, y) = ground under the rear wheel, s = px per unit"""
     a = math.radians(ang)
+    s = s * SUV_K                    # same footprint as the old 40 x 20 icon
     def R(px, py):
         return (x + s * (px * math.cos(a) + py * math.sin(a)), y - s * (-px * math.sin(a) + py * math.cos(a)))
-    body = [(-4, 3), (36, 3), (36, 11), (31, 12), (27, 20), (4, 20), (2, 12), (-4, 12)]
-    d.polygon([R(*p) for p in body], fill=WHITE)
-    for win in ([(5, 13), (14, 13), (14, 18), (6, 18)], [(16, 13), (26, 13), (24.5, 18), (16, 18)]):
-        d.polygon([R(*p) for p in win], fill=(0, 0, 0))
-    d.polygon([R(*p) for p in [(-6, 6), (-4, 6), (-4, 11), (-6, 11)]], fill=WHITE)   # spare wheel hint
-    for wx in (4, 28):
-        cx, cy = R(wx, 4.5 - sink)
-        r = 5.2 * s
-        d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=(0, 0, 0), outline=WHITE, width=max(1, int(s * 1.6)))
-        d.ellipse([cx - r * .35, cy - r * .35, cx + r * .35, cy + r * .35], fill=WHITE)
+    for q in SUV_BODY:
+        d.polygon([R(*p) for p in q], fill=WHITE)
+    for q in SUV_WIN:
+        d.polygon([R(*p) for p in q], fill=(0, 0, 0))
+    for wx in SUV_WHEELS:
+        cx, cy = R(wx, SUV_WY - sink)
+        ra, r = SUV_ARCH * s, SUV_R * s
+        d.ellipse([cx - ra, cy - ra, cx + ra, cy + ra], fill=(0, 0, 0))          # wheel arch
+        d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=WHITE)
+        dr, rr = r * 0.55, max(0.8, r * 0.13)
+        for k in range(6):                                                      # hub holes
+            t = math.radians(k * 60 + 30 + ang)
+            hx, hy = cx + dr * math.cos(t), cy + dr * math.sin(t)
+            d.ellipse([hx - rr, hy - rr, hx + rr, hy + rr], fill=(0, 0, 0))
 
 
 TREE, CACT, SUN, MOUNT, CONE = (40, 125, 60), (70, 160, 80), (255, 200, 40), (105, 118, 140), (255, 120, 0)

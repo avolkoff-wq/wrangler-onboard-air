@@ -84,3 +84,4 @@
 - CUSTOM: after the pressure, a second step picks 1-4 wheels on the line. The run scales the learned values to that air volume (rate, kTop x4/n, tauD, c x n/4); NVS always keeps the 4-wheel values, so learning carries over and a power cut mid-run leaves nothing scaled. Main screen shows "CUSTOM  2 WHEELS" (portrait "CUSTOM x2") when below 4.
 - HOURS: "compressor total" and "since cleaning".
 - Splash: no firmware version.
+- Silhouette: one shared generic 4-door off-roader for all icons and the splash (sim2.py SUV_* tables, firmware drawSuv): nose to the right, 3 side windows, rear spare, larger wheels with 6 hub holes in round arches. Drawn from scratch after the owner's reference picture, mirrored; no brand grille or logo.

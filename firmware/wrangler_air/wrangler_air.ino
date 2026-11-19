@@ -188,27 +188,36 @@ void fillConvex(const float (*p)[2], int n, uint16_t c) {
     canvas.fillTriangle(lroundf(p[0][0]), lroundf(p[0][1]), lroundf(p[i][0]), lroundf(p[i][1]), lroundf(p[i + 1][0]), lroundf(p[i + 1][1]), c);
 }
 
-// filled boxy SUV side view, 40 x 22 units, (x, y) = rear wheel ground contact, s = px per unit, ang in degrees (negative = nose up)
-void drawSuv(float x, float y, float s, float ang = 0) {
+// filled boxy 4-door SUV side view, nose to the right (spec: docs/screen/sim2.py suv(), SUV_* tables), 46 x 24 units
+// x SUV_K; (x, y) = ground under the rear wheel, s = px per unit, ang in degrees (negative = nose up)
+constexpr float SUV_K = 0.86f, SUV_R = 6.2f, SUV_WY = 5.6f, SUV_ARCH = 7.5f, SUV_WX[2] = {4, 29};
+void drawSuv(float x, float y, float s, float ang = 0, float sink = 0) {
+  s *= SUV_K;
   const float a = ang * DEG_TO_RAD, ca = cosf(a), sa = sinf(a);
   auto R = [&](float px, float py, float* o) { o[0] = x + s * (px * ca + py * sa); o[1] = y - s * (-px * sa + py * ca); };
   auto poly = [&](const float (*u)[2], int n, uint16_t c) {
     float p[8][2]; for (int i = 0; i < n; i++) R(u[i][0], u[i][1], p[i]); fillConvex(p, n, c);
   };
-  static const float lower[][2] = { {-4,3}, {36,3}, {36,11}, {31,12}, {2,12}, {-4,12} };   // body, split into convex parts
-  static const float cabin[][2] = { {2,12}, {31,12}, {27,20}, {4,20} };
-  static const float win1[][2]  = { {5,13}, {14,13}, {14,18}, {6,18} };
-  static const float win2[][2]  = { {16,13}, {26,13}, {24.5f,18}, {16,18} };
-  static const float spare[][2] = { {-6,6}, {-4,6}, {-4,11}, {-6,11} };
-  poly(lower, 6, ic(255, 255, 255)); poly(cabin, 4, ic(255, 255, 255));
-  poly(win1, 4, TFT_BLACK); poly(win2, 4, TFT_BLACK); poly(spare, 4, ic(255, 255, 255));
-  const float r = 5.2f * s; const int rim = max(1, (int)(s * 1.6f));
-  for (float wx : {4.0f, 28.0f}) {
-    float c[2]; R(wx, 4.5f, c);
-    const int cx = lroundf(c[0]), cy = lroundf(c[1]);
-    canvas.fillCircle(cx, cy, lroundf(r), ic(255, 255, 255));
-    canvas.fillCircle(cx, cy, max(1L, lroundf(r) - rim), TFT_BLACK);
-    canvas.fillCircle(cx, cy, max(1L, lroundf(r * 0.35f)), ic(255, 255, 255));
+  static const float lower[][2]  = { {-4,6}, {37,6}, {37,14}, {26,15}, {-4,15} };            // hood falls to the nose
+  static const float cabin[][2]  = { {-3,15}, {26,15}, {21.5f,23.5f}, {-3,23.5f} };         // raked windscreen
+  static const float bumper[][2] = { {36,4.5f}, {39,4.5f}, {39,8}, {36,8} };
+  static const float spare[][2]  = { {-6.5f,8.5f}, {-4,8.5f}, {-4,17.5f}, {-6.5f,17.5f} };
+  static const float win1[][2]   = { {-1.5f,16.5f}, {5.5f,16.5f}, {5.5f,22}, {-1.5f,22} };
+  static const float win2[][2]   = { {7,16.5f}, {13,16.5f}, {13,22}, {7,22} };
+  static const float win3[][2]   = { {14.5f,16.5f}, {23.4f,16.5f}, {20.6f,22}, {14.5f,22} };
+  const uint16_t wh = ic(255, 255, 255);
+  poly(lower, 5, wh); poly(cabin, 4, wh); poly(bumper, 4, wh); poly(spare, 4, wh);
+  poly(win1, 4, TFT_BLACK); poly(win2, 4, TFT_BLACK); poly(win3, 4, TFT_BLACK);
+  for (float wx : SUV_WX) {
+    float c[2]; R(wx, SUV_WY - sink, c);
+    const float r = SUV_R * s;
+    canvas.fillCircle(lroundf(c[0]), lroundf(c[1]), lroundf(SUV_ARCH * s), TFT_BLACK);   // wheel arch
+    canvas.fillCircle(lroundf(c[0]), lroundf(c[1]), lroundf(r), wh);
+    const float dr = r * 0.55f; const int rr = max(1L, lroundf(r * 0.13f));
+    for (int k = 0; k < 6; k++) {                                                      // hub holes
+      const float t = (k * 60 + 30 + ang) * DEG_TO_RAD;
+      canvas.fillCircle(lroundf(c[0] + dr * cosf(t)), lroundf(c[1] + dr * sinf(t)), rr, TFT_BLACK);
+    }
   }
 }
 
@@ -987,20 +996,12 @@ void splash() {
     canvas.fillSprite(TFT_BLACK);
     for (int x = 0; x < w - 1; x++) canvas.drawLine(x, splashGround(x, g, k), x + 1, splashGround(x + 1, g, k), grey);
     for (int x = 4; x < w; x += 11) canvas.drawPixel(x, splashGround(x, g, k) + 4, grey);
-    // SUV: wheels sit on the track, the body follows the line through both axles
-    const float xr = (-40 + t * 300) * k, wb = 26, yr = splashGround(xr, g, k) - 5, yf = splashGround(xr + wb, g, k) - 5;
-    const float a = atan2f(yf - yr, wb), ca = cosf(a), sa = sinf(a);
-    auto P = [&](float px, float py, int& ox, int& oy) { ox = lroundf(xr + px * ca + py * sa); oy = lroundf(yr + px * sa - py * ca); };
-    const float body[][2] = {{-7, 2}, {33, 2}, {33, 10}, {27, 10}, {23, 18}, {1, 18}, {-1, 10}, {-7, 10}};
-    for (int j = 0; j < 8; j++) {
-      int x0, y0, x1, y1; P(body[j][0], body[j][1], x0, y0); P(body[(j + 1) % 8][0], body[(j + 1) % 8][1], x1, y1);
-      canvas.drawLine(x0, y0, x1, y1, TFT_WHITE);
-    }
-    { int x0, y0, x1, y1; P(11, 10, x0, y0); P(11, 17, x1, y1); canvas.drawLine(x0, y0, x1, y1, TFT_WHITE); }
-    for (float wx : {xr, xr + wb}) {
-      const float wy = (wx == xr) ? yr : yf;
-      canvas.fillCircle(wx, wy, 5, TFT_BLACK); canvas.drawCircle(wx, wy, 5, TFT_WHITE); canvas.drawPixel(wx, wy, TFT_WHITE);
-    }
+    // SUV: both wheels on the track, the body pitched along the line through them
+    constexpr float SS = 1.4f;                                         // px per unit
+    const float wb = (SUV_WX[1] - SUV_WX[0]) * SUV_K * SS, xw = (-40 + t * 300) * k;
+    const float yr = splashGround(xw, g, k), yf = splashGround(xw + wb, g, k), a = atan2f(yf - yr, wb);
+    const float back = SUV_WX[0] * SUV_K * SS;
+    drawSuv(xw - back * cosf(a), yr - back * sinf(a), SS, a * RAD_TO_DEG);
     // title fades in
     const uint8_t v = 255 * fade;
     const uint16_t white = canvas.color565(v, v, v), amb = canvas.color565(255 * fade, 165 * fade, 0);

@@ -15,22 +15,19 @@ def ground(x):
     return GROUND - 12 * math.exp(-((x - 95) / 10) ** 2) - 9 * math.exp(-((x - 165) / 8) ** 2) + 3 * math.exp(-((x - 200) / 6) ** 2)
 
 
-def suv(d, xr):
-    """generic SUV, 40 long; xr = rear wheel x. wheels sit on the ground, body follows their line"""
-    wb = 26
-    xf = xr + wb
-    yr, yf = ground(xr) - 5, ground(xf) - 5
+import importlib.util, sys
+_spec = importlib.util.spec_from_file_location("sim2", __file__.replace("splash_mockup.py", "sim2.py"))
+_m = importlib.util.module_from_spec(_spec); _argv = sys.argv; sys.argv = ["x"]; _spec.loader.exec_module(_m); sys.argv = _argv
+SS = 1.4
+
+
+def suv(d, xw):
+    """the shared silhouette (sim2.suv); xw = rear wheel x, both wheels on the track, body pitched along them"""
+    wb = (_m.SUV_WHEELS[1] - _m.SUV_WHEELS[0]) * _m.SUV_K * SS
+    yr, yf = ground(xw), ground(xw + wb)
     a = math.atan2(yf - yr, wb)
-    ca, sa = math.cos(a), math.sin(a)
-    def P(px, py):          # body coords: x along the wheelbase from the rear axle, y up from the axles
-        return (xr + px * ca + py * sa, yr + px * sa - py * ca)
-    body = [(-7, 2), (33, 2), (33, 10), (27, 10), (23, 18), (1, 18), (-1, 10), (-7, 10)]
-    d.polygon([P(*p) for p in body], outline=WHITE)
-    d.line([P(11, 10), P(11, 17)], fill=WHITE)
-    d.line([P(-7, 7), P(-9, 7)], fill=WHITE)                      # spare wheel bump
-    for x, y in ((xr, yr), (xf, yf)):
-        d.ellipse([x - 5, y - 5, x + 5, y + 5], outline=WHITE, fill=(0, 0, 0))
-        d.point((x, y), fill=WHITE)
+    back = _m.SUV_WHEELS[0] * _m.SUV_K * SS
+    _m.suv(d, xw - back * math.cos(a), yr - back * math.sin(a), SS, ang=math.degrees(a))
 
 
 frames = []
@@ -47,12 +44,13 @@ for i in range(N):
     tw = d.textlength("VOLKOV", font=f_big)
     aw = d.textlength(" AIR", font=f_big)
     x0 = (W - tw - aw) / 2
-    d.text((x0, 22), "VOLKOV", font=f_big, fill=c)
-    d.text((x0 + tw, 22), " AIR", font=f_big, fill=tuple(int(v * k) for v in AMBER))
-    d.text((W / 2 - d.textlength("0.4.0", font=f_sm) / 2, 60), "0.4.0", font=f_sm, fill=tuple(int(v * k) for v in GREY))
+    d.text((x0, 30), "VOLKOV", font=f_big, fill=c)
+    d.text((x0 + tw, 30), " AIR", font=f_big, fill=tuple(int(v * k) for v in AMBER))
     frames.append(im.resize((W * K, H * K), Image.NEAREST))
 frames += [frames[-1]] * 8
 frames[0].save("splash.gif", save_all=True, append_images=frames[1:], duration=1000 // FPS, loop=0)
-for i in (14, 18, 27):
-    frames[i].save(f"splash_{i}.png")
+sheet = Image.new("RGB", (W * K, (H * K + 4) * 3), (60, 60, 60))
+for j, i in enumerate((14, 18, 27)):
+    sheet.paste(frames[i], (0, j * (H * K + 4)))
+sheet.save("splash_frames.png")
 print("ok")
