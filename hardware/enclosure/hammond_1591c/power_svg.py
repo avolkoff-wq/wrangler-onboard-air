@@ -378,9 +378,9 @@ def power_svg_iec_def():
         o.append(f'<polyline fill="none" stroke="{CC[c]}" stroke-width="{w}" stroke-linejoin="miter" points="' + " ".join(f"{x},{y}" for x, y in pts) + '"/>')
 
     def grove4(pts, order=("BK", "RD", "YE", "WH")):
-        """Grove cable: four conductors side by side, in their real colours."""
+        """Grove cable: conductors side by side, in their real colours."""
         for i, c in enumerate(order):
-            off = (i - 1.5) * 4
+            off = (i - (len(order) - 1) / 2) * 4
             q = []
             for k, (x, y) in enumerate(pts):
                 nb = [pts[j] for j in (k - 1, k + 1) if 0 <= j < len(pts)]
@@ -471,16 +471,16 @@ def power_svg_iec_def():
     lab(187, 770, "", "c")
     lab(130, 780, "JWPF 3P", "c", "end")
     L((123, S["+5V"]), (176, S["+5V"]), c="RD"); L((123, S["GND"]), (176, S["GND"]), c="BK"); L((123, S["OUT"]), (176, S["OUT"]), c="YE")
-    grove4([(720, 236), (720, 700), (204, 700)])
+    grove4([(720, 236), (720, 700), (204, 700)], order=("BK", "RD", "YE"))   # WH (G15) stays in the box, see -A3
     o.append('<rect x="284" y="686" width="12" height="28" fill="#555"/>'); lab(300, 732, "-X5 ввод M12", "c", "start")
     lab(330, 692, "-W2 Grove 2 м (PORT.A)", "c", "start")
-    lab(204, 780, "WH к датчику не идёт: в коробке на -A3 S", "c", "start")
+    lab(204, 780, "к датчику 3 жилы: BK, RD, YE", "c", "start")
 
     # inside
     comp(600, 70, 200, 160, "-A1", "M5Stack DinMeter", "12 В → 5 В")
     pinl(600, T[1], "GND"); pinl(600, T[2], "+12 V")
     pinl(650, 230, "PORT.B"); pinl(720, 230, "PORT.A")
-    lab(728, 250, "G13 = давление, G15 = напряжение", "c", "start")
+    lab(728, 250, "YE G13 = давление", "c", "start")
     L((313, T[1]), (597, T[1]), c="BK"); L((313, T[2]), (597, T[2]), c="RD")
     o.append('<rect x="390" y="165" width="120" height="190" class="b"/>')
     o.append('<rect x="380" y="155" width="140" height="395" class="box"/>'); lab(450, 568, "-K1 Unit 2Relay", "d"); lab(450, 330, "-K1.1 канал 1", "d"); lab(450, 346, "8 A", "c")
@@ -518,7 +518,7 @@ def power_svg_iec_def():
     pinl(570, 465, "VCC"); pinl(570, 495, "GND"); pinl(690, 480, "S", "r")
     L((545, T[2]), (545, 465), (567, 465), c="RD"); dot(545, T[2])
     L((532, T[1]), (532, 495), (567, 495), c="BK"); dot(532, T[1])
-    L((693, 480), (726, 480), c="WH", w=2); dot(726, 480); lab(732, 476, "-X6a", "c", "start")
+    L((706, 236), (706, 480), (693, 480), c="WH", w=2.5); lab(700, 362, "WH G15 = напряжение", "c", "end"); lab(700, 376, "белая жила -W2,", "c", "end"); lab(700, 390, "к датчику не идёт", "c", "end")
     lab(630, 546, "RD/BK 0.5 от клеммы -A1", "c"); lab(630, 560, "14,4 В → 2,9 В на G15", "c")
 
     # title block
