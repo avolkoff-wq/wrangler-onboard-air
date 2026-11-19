@@ -437,8 +437,8 @@ def power_svg_iec_def():
     # enclosure; -X1 = the car wires at the two M12 cable glands, -X5 = the sensor Grove cable through the right gland
     o.append('<rect x="290" y="40" width="550" height="770" class="box"/>')
     lab(296, 34, "-A0  своя коробка 60×100×36, 2 ввода M12 (датчик + ARB; питание + клапан)", "d", "start")
-    T = {1: 100, 2: 140, 3: 180, 4: 300, 5: 420}
-    o.append(f'<rect x="270" y="{T[1]-16}" width="40" height="{T[5]-T[1]+32}" class="b"/>')
+    T = {1: 100, 2: 140, 3: 180, 4: 300, 5: 420, 6: 580, 7: 610}
+    o.append(f'<rect x="270" y="{T[1]-16}" width="40" height="{T[7]-T[1]+32}" class="b"/>')
     lab(264, T[1] - 22, "-X1", "d", "end")
     for k, y in T.items():
         o.append(f'<circle cx="270" cy="{y}" r="3" class="t"/><circle cx="310" cy="{y}" r="3" class="t"/>')
@@ -459,7 +459,7 @@ def power_svg_iec_def():
     pinl(120, T[4], "VT", "r")
     L((170, T[4]), (267, T[4]), c="VT"); L((123, T[4]), (170, T[4]), c="VT"); dot(170, T[4])
     diode_h(220, T[4], "-V1")
-    lab(170, T[4] + 18, "-X3", "c"); lab(20, 384, "-X3: катоды -V1 и -V2 вместе", "c", "start"); lab(20, 398, "+ фиолетовый, один соединитель", "c", "start"); lab(262, T[4] + 18, "VT 0.5", "c", "end")
+    lab(170, T[4] + 18, "-X3", "c"); lab(20, 384, "-X3: катоды -V1 и -V2 вместе", "c", "start"); lab(20, 568, "-X2, -X2a: сплайсы снаружи коробки", "c", "start"); lab(20, 398, "+ фиолетовый, один соединитель", "c", "start"); lab(240, T[4] + 18, "VT 0.5", "c", "end")
     lab(20, 352, "внутри: реле давления,", "c", "start"); lab(20, 366, "2 реле 12 В 40 А", "c", "start")
 
     # sensor: straight on a 2 m Grove cable from PORT.A, connector -X6 at the sensor, no ADC, no divider
@@ -511,15 +511,18 @@ def power_svg_iec_def():
     L((60, VY), (60, VY + 20), c="OG")
     L((90, VY + 90), (90, VY + 110), c="BK"); ground(90, VY + 110); lab(104, VY + 122, "31 у манифолда", "c", "start")
     L((140, VY), (140, VY + 30), c="OG"); diode_v(140, VY + 48, "-V3"); L((140, VY + 56), (140, VY + 100), (90, VY + 100), c="BK"); dot(140, VY); dot(90, VY + 100)
-    lab(160, VY + 84, "1N4007 на клапане", "c", "start")
+    lab(160, VY + 84, "1N4007", "c", "start")
 
     # -A3: ready 0-25 V voltage module (divider 30k / 7.5k, 1:5) on the +12 V after -F1, output S on the white Grove conductor of -W2 (G15)
-    comp(570, 420, 120, 110, "-A3", "модуль 0–25 В", "делитель 1:5")
-    pinl(570, 465, "VCC"); pinl(570, 495, "GND"); pinl(690, 480, "S", "r")
-    L((545, T[2]), (545, 465), (567, 465), c="RD"); dot(545, T[2])
-    L((532, T[1]), (532, 495), (567, 495), c="BK"); dot(532, T[1])
-    L((706, 236), (706, 480), (693, 480), c="WH", w=2.5); lab(700, 362, "WH G15 = напряжение", "c", "end"); lab(700, 376, "белая жила -W2,", "c", "end"); lab(700, 390, "к датчику не идёт", "c", "end")
-    lab(630, 546, "RD/BK 0.5 от клеммы -A1", "c"); lab(630, 560, "14,4 В → 2,9 В на G15", "c")
+    comp(570, 550, 120, 100, "-A3", "модуль 0–25 В", "")
+    pinl(570, T[6], "VCC"); pinl(570, T[7], "GND"); pinl(690, 595, "S", "r")
+    L((313, T[6]), (567, T[6]), c="RD"); L((313, T[7]), (567, T[7]), c="BK")
+    # outside: own wires from the splices -X2 (+12 V after -F1) and -X2a (ground), all splices outside the box
+    L((250, T[3]), (250, T[6]), (267, T[6]), c="RD"); dot(250, T[3])
+    L((258, T[1]), (258, T[7]), (267, T[7]), c="BK"); dot(258, T[1]); lab(250, T[1] + 18, "-X2a", "c", "end")
+    lab(244, T[6] + 4, "RD 0.5", "c", "end"); lab(244, T[7] + 4, "BK 0.5", "c", "end")
+    L((706, 236), (706, 595), (693, 595), c="WH", w=2.5); lab(700, 362, "WH G15 = напряжение", "c", "end"); lab(700, 376, "белая жила -W2,", "c", "end"); lab(700, 390, "к датчику не идёт", "c", "end")
+    lab(630, 666, "делитель 1:5, 14,4 В → 2,9 В на G15", "c")
 
     # title block
     o.append('<rect x="590" y="845" width="400" height="44" class="b"/>')
