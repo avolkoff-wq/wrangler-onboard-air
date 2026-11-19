@@ -474,13 +474,13 @@ def power_svg_iec_def():
     grove4([(720, 236), (720, 700), (204, 700)])
     o.append('<rect x="284" y="686" width="12" height="28" fill="#555"/>'); lab(300, 732, "-X5 ввод M12", "c", "start")
     lab(330, 692, "-W2 Grove 2 м (PORT.A)", "c", "start")
-    lab(204, 780, "WH не подключён", "c", "start")
+    lab(204, 780, "WH к датчику не идёт: в коробке на -A3 S", "c", "start")
 
     # inside
     comp(600, 70, 200, 160, "-A1", "M5Stack DinMeter", "12 В → 5 В")
     pinl(600, T[1], "GND"); pinl(600, T[2], "+12 V")
     pinl(650, 230, "PORT.B"); pinl(720, 230, "PORT.A")
-    lab(728, 250, "G13 = сигнал (АЦП)", "c", "start")
+    lab(728, 250, "G13 = давление, G15 = напряжение", "c", "start")
     L((313, T[1]), (597, T[1]), c="BK"); L((313, T[2]), (597, T[2]), c="RD")
     o.append('<rect x="390" y="165" width="120" height="190" class="b"/>')
     o.append('<rect x="380" y="155" width="140" height="395" class="box"/>'); lab(450, 568, "-K1 Unit 2Relay", "d"); lab(450, 330, "-K1.1 канал 1", "d"); lab(450, 346, "8 A", "c")
@@ -491,7 +491,7 @@ def power_svg_iec_def():
     lab(398, T[3] - 6, "COM", "n", "start"); lab(398, T[4] - 6, "NO", "n", "start")
     L((313, T[3]), (387, T[3]), c="RD"); L((313, T[4]), (387, T[4]), c="VT")
     o.append('<circle cx="520" cy="245" r="3" class="t"/>')
-    grove4([(650, 236), (650, 245), (526, 245)]); lab(530, 268, "-W1 Grove 5 см", "c", "start")
+    grove4([(650, 236), (650, 245), (526, 245)]); lab(556, 268, "-W1 Grove 5 см", "c", "start")
     # -K2: second Mini Relay for the deflate valve. Fed from -K1 COM by a short red jumper; driven by the WHITE conductor of PORT.B (G1)
     o.append('<rect x="390" y="385" width="120" height="150" class="b"/>')
     lab(450, 510, "-K1.2 канал 2", "d"); lab(450, 526, "8 A", "c")
@@ -500,9 +500,9 @@ def power_svg_iec_def():
              f'<line x1="393" y1="{K2N}" x2="472" y2="{K2N}" stroke="#111" stroke-width="2"/><line x1="472" y1="{K2N}" x2="472" y2="{K2C+16}" stroke="#111" stroke-width="2"/>')
     o.append(f'<circle cx="390" cy="{K2C}" r="3" class="t"/><circle cx="390" cy="{K2N}" r="3" class="t"/>')
     lab(398, K2C - 6, "COM", "n", "start"); lab(398, K2N - 6, "NO", "n", "start")
-    L((387, T[3]), (360, T[3]), (360, K2C), (387, K2C), c="RD"); dot(360, T[3]); lab(396, 374, "RD 0.5 перемычка COM1-COM2", "c", "start")
+    L((387, T[3]), (360, T[3]), (360, K2C), (387, K2C), c="RD"); dot(360, T[3]); lab(396, 374, "RD 0.5 COM1-COM2", "c", "start")
     L((313, K2N), (387, K2N), c="OG")
-    lab(530, 300, "YE = G2 → канал 1", "c", "start"); lab(530, 316, "WH = G1 → канал 2", "c", "start")
+    lab(556, 300, "YE = G2 → канал 1", "c", "start"); lab(556, 316, "WH = G1 → канал 2", "c", "start")
     # outside: deflate valve -Y1 with its flyback diode -V3, ground at the manifold
     VY = T[5]
     L((60, VY), (267, VY), c="OG"); lab(200, VY - 6, "OG 0.5", "c", "start")
@@ -513,9 +513,17 @@ def power_svg_iec_def():
     L((140, VY), (140, VY + 30), c="OG"); diode_v(140, VY + 48, "-V3"); L((140, VY + 56), (140, VY + 100), (90, VY + 100), c="BK"); dot(140, VY); dot(90, VY + 100)
     lab(160, VY + 84, "1N4007 на клапане", "c", "start")
 
+    # -A3: ready 0-25 V voltage module (divider 30k / 7.5k, 1:5) on the +12 V after -F1, output S on the white Grove conductor of -W2 (G15)
+    comp(570, 420, 120, 110, "-A3", "модуль 0–25 В", "делитель 1:5")
+    pinl(570, 465, "VCC"); pinl(570, 495, "GND"); pinl(690, 480, "S", "r")
+    L((545, T[2]), (545, 465), (567, 465), c="RD"); dot(545, T[2])
+    L((532, T[1]), (532, 495), (567, 495), c="BK"); dot(532, T[1])
+    L((693, 480), (726, 480), c="WH", w=2); dot(726, 480); lab(732, 476, "-X6a", "c", "start")
+    lab(630, 546, "RD/BK 0.5 от клеммы -A1", "c"); lab(630, 560, "14,4 В → 2,9 В на G15", "c")
+
     # title block
     o.append('<rect x="590" y="845" width="400" height="44" class="b"/>')
-    lab(600, 863, "Wrangler Air · схема электрическая, вариант C (A + спуск)", "d", "start")
+    lab(600, 863, "Wrangler Air · электросхема C: спуск и напряжение", "d", "start")
     lab(600, 881, "IEC 60617 / IEC 61082 · цвета IEC 60757 · лист 1/1", "c", "start")
     o.append("</svg>")
     return "".join(o)

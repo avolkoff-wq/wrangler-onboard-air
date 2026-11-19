@@ -83,6 +83,12 @@ if L.TAG == "cust_adc":
     a, b = P(L.AXC - 4.95, y0 + 38.5), P(L.AXC + 4.95, y0 + 32); o.append(R(*a, *b, "plug"))
     a, b = P(L.AXC - 4.5, y0 + 9), P(L.AXC + 4.5, y0); o.append(R(*a, *b, "term"))
     o.append(T(P(L.AXC, 0)[0], P(0, y0 + 20)[1], "ADC"))
+if getattr(L, "VM", False):   # 0-25 V voltage module, schematic C
+    x0, y0, x1, y1 = L.VM_FOOT
+    a, b = P(x0, y1), P(x1, y0); o.append(R(*a, *b, "mod", 2))
+    a, b = P(L.VMX - 5, y0 + 7.5), P(L.VMX + 5, y0); o.append(R(*a, *b, "term"))
+    a, b = P(L.VMX - 3.8, y1), P(L.VMX + 3.8, y1 - 2.5); o.append(R(*a, *b, "plug"))
+    o.append(T(P(L.VMX, 0)[0], P(0, y0 + 16)[1], "0-25V"))
 # DinMeter
 a, b = P(-26.5, L.TOP_Y + 2.5), P(26.5, L.TOP_Y); o.append(R(*a, *b, "bezel"))
 a, b = P(-22.8, L.TOP_Y), P(22.8, L.DB); o.append(R(*a, *b, "din")); o.append(T(OX, P(0, L.DB + 11)[1], "DinMeter"))

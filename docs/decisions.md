@@ -89,3 +89,8 @@
 ## 2026-11-19 Over-pressure
 - The owner has a 4 bar relief valve on the wheel line, so the firmware over-pressure stop is a second layer, not the only protection.
 - Supply-voltage monitor dropped: no divider resistors wanted, and the DinMeter only measures its own battery.
+
+## 2026-11-19 Supply voltage: ready 0-25 V module
+- The owner wanted no loose resistors. The ADC Unit v1.1 reads only 0-12 V (docs.m5stack.com), so 12.4-14.4 V would clip at 12.0 and could not tell engine off from engine on.
+- Taken instead: a ready 0-25 V voltage module (30k / 7.5k divider on the board, 1:5), flat on the floor in the free right half of the cust_def box on 3M VHB. VCC and GND by jumpers from the DinMeter terminal, output S on G15 = the white conductor of the PORT.A Grove (cut inside the box, solder-seal splice -X6a; the white wire is unused at the sensor). 14.4 V gives 2.9 V on G15.
+- G15 is ADC2 like G13: not readable while Wi-Fi is on. Firmware use (voltage on screen, ENGINE OFF? below ~12.8 V, log and run graphs) to be added.

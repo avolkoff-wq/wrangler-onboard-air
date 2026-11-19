@@ -208,6 +208,18 @@ adc.add(bx(9.9, 6.5, 4.6, AXC, AY0 + 32 + 3.25, Z0 + 4), name="grove_plug", colo
 ADC_GROVE = (AXC, AY0 + 32 + 6.5, Z0 + 4)
 ADC_PIN = {"IN": (AXC - 2, AY0 + 0.5, Z0 + 13.5), "GND": (AXC + 2, AY0 + 0.5, Z0 + 13.5)}
 
+# ---------- schematic C: 0-25 V voltage module (30k / 7.5k divider, 27 x 14 board) flat on the floor in the free right half ----------
+# input screw terminal (VCC, GND) towards the glands, output header (S, +, -) towards the DinMeter. Sizes typical, check on the real board.
+VM = TAG == "cust_def"
+VMX, VMY0 = 15.5, -31.0          # board centre x, end at the glands
+vmod = cq.Assembly(name="vmod_0_25V")
+vmod.add(bx(14, 27, 1.6, VMX, VMY0 + 13.5, Z0 + 1.8), name="vmod_board", color=cq.Color(0.10, 0.30, 0.65))
+vmod.add(bx(10, 7.5, 9, VMX, VMY0 + 3.75, Z0 + 2.6 + 4.5), name="vmod_terminal_VCC_GND", color=cq.Color(0.15, 0.55, 0.20))
+vmod.add(bx(7.6, 2.5, 8.5, VMX, VMY0 + 27 - 1.5, Z0 + 2.6 + 4.25), name="vmod_header_S_plus_minus", color=cq.Color(0.08, 0.08, 0.08))
+VM_PIN = {"VCC": (VMX - 2.5, VMY0 + 3.75, Z0 + 11.6), "GND": (VMX + 2.5, VMY0 + 3.75, Z0 + 11.6),
+          "S": (VMX - 2.54, VMY0 + 25.5, Z0 + 11.0)}
+VM_FOOT = (VMX - 7, VMY0, VMX + 7, VMY0 + 27)
+
 # DinMeter connectors: where the cables leave (downwards, -y)
 DIN_A = (DIN_X - 11.7, DB - 8, DIN_Z - 3)
 DIN_B = (DIN_X - 18.0, DB - 8, DIN_Z - 3)
@@ -220,6 +232,8 @@ asm.add(lid, name=f"{NAME}_lid", color=cq.Color(0.30, 0.32, 0.35))
 if boss_cut is not None:
     asm.add(boss_cut, name="boss_part_to_cut_off", color=cq.Color(0.90, 0.10, 0.10, 0.55))
 asm.add(din); asm.add(rel)
+if VM:
+    asm.add(vmod)
 if not TAG.startswith("f100") and TAG not in ("cust", "cust_def"):   # f100 / cust = schematic A: sensor straight on PORT.A, no ADC
     asm.add(adc)
 if GLANDS:                # M12 cable glands: lock nut inside, hex and dome nut outside

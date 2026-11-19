@@ -112,6 +112,15 @@ if not L.REL_ACROSS and L.TAG != "cust_adc":
     w("12V_to_DinMeter_plus", [(px, YOUT, pz + 1.5), (px, YIN, pz + 1.5), (10.0, -30.0, 27.0), (4.0, 12.0, 29.0),
                                (DP[0], DP[1] - 5, DP[2]), DP], "red", "right gland", "DinMeter terminal +")
     if L.TAG == "cust_def":
+        # 0-25 V voltage module: VCC/GND jumpers from the DinMeter terminal (two wires per screw), S on the white G15 conductor of W2,
+        # cut out of the Grove where W2 runs down the middle (splice -X6a, solder-seal sleeve)
+        V, VG, VS = (L.VM_PIN[k] for k in ("VCC", "GND", "S"))
+        w("12V_to_vmod_VCC", [DP, (DP[0], DP[1] - 5, DP[2]), (6.0, 12.0, 27.0), (11.0, -14.0, 22.0), (V[0], V[1] + 3, V[2] + 6), V],
+          "red", "DinMeter terminal +", "voltage module VCC")
+        w("GND_to_vmod_GND", [DM, (DM[0], DM[1] - 5, DM[2]), (7.5, 12.0, 26.0), (20.0, -14.0, 21.0), (VG[0], VG[1] + 3, VG[2] + 6), VG],
+          "black", "DinMeter terminal -", "voltage module GND")
+        w("G15_to_vmod_S", [(-8.0, -3.0, 25.0), (-3.0, -3.0, 25.5), (-3.0, -2.0, 9.5), (VS[0], -2.0, 9.5), (VS[0], VS[1] + 2, VS[2] + 1), VS], -3.0, 28.5), (VS[0], VS[1] + 1, VS[2] + 4), VS],
+          "white", "-X6a on W2 white (G15)", "voltage module S")
         w("12V_to_relay_COM", [(px + 2, YOUT, pz - 1.5), (px + 2, YIN, pz - 1.5), (9.0, -30.0, 24.0), (5.0, COM[1] + 4, 25.0),
                                (COM[0], COM[1] + 4, COM[2] + 5), COM], "red", "right gland", "2Relay K1 COM")
     else:
