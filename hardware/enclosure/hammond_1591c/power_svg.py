@@ -367,7 +367,7 @@ def power_svg_iec_def():
     designators (-F1, -K1, -A1 ...), wire colour codes per IEC 60757 (RD, BK, YE, VT) with cross-section, junction dots,
     multi-conductor cables drawn as one line with a stroke and the conductor count, the box entry as terminal strip -X1."""
     W = 2
-    o = ['<svg viewBox="0 0 1100 900" style="color:var(--fg);max-width:1100px;margin:0 auto;background:#fff;border-radius:8px">',
+    o = ['<svg viewBox="0 0 1100 910" style="color:var(--fg);max-width:1100px;margin:0 auto;background:#fff;border-radius:8px">',
          '<style>.d{font:700 12px var(--f);fill:#111}.n{font:12px var(--f);fill:#333}.c{font:11px var(--f);fill:#555}'
          '.w{stroke:#111;stroke-width:2;fill:none;stroke-linejoin:miter}.b{fill:#fff;stroke:#111;stroke-width:1.5}'
          '.box{fill:none;stroke:#111;stroke-width:1.2;stroke-dasharray:10 4 2 4}.t{fill:#fff;stroke:#111;stroke-width:1.5}</style>']
@@ -445,7 +445,7 @@ def power_svg_iec_def():
     o.append(f'<rect x="270" y="{T[1]-16}" width="40" height="{T[6]-T[1]+32}" class="b"/>')
     lab(264, T[1] - 22, "-X1", "d", "end"); lab(316, T[1] - 22, "ввод M12 правый: питание, 6 проводов (массы 1-2, +12 В 3-6)", "c", "start")
     o.append(f'<rect x="270" y="{T[7]-16}" width="40" height="{G2-T[7]+32}" class="b"/>')
-    lab(264, T[7] - 22, "-X5", "d", "end"); lab(316, G2 + 34, "ввод M12 левый: выходы 7-8 (клапан, ARB) + датчик", "c", "start")
+    lab(316, T[7] - 22, "-X5", "d", "start"); lab(316, G2 + 34, "ввод M12 левый: выходы 7-8 (клапан, ARB) + датчик", "c", "start")
     for k in range(1, 9):
         y = T[k]
         o.append(f'<circle cx="270" cy="{y}" r="3" class="t"/><circle cx="310" cy="{y}" r="3" class="t"/>')
@@ -456,24 +456,25 @@ def power_svg_iec_def():
         L(*pts, c=c, w=3); slash(*at, n, vertical)
 
     # ---- outside: -X2a ground splice (2 wires), -X2 +12 V splice after -F1 (4 wires) ----
-    L((160, T[1]), (267, T[1]), c="BK"); L((190, T[1]), (190, T[2]), (267, T[2]), c="BK"); dot(190, T[1])
-    L((160, T[1]), (160, T[1] + 8), c="BK"); ground(160, T[1] + 8)
-    lab(146, T[1] + 4, "масса 31", "d", "end"); lab(184, T[2] + 4, "-X2a", "c", "end")
+    L((110, T[1]), (267, T[1]), c="BK"); L((190, T[1]), (190, T[2]), (267, T[2]), c="BK"); dot(190, T[1])
+    L((110, T[1]), (110, T[1] + 8), c="BK"); ground(110, T[1] + 8)
+    lab(96, T[1] + 4, "масса 31", "d", "end"); lab(184, T[2] + 4, "-X2a", "c", "end")
     lab(208, T[1] - 6, "BK 0.5", "c", "end")
     lab(20, T[3] + 4, "AUX1", "d", "start"); L((60, T[3]), (267, T[3]), c="RD")
-    fuse_h(110, T[3], "", ""); lab(110, T[3] + 24, "-F1 3 A", "d")
-    L((150, T[3]), (150, T[6]), (267, T[6]), c="RD"); L((150, T[4]), (267, T[4]), c="RD"); L((150, T[5]), (267, T[5]), c="RD")
-    dot(150, T[3]); dot(150, T[4]); dot(150, T[5]); lab(158, T[3] + 20, "-X2", "c", "start")
+    fuse_h(95, T[3], "", ""); lab(95, T[3] + 24, "-F1 3 A", "d")
+    L((170, T[3]), (170, T[6]), (267, T[6]), c="RD"); L((170, T[4]), (267, T[4]), c="RD"); L((170, T[5]), (267, T[5]), c="RD")
+    dot(170, T[3]); dot(170, T[4]); dot(170, T[5]); lab(178, T[3] + 20, "-X2", "c", "start")
     lab(208, T[3] - 6, "RD 0.5", "c", "end")
     # deflate valve -Y1 with its flyback diode -V3, ground at the manifold
     VY = T[7]
-    L((60, VY), (267, VY), c="OG"); lab(208, VY - 6, "OG 0.5", "c", "end")
+    L((60, VY), (267, VY), c="OG"); lab(126, VY - 6, "OG 0.5", "c", "end")
     o.append(f'<rect x="20" y="{VY+20}" width="100" height="60" class="b"/>'); lab(26, VY + 14, "-Y1", "d", "start")
     lab(70, VY + 44, "клапан 2W040-10", "d"); lab(70, VY + 60, "12 В, NC, Ø4", "c")
     L((60, VY), (60, VY + 20), c="OG")
-    L((90, VY + 80), (90, VY + 100), c="BK"); ground(90, VY + 100); lab(104, VY + 112, "31 у манифолда", "c", "start")
-    L((140, VY), (140, VY + 26), c="OG"); diode_v(140, VY + 44, "-V3"); L((140, VY + 52), (140, VY + 90), (90, VY + 90), c="BK"); dot(140, VY); dot(90, VY + 90)
-    lab(160, VY + 76, "1N4007", "c", "start")
+    L((90, VY + 80), (90, VY + 90), c="BK")
+    L((140, VY), (140, VY + 26), c="OG"); diode_v(140, VY + 44, "-V3"); L((140, VY + 52), (140, VY + 90), (90, VY + 90), c="BK"); dot(140, VY); dot(140, VY + 90)
+    L((140, VY + 90), (240, VY + 90), (240, VY + 96), c="BK"); ground(240, VY + 96); lab(252, VY + 108, "31", "c", "start")
+    lab(20, VY + 112, "-V3 1N4007 на катушке", "c", "start")
     # compressor -M1: AUX2 bypass diode -V2 and relay path diode -V1 meet at -X3 on the ARB violet wire
     MY = T[8]
     lab(20, MY - 56, "AUX2", "d", "start"); L((60, MY - 60), (170, MY - 60), (170, MY), c="VT")
@@ -530,13 +531,22 @@ def power_svg_iec_def():
     o.append('<circle cx="540" cy="300" r="3" class="t"/>'); lab(720, 284, "-W1 Grove 5 см: WH G1 → реле 1, YE G2 → реле 2", "c")
 
     # connectors on the pigtails out of the glands (~20 cm): the box unplugs from the car harness, the glands stay
-    def conn(y0, y1, name, sub):
-        o.append(f'<rect x="214" y="{y0}" width="16" height="{y1-y0}" fill="var(--bg,#fff)" stroke="#111" stroke-width="1.5"/>')
-        o.append(f'<line x1="222" y1="{y0}" x2="222" y2="{y1}" stroke="#111" stroke-width="1" stroke-dasharray="3 3"/>')
-        lab(222, y0 - 8, name, "d"); lab(222, y1 + 16, sub, "c")
-    conn(T[1] - 12, T[6] + 12, "-X7", "DT 8")
-    conn(T[7] - 12, G2 + 12, "-X8", "DT 6")
-    lab(20, 860, "-X7 / -X8: разъёмы Deutsch DT на хвостах ~20 см из гермовводов, коробка отключается от жгута", "c", "start")
+    def conn(x, y0, y1, top, bottom, sub=""):
+        o.append(f'<rect x="{x}" y="{y0}" width="16" height="{y1-y0}" fill="var(--bg,#fff)" stroke="#111" stroke-width="1.5"/>')
+        o.append(f'<line x1="{x+8}" y1="{y0}" x2="{x+8}" y2="{y1}" stroke="#111" stroke-width="1" stroke-dasharray="3 3"/>')
+        if top: lab(x + 8, y0 - 8, top, "d")
+        if bottom: lab(x + 8, y1 + 15, bottom, "d" if not sub else "c")
+        if sub: lab(x + 8, y1 + 28, sub, "c")
+    conn(128, T[1] - 12, T[3] + 12, "-X7", "2P")                                   # input: car side of the box splices
+    conn(180, T[7] - 12, T[7] + 102, "-X9", "2P")                                  # at the valve: OG + ground
+    conn(214, T[7] - 12, T[7] + 12, "-X8:1", "")                                   # manifold 4P, drawn detached: pin 1 OG
+    conn(214, G2 - 12, G2 + 12, "-X8:2-4", "")                                     # pins 2-4 RD +5 V, BK GND, YE signal
+    conn(214, T[8] - 12, T[8] + 12, "-X10", "")                                  # compressor VT
+    for i, t in enumerate(("-X7 вход 2P: RD +12 В, BK масса. Сплайсы -X2 / -X2a за ним, на хвосте коробки",
+                           "-X8 манифолд 4P, по порядку: 1 OG клапан, 2 RD +5 В, 3 BK GND, 4 YE сигнал (сигнал с краю, рядом только масса)",
+                           "-X9 клапан 2P: OG, BK · -X10 компрессор 1P: VT",
+                           "Разъёмы: набор герморазъёмов 1-6 pin, хвосты ~20 см из гермовводов, коробка отключается от жгута")):
+        lab(20, 852 + i * 15, t, "c", "start")
 
     # title block
     o.append('<rect x="650" y="845" width="400" height="44" class="b"/>')

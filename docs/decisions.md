@@ -124,3 +124,11 @@
 - -X7 input, DT 8-way (6 used): 1 BK DinMeter, 2 BK module, 3 RD module, 4 RD DinMeter, 5 RD relay 2 A, 6 RD relay 1 A, 7-8 spare with seal plugs. Box pigtail DT04-08P (pins), car side DT06-08S (sockets): the always-live car side has the shrouded sockets.
 - -X8 output, DT 6-way (5 used): 1 OG valve, 2 VT ARB, 3 BK sensor GND, 4 RD sensor +5 V, 5 YE sensor signal, 6 spare. Box pigtail DT06-6S (sockets), car side DT04-6P (pins). Different size and gender, so the two cannot be swapped.
 - DT: 13 A per contact, IP68, needs the DT crimp tool. Splices -X2 (+12 V, 1 to 4) and -X2a (ground, 1 to 2) stay in the car harness before -X7.
+
+## 2026-11-21 Connectors: kit 1-6 pin instead of Deutsch DT, split by destination
+- Kit ordered (254PCS, 1/2/3/4P pairs). Replaces the DT 8 / DT 6 plan above.
+- -X7 input 2P: 1 RD +12 V after -F1, 2 BK ground. Splices -X2 / -X2a now sit on the box pigtail behind -X7. Car side sockets (female), box side pins.
+- -X8 manifold 4P: 1 OG valve, 2 RD +5 V, 3 BK GND, 4 YE signal. The signal sits at the edge next to ground only, +12 V farthest from it. Box side sockets, manifold harness pins.
+- -X9 at the valve 2P: 1 OG, 2 BK (ground at the manifold). Harness sockets, valve pigtail pins, -V3 on the coil.
+- -X10 compressor 1P: VT. Box side socket, ARB side pin; that pin is not live when unplugged because -V1 blocks AUX2.
+- Rule: the half that stays live when unplugged has the sockets. Pinout sheet: connectors_pinout.png; schematic C updated.
