@@ -263,7 +263,7 @@ void drawMain() {
     textAt(line, W() / 2, 178, F_TEXT, col, top_center, F_SMALL, W() - 4);
     textAt(counts, W() / 2, 198, F_SMALL, C_GREY, top_center);
   }
-  if (pump.state() == PState::ERROR && pump.error() == PErr::PUMP_ON) drawHint("SWITCH AUX1 OFF  press: back", TFT_RED);
+  if (pump.state() == PState::ERROR && pump.error() == PErr::PUMP_ON) drawHint("AUX2 ON? ELSE A RELAY IS STUCK  press: back", TFT_RED);
   else drawHint(pump.busy() ? "press: STOP" : "press: back");
   if (pump.compressorOn()) canvas.fillCircle(W() - 10, 10, 6, TFT_ORANGE);
   if (pump.valveOpen())    canvas.fillCircle(W() - 10, 10, 6, TFT_SKYBLUE);

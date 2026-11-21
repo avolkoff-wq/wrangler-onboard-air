@@ -388,9 +388,11 @@ void loop() {
     }
   }
   {   // compressor stuck on: idle, both outputs off, yet the line keeps rising (menu PUMP CHECK)
-    static float hist[PCHK_WINDOW_S + 1]; static int n = 0; static uint32_t lastS = 0, quietT = 0;
+    // the air comes from another source: AUX2 bypass (on purpose or forgotten), a welded Unit 2Relay contact, or the ARB relay.
+    // One alarm per episode: re-armed only after the line has been steady again for PCHK_REARM_S (AUX2 used on purpose = one alarm).
+    static float hist[PCHK_WINDOW_S + 1]; static int n = 0; static uint32_t lastS = 0, quietT = 0, steadyS = 0; static bool fired = false;
     const bool idle = !pump.busy() && !pump.pulsing() && !ota.running() && !g_demo;
-    if (!idle || !settings.pchk || sensor.fault()) { n = 0; quietT = millis(); }
+    if (!idle || !settings.pchk || sensor.fault()) { n = 0; quietT = millis(); if (pump.busy()) fired = false; }
     else if (millis() - quietT > VCHK_QUIET_MS && millis() - lastS >= 1000) {
       lastS = millis();
       const float p = sensor.bar(settings.calA, settings.calB);
@@ -399,11 +401,15 @@ void loop() {
         int up = 0; float maxStep = 0;
         for (int i = 1; i <= PCHK_WINDOW_S; i++) { const float d = hist[i] - hist[i - 1]; if (d > 0.005f) up++; maxStep = max(maxStep, d); }
         const float rise = hist[PCHK_WINDOW_S] - hist[0];
+        if (fired) {   // wait until it stops rising
+          steadyS = (fabsf(hist[PCHK_WINDOW_S] - hist[PCHK_WINDOW_S - 1]) < 0.01f) ? steadyS + 1 : 0;
+          if (steadyS >= PCHK_REARM_S) { fired = false; steadyS = 0; }
+        }
         bool high = true;
         for (int i = PCHK_WINDOW_S - 3; i <= PCHK_WINDOW_S; i++) high &= hist[i] > PCHK_HIGH;
-        if (high || (rise > PCHK_RISE && up >= PCHK_UP && maxStep < 0.8f * rise)) {
+        if (!fired && (high || (rise > PCHK_RISE && up >= PCHK_UP && maxStep < 0.8f * rise))) {
           wlog::ev("PUMP_STUCK", wlog::kv("p", p) + wlog::kv("rise", rise));
-          pump.pumpStuck(p); n = 0; quietT = millis();
+          pump.pumpStuck(p); fired = true; steadyS = 0;
         }
       }
     }

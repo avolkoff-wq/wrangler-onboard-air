@@ -49,7 +49,8 @@ constexpr uint32_t VCHK_QUIET_MS = 10000;  // after any run, pulse or start: let
 constexpr int      PCHK_WINDOW_S = 20;
 constexpr float    PCHK_RISE     = 0.50f;
 constexpr int      PCHK_UP       = 6;
-constexpr float    PCHK_HIGH     = 5.0f;   // or: idle and the line above this for 3 s (hoses off, the ARB fills the closed manifold fast)
+constexpr float    PCHK_HIGH     = 5.0f;
+constexpr int      PCHK_REARM_S  = 30;     // after an alarm: the line must hold still this long before the next one   // or: idle and the line above this for 3 s (hoses off, the ARB fills the closed manifold fast)
 constexpr uint32_t WDT_MS    = 5000;  // main loop watchdog: longest normal block is ~2 s (ERR OVER sound), so 5 s never fires by itself
 
 // ---------- sensor ----------
