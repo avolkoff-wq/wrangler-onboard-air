@@ -93,7 +93,7 @@
 ## 2026-11-19 Supply voltage: ready 0-25 V module
 - The owner wanted no loose resistors. The ADC Unit v1.1 reads only 0-12 V (docs.m5stack.com), so 12.4-14.4 V would clip at 12.0 and could not tell engine off from engine on.
 - Taken instead: a ready 0-25 V voltage module (30k / 7.5k divider on the board, 1:5), flat on the floor in the free right half of the cust_def box on 3M VHB. VCC and GND by jumpers from the DinMeter terminal, output S on G15 = the white conductor of the PORT.A Grove (cut inside the box, solder-seal splice -X6a; the white wire is unused at the sensor). 14.4 V gives 2.9 V on G15.
-- G15 is ADC2 like G13: not readable while Wi-Fi is on. Firmware use (voltage on screen, ENGINE OFF? below ~12.8 V, log and run graphs) to be added.
+- G15 is ADC2 like G13: not readable while Wi-Fi is on. Firmware (21.11): AUX1 >= 13.2 V = engine runs, no question before inflating; below it red ENGINE OFF and the second press of the two-press start confirms; no module (< 6 V) = the old ENGINE ON? reminder. Voltage in SENSOR and USB status. Log and run graphs not yet.
 - Change the same day (owner): every +12 V and ground splice is made outside the box at -X2 / -X2a, ready wires go into the box. Right gland now carries 6 wires (BK DinMeter, BK module, RD DinMeter, RD relay COM, RD module, OG valve), ~5.3 mm bundle; a 9.5 mm 3:1 adhesive heat-shrink jacket over the bundle at the gland makes it round so the M12 (3-6.5 mm) seals.
 
 ## 2026-11-19 Deflate flow check: is the vent valve the bottleneck?

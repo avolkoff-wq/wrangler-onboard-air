@@ -69,3 +69,25 @@ class Averager {
  private:
   float sum_ = 0; int n_ = 0;
 };
+
+// AUX1 voltage through the 0-25 V module on G15. Tells the engine state before the compressor starts.
+class Supply {
+ public:
+  void begin() { if (PIN_VBAT >= 0) analogSetPinAttenuation(PIN_VBAT, ADC_11db); }
+  void update() {
+    if (PIN_VBAT < 0) return;
+    float mv = 0;
+    for (int i = 0; i < 4; i++) mv += analogReadMilliVolts(PIN_VBAT);
+    const float v = mv / 4.0f / 1000.0f * VBAT_DIV;
+    filt_ = (filt_ < 0) ? v : filt_ + 0.05f * (v - filt_);    // slow: ~0.5 s, ignores cranking dips and relay clicks
+  }
+  bool  fitted() const { return PIN_VBAT >= 0 && filt_ >= VBAT_MIN_V; }
+  float volts() const { return fitted() ? filt_ : 0; }
+  bool  engineOn() const { return fitted() && filt_ >= ENGINE_ON_V; }
+  // line shown before inflating: "" engine runs, "ENGINE OFF" measured off, "ENGINE ON?" no module
+  const char* engineText() const { return !fitted() ? "ENGINE ON?" : engineOn() ? "" : "ENGINE OFF"; }
+
+ private:
+  float filt_ = -1;
+};
+

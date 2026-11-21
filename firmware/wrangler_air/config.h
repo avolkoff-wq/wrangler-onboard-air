@@ -37,7 +37,9 @@ constexpr int PIN_K4       = 1;   // G1, PORT.B white: Unit 2Relay relay 1 (far 
 constexpr int PIN_K4       = -1;  // PORT.A is taken by the sensor: no deflate output in this build
 #endif
 #define SENSOR_PIN_NAME "G13"
+constexpr int PIN_VBAT     = 15;  // G15, PORT.A white: module 0-25 V (-A3) on AUX1, divider 1:5 (schematic C). ADC2 like G13
 #else
+constexpr int PIN_VBAT     = -1;  // no supply voltage input in this build
 constexpr int PIN_SENSOR   = 1;   // G1, PORT.B: sensor through 10k/20k divider
 constexpr int PIN_K4       = 13;  // G13, PORT.A: K4 (stage 3, deflate). Kept LOW in stage 1
 #define SENSOR_PIN_NAME "G1"
@@ -46,6 +48,11 @@ constexpr int PIN_ENC_A    = 41;
 constexpr int PIN_ENC_B    = 40;
 constexpr int PIN_BTN      = 42;  // encoder push, active LOW
 constexpr int PIN_HOLD     = 46;  // power hold, HIGH = stay on
+
+// ---------- supply voltage (AUX1) ----------
+constexpr float VBAT_DIV     = 5.0f;   // module 0-25 V: 7.5k / 30k
+constexpr float VBAT_MIN_V   = 6.0f;   // below: no module fitted, engine state unknown -> plain "ENGINE ON?" reminder
+constexpr float ENGINE_ON_V  = 13.2f;  // at or above: alternator charging, engine runs -> no question before inflating
 
 // ---------- sensor ----------
 #if SENSOR_DIRECT

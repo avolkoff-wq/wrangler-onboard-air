@@ -8,7 +8,8 @@
 //   turn            pick a typical pressure: HIGHWAY 2.5, ROUGH ROAD 1.8, GRAVEL 1.5, TRAIL 1.2, ROCK 1.0, SAND 0.8,
 //                   RECOVERY 0.5 bar, CUSTOM x.x (config.h PRESETS); LOW shown below 0.8
 //   press           (released within 0.5 s) two-press start: the first press arms (only when the screen says INFLATE
-//                   or DEFLATE): "PRESS AGAIN: START" with a 3 s bar (INFLATE also "ENGINE ON?", a reminder only); a second press within 3 s starts. A turn, a
+//                   or DEFLATE): "PRESS AGAIN: START" with a 3 s bar (INFLATE: AUX1 >= 13.2 V on G15 = engine runs, nothing extra;
+//                   below it red "ENGINE OFF", the second press is the confirmation; no 0-25 V module = "ENGINE ON?" reminder); a second press within 3 s starts. A turn, a
 //                   long press or 3 s without a press disarm (log ARM_CANCEL). While running one press stops at once.
 //                   On CUSTOM the first press opens the value: turn 0.1 bar steps, press OK = save and arm,
 //                   long press = cancel (one look at the value before every custom run)
@@ -52,6 +53,7 @@
 
 Settings settings;
 Sensor sensor;
+Supply supply;
 Pump pump;
 Calibration cal;
 Ota ota;
@@ -515,7 +517,8 @@ void drawIdle(bool edit) {
     if (!edit) {
       canvas.fillRect(10, 94, W() - 20, 2, dead ? dim : dc);
       if (dead) textAt("CONNECT SYSTEM", W() / 2, 99, F_TEXT, C_LGREY, top_center);
-      else if (armed && dir == D_UP) textAt("ENGINE ON?", W() / 2, 99, F_TEXT, TFT_ORANGE, top_center);   // compressor ahead: reminder only
+      else if (armed && dir == D_UP && *supply.engineText())                // compressor ahead: engine off / unknown -> the second press confirms
+        textAt(supply.engineText(), W() / 2, 99, F_TEXT, supply.fitted() ? TFT_RED : TFT_ORANGE, top_center);
       else dirLine(99, false);
     }
     idleHint();
@@ -530,10 +533,10 @@ void drawIdle(bool edit) {
       if (dead) {
         textAt("CONNECT", W() / 2, 173, F_TEXT, C_LGREY, top_center);
         textAt("SYSTEM", W() / 2, 190, F_TEXT, C_LGREY, top_center);
-      } else if (armed && dir == D_UP) {   // compressor ahead: reminder only, no hardware check
+      } else if (armed && dir == D_UP && *supply.engineText()) {   // compressor ahead: engine off / unknown -> the second press confirms
         dirLine(173, true);
         canvas.fillRect(0, 189, W(), 17, TFT_BLACK);
-        textAt("ENGINE ON?", W() / 2, 190, F_TEXT, TFT_ORANGE, top_center);
+        textAt(supply.engineText(), W() / 2, 190, F_TEXT, supply.fitted() ? TFT_RED : TFT_ORANGE, top_center);
       } else dirLine(173, true);
     }
     idleHint();
@@ -688,7 +691,7 @@ void drawLearnConf() {
   const bool def = learnSel == Mode::DEF;
   drawLines({ {def ? "LEARN DEFLATE:" : "LEARN INFLATE:", F_TEXT, def ? TFT_SKYBLUE : TFT_ORANGE},
               {def ? "valve " + String(LEARN_DEF_MS / 1000) + " s." : "compressor " + String(CAL_PULSE_MS / 1000) + " s.", F_TEXT, TFT_WHITE},
-              {def ? "" : "ENGINE ON?", F_TEXT, TFT_ORANGE},
+              {def ? "" : supply.engineText(), F_TEXT, supply.fitted() ? TFT_RED : TFT_ORANGE},
               {"Measure, pulse, measure.", F_SMALL, C_LGREY} }, 0, H() - 18);
   drawHint("press: start  hold: back");
   canvas.pushSprite(0, 0);
@@ -870,6 +873,7 @@ void benchCommand(String c) {
     Serial.printf("# fw %s  preset %s  target %.2f bar  sensor %.3f bar (%.3f V)%s  state %d err %d\n", FW_VERSION,
                   PRESETS[settings.preset].name, settings.target, sensor.bar(settings.calA, settings.calB), sensor.vG1() * DIVIDER,
                   sensor.fault() ? " FAULT" : "", (int)pump.state(), (int)pump.error());
+    Serial.printf("# AUX1 %.2f V  %s\n", supply.volts(), !supply.fitted() ? "no module" : supply.engineOn() ? "engine on" : "engine off");
     Serial.printf("# tyre %s  rate %.4f  kTop %.4f  offset %.3f  c %.2f  tauD %.1f  learned %d/%d  cal a %.4f b %.3f\n",
                   TYRES[settings.tyre].name, settings.rate, settings.kTop, settings.offset, settings.c, settings.tauD,
                   settings.learned, settings.learnedD, settings.calA, settings.calB);
@@ -952,6 +956,7 @@ void drawSensor() {
   drawLines({ {"SENSOR CHECK", F_TEXT, TFT_CYAN},
               {"sensor " + String(vs, 2) + " V", F_MID, TFT_WHITE},
               {SENSOR_PIN_NAME " " + String(vg, 2) + " V", F_MID, TFT_GREENYELLOW},
+              {supply.fitted() ? "AUX1 " + String(supply.volts(), 1) + " V" + (supply.engineOn() ? "  ENGINE ON" : "  ENGINE OFF") : String(""), F_TEXT, C_LGREY},
               {sensor.fault() ? "OUT OF RANGE" : fmt(sensor.bar(settings.calA, settings.calB)) + " " + unitName() + "  (raw " + String(sensor.rawBar(), 2) + ")", F_TEXT, sensor.fault() ? TFT_RED : TFT_WHITE},
               }, 0, H() - 18);
   drawHint("press: back");
@@ -1032,6 +1037,7 @@ void setup() {
                    wlog::kv("svc_h", settings.svcHours(), 2));
   applyRotation();     // WIDE / PORTRAIT, chosen in the menu
   sensor.begin();
+  supply.begin();
   pump.begin(&sensor, &settings);
   cal.begin(&sensor, &settings);
   input::begin();
@@ -1041,6 +1047,7 @@ void setup() {
 void loop() {
   M5.update();
   sensor.update();
+  supply.update();
   pump.update();
   if (!pump.busy()) settings.useWheels(4);   // a CUSTOM run on fewer wheels is over: learning back to the 4-wheel volume
   cal.update();
