@@ -137,3 +137,7 @@
 - -X8 already hangs at the manifold, so the sensor connector -X6 (JWPF) and the valve connector -X9 are dropped: the sensor and valve pigtails are crimped straight into the -X8 pins. 2 connectors and 5 contact pairs less in series, the sensor signal benefits most.
 - Valve ground stays its own wire to a stud at the manifold, it does not pass -X8. To swap the sensor or the valve, its pins come out of -X8 with the extractor.
 - JWPF kit and IWS-2820 already ordered, now spare.
+
+## 2026-11-21 One output connector
+- Owner: all outputs in one connector. -X8 5P on the left gland pigtail: 1 VT (ARB), 2 OG (valve), 3 RD +5 V, 4 BK GND, 5 YE signal. Behind the pins the harness splits: VT to the ARB (-V1 / -V2 there), OG to the valve, the sensor pigtail. -X10 dropped.
+- The 254PCS kit has 1P-4P only; a 5P pair comes separately.

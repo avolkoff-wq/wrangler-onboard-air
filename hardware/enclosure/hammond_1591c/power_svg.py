@@ -539,12 +539,12 @@ def power_svg_iec_def():
         if bottom: lab(x + 8, y1 + 15, bottom, "d" if not sub else "c")
         if sub: lab(x + 8, y1 + 28, sub, "c")
     conn(128, T[1] - 12, T[3] + 12, "-X7", "2P")                                   # input: car side of the box splices
-    conn(214, T[7] - 12, T[7] + 12, "", "-X8:1")                                   # manifold 4P, drawn detached: pin 1 OG
-    conn(214, G2 - 12, G2 + 12, "-X8:2-4", "")                                     # pins 2-4 RD +5 V, BK GND, YE signal
-    conn(214, T[8] - 12, T[8] + 12, "-X10", "")                                  # compressor VT
+    conn(214, T[7] - 12, T[7] + 12, "", "-X8:2")                                   # manifold 4P, drawn detached: pin 1 OG
+    conn(214, G2 - 12, G2 + 12, "-X8:3-5", "")                                     # pins 2-4 RD +5 V, BK GND, YE signal
+    conn(214, T[8] - 12, T[8] + 12, "-X8:1", "")                                  # compressor VT
     for i, t in enumerate(("-X7 вход 2P: RD +12 В, BK масса. Сплайсы -X2 / -X2a за ним, на хвосте коробки",
-                           "-X8 манифолд 4P, по порядку: 1 OG клапан, 2 RD +5 В, 3 BK GND, 4 YE сигнал (сигнал с краю, рядом только масса)",
-                           "-B1 и -Y1 хвостами прямо в папу -X8, без своих разъёмов. Масса клапана на шпильку · -X10 ARB 1P: VT",
+                           "-X8 выход 5P, по порядку: 1 VT ARB, 2 OG клапан, 3 RD +5 В, 4 BK GND, 5 YE сигнал (сигнал с краю, рядом только масса)",
+                           "За папой -X8 жгут делится: VT к ARB (-V1 / -V2 там), OG к клапану, датчик хвостом. Масса клапана на шпильку",
                            "Разъёмы: набор герморазъёмов 1-6 pin, хвосты ~20 см из гермовводов, коробка отключается от жгута")):
         lab(20, 852 + i * 15, t, "c", "start")
 
