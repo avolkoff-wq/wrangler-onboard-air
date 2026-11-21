@@ -965,14 +965,16 @@ void applyRotation() {
 }
 
 // ---------- boot splash: VOLKOV AIR, a generic SUV drives over bumps (1.6 s, a press skips it) ----------
-float splashGround(float x, float g, float k) {   // world x in landscape pixels, k = screen width / 240
-  x /= k;
-  return g - k * (12 * expf(-sq((x - 95) / 10)) + 9 * expf(-sq((x - 165) / 8)) - 3 * expf(-sq((x - 200) / 6)));
+// bumpy track: two humps and a dip at fixed fractions of the width w, heights and widths scale with the car (q)
+float splashGround(float x, float g, float w, float q) {
+  const float u = x / w * 240, f = w / 240;
+  return g - q * (12 * expf(-sq((u - 95) * f / (10 * q))) + 9 * expf(-sq((u - 165) * f / (8 * q))) - 3 * expf(-sq((u - 200) * f / (6 * q))));
 }
 void splash() {
   const int w = W(), h = H();
   const bool port = h > w;
-  const float k = w / 240.0f, g = h - 23 * (port ? 2.0f : 1.0f);
+  const float SS = port ? 2.6f : 1.8f, q = SS / 1.4f;           // px per unit: the car fills the space under the title
+  const float g = h - (port ? 46 : 21);
   const uint16_t grey = canvas.color565(110, 110, 110);
   constexpr int N = 40, FRAME_MS = 40;
   for (int i = 0; i < N; i++) {
@@ -980,12 +982,11 @@ void splash() {
     if (digitalRead(PIN_BTN) == LOW) break;
     const float t = i / float(N - 1), fade = min(1.0f, t * 2.2f);
     canvas.fillSprite(TFT_BLACK);
-    for (int x = 0; x < w - 1; x++) canvas.drawLine(x, splashGround(x, g, k), x + 1, splashGround(x + 1, g, k), grey);
-    for (int x = 4; x < w; x += 11) canvas.drawPixel(x, splashGround(x, g, k) + 4, grey);
+    for (int x = 0; x < w - 1; x++) canvas.drawLine(x, splashGround(x, g, w, q), x + 1, splashGround(x + 1, g, w, q), grey);
+    for (int x = 4; x < w; x += 11) canvas.drawPixel(x, splashGround(x, g, w, q) + 4, grey);
     // SUV: both wheels on the track, the body pitched along the line through them
-    constexpr float SS = 1.4f;                                         // px per unit
-    const float wb = SUV_WB * SS, xw = (-40 + t * 300) * k;
-    const float yr = splashGround(xw, g, k), yf = splashGround(xw + wb, g, k), a = atan2f(yf - yr, wb);
+    const float wb = SUV_WB * SS, xw = -40 * q + t * (w + 20 + 40 * q);
+    const float yr = splashGround(xw, g, w, q), yf = splashGround(xw + wb, g, w, q), a = atan2f(yf - yr, wb);
     drawSuv(xw, yr, SS, a * RAD_TO_DEG);
     // title fades in
     const uint8_t v = 255 * fade;
