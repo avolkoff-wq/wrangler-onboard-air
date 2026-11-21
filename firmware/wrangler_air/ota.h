@@ -16,10 +16,13 @@ class Ota {
   void start(const bool* psi = nullptr) {
     if (running_) return;
     psi_ = psi;
+    lastActivity_ = millis();
     digitalWrite(PIN_K1, LOW); if (PIN_K4 >= 0) digitalWrite(PIN_K4, LOW);   // outputs off for the whole update
     WiFi.mode(WIFI_AP);
     WiFi.softAP(OTA_SSID, OTA_PASS);
-    server_.on("/", HTTP_GET, [this]() {
+    auto touch = [this]() { lastActivity_ = millis(); };
+    server_.on("/", HTTP_GET, [this, touch]() {
+      touch();
       server_.send(200, "text/html",
         "<meta name=viewport content='width=device-width'>"
         "<h3>Wrangler Air " FW_VERSION "</h3>"
@@ -33,7 +36,8 @@ class Ota {
         "<input type=file name=fw accept=.bin><br><br><input type=submit value=Update></form>");
     });
     // both files in one download: the older part first
-    server_.on("/log", HTTP_GET, [this]() {
+    server_.on("/log", HTTP_GET, [this, touch]() {
+      touch();
       server_.sendHeader("Content-Disposition", "attachment; filename=wrangler_air_log.csv");
       server_.setContentLength(CONTENT_LENGTH_UNKNOWN);
       server_.send(200, "text/csv", "");
@@ -50,7 +54,8 @@ class Ota {
       server_.sendContent("");
     });
     // run graph page: the browser fetches the CSV and draws it (TRACE_GRAPH_HTML_HEAD)
-    server_.on("/run", HTTP_GET, [this]() {
+    server_.on("/run", HTTP_GET, [this, touch]() {
+      touch();
       const String id = server_.arg("id");
       if (!validId(id)) { server_.send(404, "text/plain", "no such run"); return; }
       server_.send(200, "text/html", String(TRACE_GRAPH_HTML_HEAD) +
@@ -58,7 +63,8 @@ class Ota {
         "<p style=color:#666>No live graph: the pressure input can not be read while Wi-Fi is on.</p>"
         "<script>fetch('/runfile?id=" + id + "').then(function(r){return r.text()}).then(function(t){draw(t," + (psi_ && *psi_ ? "true" : "false") + ")});</script>");
     });
-    server_.on("/runfile", HTTP_GET, [this]() {
+    server_.on("/runfile", HTTP_GET, [this, touch]() {
+      touch();
       const String id = server_.arg("id");
       File f = validId(id) ? LittleFS.open("/runs/" + id, "r") : File();
       if (!f) { server_.send(404, "text/plain", "no such run"); return; }
@@ -66,7 +72,8 @@ class Ota {
       server_.streamFile(f, "text/csv");
       f.close();
     });
-    server_.on("/clearruns", HTTP_POST, [this]() {
+    server_.on("/clearruns", HTTP_POST, [this, touch]() {
+      touch();
       File d = LittleFS.open("/runs");
       String names[64]; int n = 0;
       if (d) { for (File f = d.openNextFile(); f && n < 64; f = d.openNextFile()) { names[n++] = String(f.name()); f.close(); } d.close(); }
@@ -74,17 +81,20 @@ class Ota {
       wlog::ev("LOG", "runs_cleared=1;");
       server_.sendHeader("Location", "/"); server_.send(303);
     });
-    server_.on("/clear", HTTP_POST, [this]() {
+    server_.on("/clear", HTTP_POST, [this, touch]() {
+      touch();
       wlog::clear(); wlog::ev("LOG", "cleared=1;");
       server_.sendHeader("Location", "/"); server_.send(303);
     });
     server_.on("/update", HTTP_POST,
-      [this]() {
+      [this, touch]() {
+        touch();
         const bool ok = !Update.hasError();
         server_.send(200, "text/plain", ok ? "OK, rebooting" : "Update FAILED");
         if (ok) { delay(500); ESP.restart(); }
       },
-      [this]() {
+      [this, touch]() {
+        touch();
         HTTPUpload& u = server_.upload();
         if (u.status == UPLOAD_FILE_START)      { Update.begin(UPDATE_SIZE_UNKNOWN); progress_ = 0; }
         else if (u.status == UPLOAD_FILE_WRITE) { Update.write(u.buf, u.currentSize); progress_ += u.currentSize; }
@@ -98,11 +108,20 @@ class Ota {
     server_.stop(); WiFi.softAPdisconnect(true); WiFi.mode(WIFI_OFF);
     running_ = false;
   }
-  void update() { if (running_) server_.handleClient(); }
+  void update() {
+    if (!running_) return;
+    server_.handleClient();
+    if (millis() - lastActivity_ > WIFI_TIMEOUT_MS) {
+      wlog::ev("WIFI", "timeout=1;");
+      stop();
+    }
+  }
   bool running() const { return running_; }
   size_t progress() const { return progress_; }
 
  private:
+  static constexpr uint32_t WIFI_TIMEOUT_MS = 10UL * 60UL * 1000UL;  // 10 min inactivity
+  uint32_t lastActivity_ = 0;
   // file names are r<boot>_<n>.csv: nothing else is served
   static bool validId(const String& id) {
     if (id.length() < 6 || id[0] != 'r' || !id.endsWith(".csv")) return false;
