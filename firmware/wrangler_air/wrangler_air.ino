@@ -67,8 +67,8 @@ enum IdleDir { D_UP, D_DOWN, D_OK, D_ABOVE, D_DEAD };   // what a start would do
 enum class Screen { MAIN, MENU, EDIT, CAL, OTA, VERSION, SENSOR, CUSTOM, LEARN_PICK, LEARN_CONF, LEARN_MSG, HOURS, HOURS_CONF, OUT_TEST, WIFI_PASS };
 Screen screen = Screen::MAIN;
 int menuPos = 0;
-enum MenuItem { M_CAL, M_LEARN, M_SENSOR, M_OUTPUT, M_DEMO, M_UNITS, M_TYRE, M_OFFSET, M_SETTLE, M_VALVE, M_VCHECK, M_ECONF, M_SCREEN, M_RESET, M_UPDATE, M_WIFIPASS, M_VERSION, M_HOURS, M_EXIT };
-const char* const MENU[] = {"CALIBRATE", "LEARN", "SENSOR", "OUTPUT TEST", "DEMO", "UNITS", "TYRE", "OFFSET", "SETTLE", "VALVE", "VOLT CHECK", "ENGINE CONFIRM", "SCREEN", "RESET LEARNING", "WIFI: UPDATE + LOG", "WIFI PASSWORD", "VERSION", "HOURS", "EXIT"};
+enum MenuItem { M_CAL, M_LEARN, M_SENSOR, M_OUTPUT, M_DEMO, M_UNITS, M_TYRE, M_OFFSET, M_SETTLE, M_VALVE, M_VCHECK, M_ECONF, M_WDOG, M_SCREEN, M_RESET, M_UPDATE, M_WIFIPASS, M_VERSION, M_HOURS, M_EXIT };
+const char* const MENU[] = {"CALIBRATE", "LEARN", "SENSOR", "OUTPUT TEST", "DEMO", "UNITS", "TYRE", "OFFSET", "SETTLE", "VALVE", "VOLT CHECK", "ENGINE CONFIRM", "WATCHDOG", "SCREEN", "RESET LEARNING", "WIFI: UPDATE + LOG", "WIFI PASSWORD", "VERSION", "HOURS", "EXIT"};
 const int MENU_N = sizeof(MENU) / sizeof(MENU[0]);
 
 // ---------- OFFSET / SETTLE editor: index 0 = AUTO ----------
@@ -360,11 +360,11 @@ void setup() {
   // watchdog on the main loop: no loop pass for WDT_MS = restart, and a restart drops both outputs
   esp_task_wdt_config_t wc = { .timeout_ms = WDT_MS, .idle_core_mask = 0, .trigger_panic = true };
   if (esp_task_wdt_reconfigure(&wc) != ESP_OK) esp_task_wdt_init(&wc);
-  esp_task_wdt_add(NULL);
+  if (settings.wdog) esp_task_wdt_add(NULL);   // menu WATCHDOG
 }
 
 void loop() {
-  esp_task_wdt_reset();
+  if (settings.wdog) esp_task_wdt_reset();
   M5.update();
   sensor.update();
   supply.update();
@@ -459,6 +459,10 @@ void loop() {
             settings.save(); wlog::ev("VALVE", wlog::kv("on", String(g_valve ? 1 : 0))); break;
           case M_VCHECK:  settings.vcheck = !settings.vcheck; settings.save(); break;
           case M_ECONF:   settings.econfirm = !settings.econfirm; settings.save(); break;
+          case M_WDOG:
+            settings.wdog = !settings.wdog; settings.save();
+            if (settings.wdog) esp_task_wdt_add(NULL); else esp_task_wdt_delete(NULL);
+            wlog::ev("WATCHDOG", wlog::kv("on", String(settings.wdog ? 1 : 0))); break;
           case M_SCREEN:  settings.rot = (settings.rot + 1) % 4; settings.save(); applyRotation(); break;
           case M_RESET:   // two presses within 3 s, so a stray click cannot wipe what was learned
             if (resetArm && millis() - resetArm < 3000) { settings.resetLearning(); wlog::ev("RESET_LEARNING", ""); beep(); resetArm = 0; }

@@ -286,8 +286,8 @@ void drawMenu() {
     if (i == M_OFFSET) t += String(": ") + offText(offIdx());
     if (i == M_SETTLE) t += String(": ") + setText(setIdx());
     if (i == M_SCREEN) t += String(": ") + rotName(settings.rot);
-    if (i == M_DEMO || i == M_VALVE || i == M_VCHECK || i == M_ECONF) {
-      const bool on = i == M_DEMO ? g_demo : i == M_VALVE ? settings.valve : i == M_VCHECK ? settings.vcheck : settings.econfirm;
+    if (i == M_DEMO || i == M_VALVE || i == M_VCHECK || i == M_ECONF || i == M_WDOG) {
+      const bool on = i == M_DEMO ? g_demo : i == M_VALVE ? settings.valve : i == M_VCHECK ? settings.vcheck : i == M_WDOG ? settings.wdog : settings.econfirm;
       t = String(on ? "[x] " : "[ ] ") + t;
       if (i == M_ECONF && portrait()) t = String(on ? "[x] " : "[ ] ") + "ENG CONFIRM";
     }

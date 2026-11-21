@@ -158,4 +158,6 @@
 
 ## 2026-11-21 Fail-safes: watchdog
 - Main loop watchdog (ESP32 task WDT) 5 s: a hung firmware restarts and the restart drops both outputs. 3 s was too tight next to the ~2 s ERR OVER sound; 5 s costs nothing (about 0.05 bar more if the compressor were on). After such a restart: WATCHDOG RESET (or CRASH RESET) on screen with the error sound, log WATCHDOG_RESET / CRASH_RESET.
-- Next candidates: "disconnect hoses" reminder after a run, valve stuck open, relay contact welded.
+- Menu [x] WATCHDOG (saved, on by default): off only for debugging.
+- "Disconnect hoses" reminder: owner said no.
+- Next candidates: valve stuck open, relay contact welded.

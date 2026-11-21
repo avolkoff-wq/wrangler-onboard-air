@@ -12,6 +12,7 @@ struct Settings {
   uint8_t rot   = 1;              // screen rotation: 1 wide (knob right), 0 portrait, 3 / 2 the same turned 180
   bool  valve   = true;           // menu VALVE: deflate valve fitted (g_valve follows it)
   bool  vcheck  = true;           // menu VOLT CHECK: read AUX1 through the 0-25 V module on G15
+  bool  wdog    = true;           // menu WATCHDOG: 5 s main-loop watchdog
   bool  econfirm = true;          // menu ENGINE CONFIRM: third press before inflating when the engine is off or unknown
 
   // flow offset: dynamic sensor reading minus real tyre pressure
@@ -77,6 +78,7 @@ struct Settings {
     valve        = p.getBool ("valve", valve); g_valve = valve;
     vcheck       = p.getBool ("vchk", vcheck);
     econfirm     = p.getBool ("econf", econfirm);
+    wdog         = p.getBool ("wdog", wdog);
     offAuto      = p.getBool ("offAuto", offAuto);
     offManual    = p.getFloat("offMan", offManual);
     offset       = p.getFloat("offset", offset);
@@ -121,6 +123,7 @@ struct Settings {
     p.putBool ("valve", valve);
     p.putBool ("vchk", vcheck);
     p.putBool ("econf", econfirm);
+    p.putBool ("wdog", wdog);
     p.putBool ("offAuto", offAuto);
     p.putFloat("offMan", offManual);
     p.putFloat("offset", w.offset);
