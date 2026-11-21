@@ -84,7 +84,7 @@
 - CUSTOM: after the pressure, a second step picks 1-4 wheels on the line. The run scales the learned values to that air volume (rate, kTop x4/n, tauD, c x n/4); NVS always keeps the 4-wheel values, so learning carries over and a power cut mid-run leaves nothing scaled. Main screen shows "CUSTOM  2 WHEELS" (portrait "CUSTOM x2") when below 4.
 - HOURS: "compressor total" and "since cleaning".
 - Splash: no firmware version.
-- Silhouette: one shared generic 4-door off-roader for all icons and the splash (sim2.py SUV_* tables, firmware drawSuv): nose to the right, 3 side windows, rear spare, larger wheels with 6 hub holes in round arches. Drawn from scratch after the owner's reference picture, mirrored; no brand grille or logo.
+- Silhouette (21.11): the owner's white-on-black reference image, used as a mask for all icons and the splash: docs/screen/suv_mask.png (512 px) for the mock-ups, firmware/wrangler_air/suv_bitmap.h (128x51, 1 bit) pushed rotated and zoomed with pushRotateZoomWithAA. 40 units long, pivot = ground under the rear wheel, nose to the right. Wheels about 27 % smaller relative to the body than the earlier hand-drawn one.
 
 ## 2026-11-19 Over-pressure
 - The owner has a 4 bar relief valve on the wheel line, so the firmware over-pressure stop is a second layer, not the only protection.

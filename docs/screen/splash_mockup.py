@@ -23,11 +23,10 @@ SS = 1.4
 
 def suv(d, xw):
     """the shared silhouette (sim2.suv); xw = rear wheel x, both wheels on the track, body pitched along them"""
-    wb = (_m.SUV_WHEELS[1] - _m.SUV_WHEELS[0]) * _m.SUV_K * SS
+    wb = _m.SUV_WB * SS
     yr, yf = ground(xw), ground(xw + wb)
     a = math.atan2(yf - yr, wb)
-    back = _m.SUV_WHEELS[0] * _m.SUV_K * SS
-    _m.suv(d, xw - back * math.cos(a), yr - back * math.sin(a), SS, ang=math.degrees(a))
+    _m.suv(d, xw, yr, SS, ang=math.degrees(a))
 
 
 frames = []

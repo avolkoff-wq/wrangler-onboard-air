@@ -11,38 +11,27 @@ ORANGE, SKY, CYAN, GY, SANDC, ROCKC = (255, 165, 0), (135, 206, 235), (0, 255, 2
 PRESETS = [("HIGHWAY", 2.5), ("ROUGH ROAD", 1.8), ("GRAVEL", 1.5), ("TRAIL", 1.2), ("ROCK", 1.0), ("SAND", 0.8), ("RECOVERY", 0.5), ("CUSTOM", 2.0)]
 
 
-# shared silhouette spec (firmware drawSuv() mirrors it): generic boxy 4-door off-roader, nose to the right,
-# 3 side windows, rear spare, large wheels in round arches. Units: wheels at x 4 / 29, r 6.2, centre 5.6 above ground.
-SUV_BODY = [[(-4, 6), (37, 6), (37, 14), (26, 15), (-4, 15)],      # lower body, hood falls to the nose
-            [(-3, 15), (26, 15), (21.5, 23.5), (-3, 23.5)],         # cabin, raked windscreen
-            [(36, 4.5), (39, 4.5), (39, 8), (36, 8)],               # front bumper
-            [(-6.5, 8.5), (-4, 8.5), (-4, 17.5), (-6.5, 17.5)]]     # spare wheel on the tailgate
-SUV_WIN = [[(-1.5, 16.5), (5.5, 16.5), (5.5, 22), (-1.5, 22)],
-           [(7, 16.5), (13, 16.5), (13, 22), (7, 22)],
-           [(14.5, 16.5), (23.4, 16.5), (20.6, 22), (14.5, 22)]]
-SUV_WHEELS, SUV_R, SUV_WY, SUV_ARCH, SUV_K = (4, 29), 6.2, 5.6, 7.5, 0.86
+# shared silhouette: the owner's white-on-black reference mask (suv_mask.png, nose to the right). Firmware drawSuv()
+# pushes the same mask (suv_bitmap.h, 128 px) rotated and zoomed. The car is 40 units long; pivot = ground under the rear wheel.
+import os
+SUV_MASK = Image.open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "suv_mask.png")).convert("L")
+SUV_PIV = (107.2 / 512, 1.0)              # pivot as a fraction of the mask size
+SUV_LEN = 40.0
+SUV_WB = 40.0 * (760 - 186.5) / 891   # wheelbase in units (rear to front wheel ground contact)
 
 
 def suv(d, x, y, s, ang=0.0, sink=0.0):
-    """filled boxy 4-door SUV side view, 46 x 24 units x SUV_K, (x, y) = ground under the rear wheel, s = px per unit"""
-    a = math.radians(ang)
-    s = s * SUV_K                    # same footprint as the old 40 x 20 icon
-    def R(px, py):
-        return (x + s * (px * math.cos(a) + py * math.sin(a)), y - s * (-px * math.sin(a) + py * math.cos(a)))
-    for q in SUV_BODY:
-        d.polygon([R(*p) for p in q], fill=WHITE)
-    for q in SUV_WIN:
-        d.polygon([R(*p) for p in q], fill=(0, 0, 0))
-    for wx in SUV_WHEELS:
-        cx, cy = R(wx, SUV_WY - sink)
-        ra, r = SUV_ARCH * s, SUV_R * s
-        d.ellipse([cx - ra, cy - ra, cx + ra, cy + ra], fill=(0, 0, 0))          # wheel arch
-        d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=WHITE)
-        dr, rr = r * 0.55, max(0.8, r * 0.13)
-        for k in range(6):                                                      # hub holes
-            t = math.radians(k * 60 + 30 + ang)
-            hx, hy = cx + dr * math.cos(t), cy + dr * math.sin(t)
-            d.ellipse([hx - rr, hy - rr, hx + rr, hy + rr], fill=(0, 0, 0))
+    """SUV side view, (x, y) = ground under the rear wheel, s = px per unit, ang in degrees (negative = nose up)"""
+    L = SUV_LEN * s
+    w, h = max(1, round(L)), max(1, round(L * SUV_MASK.height / SUV_MASK.width))
+    m = SUV_MASK.resize((w, h), Image.LANCZOS)
+    px, py = SUV_PIV[0] * w, SUV_PIV[1] * h
+    D = int(max(w, h) * 1.2) + 2
+    c = Image.new("L", (2 * D, 2 * D), 0)
+    c.paste(m, (round(D - px), round(D - py)))
+    if ang:
+        c = c.rotate(-ang, resample=Image.BICUBIC, center=(D, D))
+    d._image.paste(WHITE, (round(x - D), round(y - D)), c)
 
 
 TREE, CACT, SUN, MOUNT, CONE = (40, 125, 60), (70, 160, 80), (255, 200, 40), (105, 118, 140), (255, 120, 0)

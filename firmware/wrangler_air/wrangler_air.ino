@@ -37,6 +37,7 @@
 // Libraries: M5Unified (Arduino Library Manager). Board: M5Stack StampS3 / "M5DinMeter".
 // Partition scheme must have two OTA app partitions (default 8MB scheme does).
 
+#include "suv_bitmap.h"
 #include <M5Unified.h>
 #include "config.h"
 #include "storage.h"
@@ -188,37 +189,22 @@ void fillConvex(const float (*p)[2], int n, uint16_t c) {
     canvas.fillTriangle(lroundf(p[0][0]), lroundf(p[0][1]), lroundf(p[i][0]), lroundf(p[i][1]), lroundf(p[i + 1][0]), lroundf(p[i + 1][1]), c);
 }
 
-// filled boxy 4-door SUV side view, nose to the right (spec: docs/screen/sim2.py suv(), SUV_* tables), 46 x 24 units
-// x SUV_K; (x, y) = ground under the rear wheel, s = px per unit, ang in degrees (negative = nose up)
-constexpr float SUV_K = 0.86f, SUV_R = 6.2f, SUV_WY = 5.6f, SUV_ARCH = 7.5f, SUV_WX[2] = {4, 29};
+// SUV side view, nose to the right: the owner's reference mask (suv_bitmap.h, spec docs/screen/sim2.py suv()), 40 units long,
+// pushed rotated and zoomed. (x, y) = ground under the rear wheel, s = px per unit, ang in degrees (negative = nose up)
+constexpr float SUV_LEN = 40.0f, SUV_WB = 40.0f * (760 - 186.5f) / 891;   // length, wheelbase (units)
+M5Canvas suvSpr(&canvas);
 void drawSuv(float x, float y, float s, float ang = 0, float sink = 0) {
-  s *= SUV_K;
-  const float a = ang * DEG_TO_RAD, ca = cosf(a), sa = sinf(a);
-  auto R = [&](float px, float py, float* o) { o[0] = x + s * (px * ca + py * sa); o[1] = y - s * (-px * sa + py * ca); };
-  auto poly = [&](const float (*u)[2], int n, uint16_t c) {
-    float p[8][2]; for (int i = 0; i < n; i++) R(u[i][0], u[i][1], p[i]); fillConvex(p, n, c);
-  };
-  static const float lower[][2]  = { {-4,6}, {37,6}, {37,14}, {26,15}, {-4,15} };            // hood falls to the nose
-  static const float cabin[][2]  = { {-3,15}, {26,15}, {21.5f,23.5f}, {-3,23.5f} };         // raked windscreen
-  static const float bumper[][2] = { {36,4.5f}, {39,4.5f}, {39,8}, {36,8} };
-  static const float spare[][2]  = { {-6.5f,8.5f}, {-4,8.5f}, {-4,17.5f}, {-6.5f,17.5f} };
-  static const float win1[][2]   = { {-1.5f,16.5f}, {5.5f,16.5f}, {5.5f,22}, {-1.5f,22} };
-  static const float win2[][2]   = { {7,16.5f}, {13,16.5f}, {13,22}, {7,22} };
-  static const float win3[][2]   = { {14.5f,16.5f}, {23.4f,16.5f}, {20.6f,22}, {14.5f,22} };
-  const uint16_t wh = ic(255, 255, 255);
-  poly(lower, 5, wh); poly(cabin, 4, wh); poly(bumper, 4, wh); poly(spare, 4, wh);
-  poly(win1, 4, TFT_BLACK); poly(win2, 4, TFT_BLACK); poly(win3, 4, TFT_BLACK);
-  for (float wx : SUV_WX) {
-    float c[2]; R(wx, SUV_WY - sink, c);
-    const float r = SUV_R * s;
-    canvas.fillCircle(lroundf(c[0]), lroundf(c[1]), lroundf(SUV_ARCH * s), TFT_BLACK);   // wheel arch
-    canvas.fillCircle(lroundf(c[0]), lroundf(c[1]), lroundf(r), wh);
-    const float dr = r * 0.55f; const int rr = max(1L, lroundf(r * 0.13f));
-    for (int k = 0; k < 6; k++) {                                                      // hub holes
-      const float t = (k * 60 + 30 + ang) * DEG_TO_RAD;
-      canvas.fillCircle(lroundf(c[0] + dr * cosf(t)), lroundf(c[1] + dr * sinf(t)), rr, TFT_BLACK);
-    }
+  (void)sink;
+  if (!suvSpr.getBuffer()) {
+    suvSpr.setColorDepth(1);
+    suvSpr.createSprite(SUV_BMP_W, SUV_BMP_H);
+    suvSpr.setPaletteColor(0, TFT_BLACK); suvSpr.setPaletteColor(1, TFT_WHITE);
+    suvSpr.fillSprite(0);
+    suvSpr.drawBitmap(0, 0, SUV_BMP, SUV_BMP_W, SUV_BMP_H, 1);
+    suvSpr.setPivot(SUV_PIVOT_X, SUV_PIVOT_Y);
   }
+  const float z = SUV_LEN * s / SUV_BMP_W;
+  suvSpr.pushRotateZoomWithAA(&canvas, x, y, ang, z, z, 0);           // palette index 0 transparent
 }
 
 // gravel pebbles: u, depth below ground, radius (units); fixed list = the mock-up's random.seed(3)
@@ -998,10 +984,9 @@ void splash() {
     for (int x = 4; x < w; x += 11) canvas.drawPixel(x, splashGround(x, g, k) + 4, grey);
     // SUV: both wheels on the track, the body pitched along the line through them
     constexpr float SS = 1.4f;                                         // px per unit
-    const float wb = (SUV_WX[1] - SUV_WX[0]) * SUV_K * SS, xw = (-40 + t * 300) * k;
+    const float wb = SUV_WB * SS, xw = (-40 + t * 300) * k;
     const float yr = splashGround(xw, g, k), yf = splashGround(xw + wb, g, k), a = atan2f(yf - yr, wb);
-    const float back = SUV_WX[0] * SUV_K * SS;
-    drawSuv(xw - back * cosf(a), yr - back * sinf(a), SS, a * RAD_TO_DEG);
+    drawSuv(xw, yr, SS, a * RAD_TO_DEG);
     // title fades in
     const uint8_t v = 255 * fade;
     const uint16_t white = canvas.color565(v, v, v), amb = canvas.color565(255 * fade, 165 * fade, 0);
