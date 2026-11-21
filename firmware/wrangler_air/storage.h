@@ -1,6 +1,7 @@
 // Settings that survive power-off and firmware updates (NVS, separate from the app partitions)
 #pragma once
 #include <Preferences.h>
+#include <cstring>
 #include "config.h"
 
 struct Settings {
@@ -38,6 +39,7 @@ struct Settings {
   uint8_t tyre  = 0;              // index into TYRES (config.h)
   // hour meter: compressor (K1) and valve (K4) seconds, compressor seconds at the last filter service (menu HOURS)
   uint32_t cmpSec = 0, ventSec = 0, svcSec = 0;
+  char wifiPass[9] = OTA_PASS;   // AP password for UPDATE (8 chars + NUL), editable in menu WIFI PASSWORD
   float svcHours() const { return (cmpSec - svcSec) / 3600.0f; }
   // CUSTOM can run on fewer wheels (spare, one wheel after a repair): wheels is saved, wk = active wheels / 4 is runtime only.
   // For such a run the 4-wheel learning is put aside (L4), the RAM values are scaled to that run, the run may correct them
@@ -98,6 +100,12 @@ struct Settings {
     cmpSec       = p.getUInt ("cmpSec", cmpSec);
     ventSec      = p.getUInt ("ventSec", ventSec);
     svcSec       = p.getUInt ("svcSec", svcSec); if (svcSec > cmpSec) svcSec = cmpSec;
+    {
+      const String wp = p.getString("wifiPass", OTA_PASS);
+      strncpy(wifiPass, wp.c_str(), sizeof wifiPass);
+      wifiPass[sizeof wifiPass - 1] = 0;
+      if (strlen(wifiPass) < 8) strncpy(wifiPass, OTA_PASS, sizeof wifiPass);
+    }
     p.end();
     if (target > TARGET_MAX) target = TARGET_MAX;
     if (target < TARGET_MIN) target = TARGET_MIN;
@@ -136,6 +144,7 @@ struct Settings {
     p.putUInt ("cmpSec", cmpSec);
     p.putUInt ("ventSec", ventSec);
     p.putUInt ("svcSec", svcSec);
+    p.putString("wifiPass", wifiPass);
     p.end();
   }
   // other tyre size: everything learned is scaled by the air volume, so the learning carries over

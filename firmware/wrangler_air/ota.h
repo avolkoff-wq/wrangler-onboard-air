@@ -13,13 +13,14 @@
 
 class Ota {
  public:
-  void start(const bool* psi = nullptr) {
+  void start(const bool* psi = nullptr, const char* pass = nullptr) {
     if (running_) return;
     psi_ = psi;
     lastActivity_ = millis();
     digitalWrite(PIN_K1, LOW); if (PIN_K4 >= 0) digitalWrite(PIN_K4, LOW);   // outputs off for the whole update
     WiFi.mode(WIFI_AP);
-    WiFi.softAP(OTA_SSID, OTA_PASS);
+    const char* pwd = (pass && strlen(pass) >= 8) ? pass : OTA_PASS;
+    WiFi.softAP(OTA_SSID, pwd);
     auto touch = [this]() { lastActivity_ = millis(); };
     server_.on("/", HTTP_GET, [this, touch]() {
       touch();
