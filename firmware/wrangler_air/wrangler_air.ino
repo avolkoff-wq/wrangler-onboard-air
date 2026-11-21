@@ -399,7 +399,9 @@ void loop() {
         int up = 0; float maxStep = 0;
         for (int i = 1; i <= PCHK_WINDOW_S; i++) { const float d = hist[i] - hist[i - 1]; if (d > 0.005f) up++; maxStep = max(maxStep, d); }
         const float rise = hist[PCHK_WINDOW_S] - hist[0];
-        if (rise > PCHK_RISE && up >= 3 && maxStep < 0.8f * rise) {
+        bool high = true;
+        for (int i = PCHK_WINDOW_S - 3; i <= PCHK_WINDOW_S; i++) high &= hist[i] > PCHK_HIGH;
+        if (high || (rise > PCHK_RISE && up >= PCHK_UP && maxStep < 0.8f * rise)) {
           wlog::ev("PUMP_STUCK", wlog::kv("p", p) + wlog::kv("rise", rise));
           pump.pumpStuck(p); n = 0; quietT = millis();
         }

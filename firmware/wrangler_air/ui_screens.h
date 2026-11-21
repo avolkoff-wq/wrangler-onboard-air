@@ -218,7 +218,7 @@ void drawMain() {
         case PErr::LOW_P:   line = String("PUMP UP TO ") + fmt(LEARN_DEF_MIN_BAR) + " FIRST"; break;
         case PErr::LOW_V:   line = "ERR LOW VOLTAGE"; break;
         case PErr::VALVE:   line = "ERR VALVE OPEN"; break;
-        case PErr::PUMP_ON: line = "PUMP ON: SWITCH AUX1 OFF"; break;
+        case PErr::PUMP_ON: line = "NO SIGNAL, PRESSURE RISING"; break;   // the controller keeps the compressor off, yet air comes
         default:            line = "ERR"; break;
       }
       break;
@@ -263,7 +263,8 @@ void drawMain() {
     textAt(line, W() / 2, 178, F_TEXT, col, top_center, F_SMALL, W() - 4);
     textAt(counts, W() / 2, 198, F_SMALL, C_GREY, top_center);
   }
-  drawHint(pump.busy() ? "press: STOP" : "press: back");
+  if (pump.state() == PState::ERROR && pump.error() == PErr::PUMP_ON) drawHint("SWITCH AUX1 OFF  press: back", TFT_RED);
+  else drawHint(pump.busy() ? "press: STOP" : "press: back");
   if (pump.compressorOn()) canvas.fillCircle(W() - 10, 10, 6, TFT_ORANGE);
   if (pump.valveOpen())    canvas.fillCircle(W() - 10, 10, 6, TFT_SKYBLUE);
   push();
