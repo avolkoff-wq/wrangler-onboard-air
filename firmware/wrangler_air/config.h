@@ -35,6 +35,7 @@ constexpr float VBAT_MIN_V   = 6.0f;   // below: no module fitted, engine state 
 constexpr float ENGINE_ON_V  = 13.2f;  // at or above: alternator charging, engine runs -> no question before inflating
 constexpr float LOW_V        = 11.5f;  // while the compressor runs (VOLT CHECK, module fitted): below this for LOW_V_MS = stop, ERR LOW VOLTAGE
 constexpr uint32_t LOW_V_MS  = 2000;
+constexpr uint32_t WDT_MS    = 5000;  // main loop watchdog: longest normal block is ~2 s (ERR OVER sound), so 5 s never fires by itself
 
 // ---------- sensor ----------
 // G1/8 ceramic sensor 0-1.2 MPa, 5 V supply, output 0-3.3 V (AliExpress 1005004559608411, "output 0-3.3V")

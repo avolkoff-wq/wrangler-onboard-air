@@ -155,3 +155,7 @@
 
 ## 2026-11-21 Sounds: three, not seven
 - High tone = good: one long (1.5 s) target reached, two short already within 0.1. Low tone (1800 Hz) = look at the screen: any error three short; ERR OVER a fast low series ~2 s, the only error that needs you at once. The screen tells which error.
+
+## 2026-11-21 Fail-safes: watchdog
+- Main loop watchdog (ESP32 task WDT) 5 s: a hung firmware restarts and the restart drops both outputs. 3 s was too tight next to the ~2 s ERR OVER sound; 5 s costs nothing (about 0.05 bar more if the compressor were on). After such a restart: WATCHDOG RESET (or CRASH RESET) on screen with the error sound, log WATCHDOG_RESET / CRASH_RESET.
+- Next candidates: "disconnect hoses" reminder after a run, valve stuck open, relay contact welded.

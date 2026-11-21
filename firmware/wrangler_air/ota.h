@@ -2,6 +2,7 @@
 // the phone connects and uploads the .bin at http://192.168.4.1
 // The new image goes to the other OTA partition; settings (NVS) are kept.
 #pragma once
+#include <esp_task_wdt.h>
 #include <WiFi.h>
 #include <WebServer.h>
 #include <Update.h>
@@ -78,7 +79,7 @@ class Ota {
       File d = LittleFS.open("/runs");
       String names[64]; int n = 0;
       if (d) { for (File f = d.openNextFile(); f && n < 64; f = d.openNextFile()) { names[n++] = String(f.name()); f.close(); } d.close(); }
-      for (int i = 0; i < n; i++) LittleFS.remove("/runs/" + names[i].substring(names[i].lastIndexOf('/') + 1));
+      for (int i = 0; i < n; i++) { LittleFS.remove("/runs/" + names[i].substring(names[i].lastIndexOf('/') + 1)); esp_task_wdt_reset(); }
       wlog::ev("LOG", "runs_cleared=1;");
       server_.sendHeader("Location", "/"); server_.send(303);
     });

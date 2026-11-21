@@ -41,6 +41,7 @@
 // UI: drawing helpers in ui_draw.h, screens in ui_screens.h (header-only).
 
 #include "suv_bitmap.h"
+#include <esp_task_wdt.h>
 #include <M5Unified.h>
 #include "config.h"
 #include "storage.h"
@@ -343,9 +344,27 @@ void setup() {
   cal.begin(&sensor, &settings);
   input::begin();
   splash();          // outputs are already off; sensor and pump wait
+
+  // the last start was a watchdog reset or a crash: outputs were cut by the restart, say so
+  const esp_reset_reason_t rr = esp_reset_reason();
+  if (rr == ESP_RST_TASK_WDT || rr == ESP_RST_INT_WDT || rr == ESP_RST_WDT || rr == ESP_RST_PANIC) {
+    const bool wdt = rr != ESP_RST_PANIC;
+    wlog::ev(wdt ? "WATCHDOG_RESET" : "CRASH_RESET", wlog::kv("reason", String((int)rr)));
+    canvas.fillSprite(TFT_BLACK);
+    drawLines({ {wdt ? "WATCHDOG RESET" : "CRASH RESET", F_TEXT, TFT_ORANGE}, {"outputs were switched off", F_SMALL, TFT_WHITE},
+                {"check the tyres", F_SMALL, TFT_WHITE} }, 0, H() - 18);
+    push();
+    for (int i = 0; i < 3; i++) { M5.Speaker.tone(1800, 120); delay(220); }
+    delay(2500);
+  }
+  // watchdog on the main loop: no loop pass for WDT_MS = restart, and a restart drops both outputs
+  esp_task_wdt_config_t wc = { .timeout_ms = WDT_MS, .idle_core_mask = 0, .trigger_panic = true };
+  if (esp_task_wdt_reconfigure(&wc) != ESP_OK) esp_task_wdt_init(&wc);
+  esp_task_wdt_add(NULL);
 }
 
 void loop() {
+  esp_task_wdt_reset();
   M5.update();
   sensor.update();
   supply.update();
