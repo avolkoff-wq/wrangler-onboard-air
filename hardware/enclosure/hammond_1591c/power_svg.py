@@ -445,7 +445,7 @@ def power_svg_iec_def():
     o.append(f'<rect x="270" y="{T[1]-16}" width="40" height="{T[6]-T[1]+32}" class="b"/>')
     lab(264, T[1] - 22, "-X1", "d", "end"); lab(316, T[1] - 22, "ввод M12 правый: питание, 6 проводов (массы 1-2, +12 В 3-6)", "c", "start")
     o.append(f'<rect x="270" y="{T[7]-16}" width="40" height="{G2-T[7]+32}" class="b"/>')
-    lab(316, T[7] - 22, "-X5", "d", "start"); lab(316, G2 + 34, "ввод M12 левый: выходы 7-8 (клапан, ARB) + датчик", "c", "start")
+    lab(264, T[7] - 22, "-X5", "d", "end"); lab(316, G2 + 34, "ввод M12 левый: выходы 7-8 (клапан, ARB) + датчик", "c", "start")
     for k in range(1, 9):
         y = T[k]
         o.append(f'<circle cx="270" cy="{y}" r="3" class="t"/><circle cx="310" cy="{y}" r="3" class="t"/>')
@@ -482,7 +482,7 @@ def power_svg_iec_def():
     comp(20, MY - 30, 100, 60, "-M1", "ARB CKMTA12", "")
     pinl(120, MY, "VT", "r")
     L((123, MY), (267, MY), c="VT"); dot(170, MY)
-    diode_h(192, MY, ""); lab(192, MY + 22, "-V1", "d")
+    diode_h(192, MY, ""); lab(178, MY + 24, "-V1", "d")
     lab(162, MY + 18, "-X3", "c", "end")
     lab(20, MY + 46, "внутри ARB: реле давления,", "c", "start"); lab(20, MY + 60, "2 реле 12 В 40 А", "c", "start")
     # sensor -B1 on the 2 m Grove, connector -X6 at the sensor (3 conductors used, WH unused there)
@@ -490,10 +490,11 @@ def power_svg_iec_def():
     comp(20, 700, 100, 120, "-B1", "датчик", ""); lab(28, 812, "0–3,3 В", "c", "start")
     for t, y in S.items():
         pinl(120, y, t, "r")
-    o.append('<rect x="176" y="720" width="22" height="90" class="b"/>'); lab(187, 714, "-X6", "d"); lab(187, 828, "JWPF 3P", "c")
-    L((123, S["+5V"]), (176, S["+5V"]), c="RD"); L((123, S["GND"]), (176, S["GND"]), c="BK"); L((123, S["OUT"]), (176, S["OUT"]), c="YE")
-    grove4([(281, G2), (205, G2), (205, S["GND"]), (201, S["GND"])], order=("BK", "RD", "YE"))
-    lab(250, 780, "-W2 Grove 2 м", "c", "start"); lab(250, 794, "BK RD YE к датчику", "c", "start")
+    # sensor pigtail goes straight into the -X8 pins, no own connector
+    L((281, G2 - 4), (201, G2 - 4), (201, S["GND"]), (123, S["GND"]), c="BK", w=2)
+    L((281, G2), (205, G2), (205, S["+5V"]), (123, S["+5V"]), c="RD", w=2)
+    L((281, G2 + 4), (209, G2 + 4), (209, S["OUT"]), (123, S["OUT"]), c="YE", w=2)
+    lab(250, 780, "-W2 Grove 2 м до -X8,", "c", "start"); lab(250, 794, "дальше хвост датчика", "c", "start")
 
     # ---- inside ----
     comp(820, 70, 200, 130, "-A1", "M5Stack DinMeter", "12 В → 5 В")
@@ -538,13 +539,12 @@ def power_svg_iec_def():
         if bottom: lab(x + 8, y1 + 15, bottom, "d" if not sub else "c")
         if sub: lab(x + 8, y1 + 28, sub, "c")
     conn(128, T[1] - 12, T[3] + 12, "-X7", "2P")                                   # input: car side of the box splices
-    conn(180, T[7] - 12, T[7] + 102, "-X9", "2P")                                  # at the valve: OG + ground
-    conn(214, T[7] - 12, T[7] + 12, "-X8:1", "")                                   # manifold 4P, drawn detached: pin 1 OG
+    conn(214, T[7] - 12, T[7] + 12, "", "-X8:1")                                   # manifold 4P, drawn detached: pin 1 OG
     conn(214, G2 - 12, G2 + 12, "-X8:2-4", "")                                     # pins 2-4 RD +5 V, BK GND, YE signal
     conn(214, T[8] - 12, T[8] + 12, "-X10", "")                                  # compressor VT
     for i, t in enumerate(("-X7 вход 2P: RD +12 В, BK масса. Сплайсы -X2 / -X2a за ним, на хвосте коробки",
                            "-X8 манифолд 4P, по порядку: 1 OG клапан, 2 RD +5 В, 3 BK GND, 4 YE сигнал (сигнал с краю, рядом только масса)",
-                           "-X9 клапан 2P: OG, BK · -X10 компрессор 1P: VT",
+                           "-B1 и -Y1 хвостами прямо в папу -X8, без своих разъёмов. Масса клапана на шпильку · -X10 ARB 1P: VT",
                            "Разъёмы: набор герморазъёмов 1-6 pin, хвосты ~20 см из гермовводов, коробка отключается от жгута")):
         lab(20, 852 + i * 15, t, "c", "start")
 

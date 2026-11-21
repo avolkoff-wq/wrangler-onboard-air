@@ -59,7 +59,7 @@ Grove: реле на 5 см, ADC на 10 см (расстояние до PORT.A 
 |---|---|---|---|---|
 | Датчик давления 5 V, **G1/8 (BSPP)**, керамика, кабель | 1+1 | 0-1.2Mpa, output 0-3.3V (основной) и output 0.5-4.5V (запасной, через ADC) | 15.28 + 15.32 | [item](https://www.aliexpress.com/item/1005004559608411.html) |
 | Grove кабель 2 м, PORT.A → датчик | 1 | 200cm-1pcs | 2.56 | [item](https://www.aliexpress.com/item/1005003297438723.html) |
-| Разъём JST JWPF 3P, корпуса + пины + уплотнители, обжим самому | 10 комплектов | 3P whole set | 7.63 | [item](https://www.aliexpress.com/item/1005009147794864.html) |
+| Разъём JST JWPF 3P (уже заказан, теперь запас: датчик заходит прямо в -X8, 21.11) | 10 комплектов | 3P whole set | 7.63 | [item](https://www.aliexpress.com/item/1005009147794864.html) |
 | Клещи IWISS IWS-2820 для открытых пинов AWG 28-20 (JWPF, JST, Dupont) | 1 | IWS-2820 | 17.19 | [item](https://www.aliexpress.com/item/1005004251797726.html) |
 | Шайба бондовая (Dowty) 1/8 BSP | 20 шт | 1/8 inch BSP | 2.63 | [item](https://www.aliexpress.com/item/1005010400290817.html) |
 | Клещи для гильз HSC8 6-6A с набором гильз | 1 | 400PCs | 14.04 | [item](https://www.aliexpress.com/item/1005008064207855.html) |
@@ -104,4 +104,4 @@ Mini 3A Relay из первого заказа остаётся запасным
 |---|---|---|---|
 | Набор герморазъёмов 1-6 pin, 254PCS: 1P ×8, 2P ×6, 3P ×4, 4P ×5 пар, по 52 контакта | 1 | 14.11 | [заказан 19.11](https://www.aliexpress.com/item/1005005818016241.html) |
 
-Используются: -X7 вход 2P, -X8 манифолд 4P, -X9 клапан 2P, -X10 компрессор 1P. Распиновка, мама и папа: hardware/enclosure/hammond_1591c/connectors_pinout.png.
+Используются: -X7 вход 2P, -X8 манифолд 4P, -X10 компрессор 1P. Датчик и клапан своими хвостами прямо в папу -X8. Распиновка, мама и папа: hardware/enclosure/hammond_1591c/connectors_pinout.png.

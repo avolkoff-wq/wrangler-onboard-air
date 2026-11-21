@@ -132,3 +132,8 @@
 - -X9 at the valve 2P: 1 OG, 2 BK (ground at the manifold). Harness sockets, valve pigtail pins, -V3 on the coil.
 - -X10 compressor 1P: VT. Box side socket, ARB side pin; that pin is not live when unplugged because -V1 blocks AUX2.
 - Rule: the half that stays live when unplugged has the sockets. Pinout sheet: connectors_pinout.png; schematic C updated.
+
+## 2026-11-21 Fewer connectors at the manifold
+- -X8 already hangs at the manifold, so the sensor connector -X6 (JWPF) and the valve connector -X9 are dropped: the sensor and valve pigtails are crimped straight into the -X8 pins. 2 connectors and 5 contact pairs less in series, the sensor signal benefits most.
+- Valve ground stays its own wire to a stud at the manifold, it does not pass -X8. To swap the sensor or the valve, its pins come out of -X8 with the extractor.
+- JWPF kit and IWS-2820 already ordered, now spare.
