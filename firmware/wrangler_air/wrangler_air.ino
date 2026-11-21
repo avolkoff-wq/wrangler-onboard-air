@@ -90,27 +90,12 @@ void beep(int n = 1) {
   for (int i = 0; i < n; i++) { M5.Speaker.tone(3500, 120); delay(180); }
 }
 // patterned error beeps (non-blocking tones after short gaps)
+// Sounds: high = good (one long: target reached, two short: already within the band), low = look at the screen.
+// Every error: three short low beeps. OVER (pressure above the safe limit) is the only one to come at once: a fast low series ~2 s.
+constexpr int TONE_LOW = 1800;
 void beepErr(PErr e) {
-  switch (e) {
-    case PErr::SENSOR:  // triple short
-      for (int i = 0; i < 3; i++) { M5.Speaker.tone(3500, 80); delay(120); }
-      break;
-    case PErr::LEAK:    // double long
-      M5.Speaker.tone(2800, 400); delay(450); M5.Speaker.tone(2800, 400); delay(450);
-      break;
-    case PErr::OVER:
-      M5.Speaker.tone(4000, 200); delay(300); M5.Speaker.tone(4000, 200); delay(300); M5.Speaker.tone(4000, 200); delay(250);
-      break;
-    case PErr::TIMEOUT:
-      M5.Speaker.tone(2200, 600); delay(650);
-      break;
-    case PErr::LOW_V:
-      M5.Speaker.tone(1800, 150); delay(250); M5.Speaker.tone(1800, 150); delay(250); M5.Speaker.tone(1800, 400); delay(450);
-      break;
-    default:
-      beep(4);
-      break;
-  }
+  if (e == PErr::OVER) { for (int i = 0; i < 10; i++) { M5.Speaker.tone(TONE_LOW, 90); delay(200); } return; }
+  for (int i = 0; i < 3; i++) { M5.Speaker.tone(TONE_LOW, 120); delay(220); }
 }
 
 // drawing / screens (need enums and globals above)

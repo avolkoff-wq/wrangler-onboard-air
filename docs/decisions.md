@@ -152,3 +152,6 @@
 - Accepted: ui_draw.h / ui_screens.h header-only split, char buffers instead of String in the formatters, error beeps, WIFI PASSWORD in the menu (NVS), Wi-Fi off after 10 min without requests, docs/pinout.md.
 - Removed: the sensor probe before inflating. It drove K1 directly, bypassing Pump (no stop button, no LOW VOLTAGE guard, no hours), blocked the loop 2.3 s, and could only fire between 0.05 and 0.08 bar because CONNECT SYSTEM blocks lower. Open line and dead sensor are already caught by ERR SENSOR (3 s) and LEAK.
 - Fixed: the OTA screen now returns to MAIN after the Wi-Fi timeout; README restored (the branch had cut it to 38 lines) and the wrong "no K4" line corrected; beep pauses longer than the tones; desk test stub gets getString / putString.
+
+## 2026-11-21 Sounds: three, not seven
+- High tone = good: one long (1.5 s) target reached, two short already within 0.1. Low tone (1800 Hz) = look at the screen: any error three short; ERR OVER a fast low series ~2 s, the only error that needs you at once. The screen tells which error.
