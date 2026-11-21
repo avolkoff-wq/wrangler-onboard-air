@@ -35,6 +35,14 @@ constexpr float VBAT_MIN_V   = 6.0f;   // below: no module fitted, engine state 
 constexpr float ENGINE_ON_V  = 13.2f;  // at or above: alternator charging, engine runs -> no question before inflating
 constexpr float LOW_V        = 11.5f;  // while the compressor runs (VOLT CHECK, module fitted): below this for LOW_V_MS = stop, ERR LOW VOLTAGE
 constexpr uint32_t LOW_V_MS  = 2000;
+// valve stuck open (menu VALVE CHECK): idle, outputs off, line above VCHK_MIN_BAR and falling steadily at VCHK_MIN..VCHK_MAX
+// bar/s over VCHK_WINDOW_S. A stuck valve on 4 tyres falls ~0.01-0.03 bar/s; pulling a hose off is a fast step (ignored),
+// a slow puncture is far below 0.008 bar/s (ignored).
+constexpr float    VCHK_MIN_BAR  = 0.30f;
+constexpr float    VCHK_MIN      = 0.008f;
+constexpr float    VCHK_MAX      = 0.10f;
+constexpr int      VCHK_WINDOW_S = 15;
+constexpr uint32_t VCHK_QUIET_MS = 10000;  // after any run, pulse or start: let the line settle first
 constexpr uint32_t WDT_MS    = 5000;  // main loop watchdog: longest normal block is ~2 s (ERR OVER sound), so 5 s never fires by itself
 
 // ---------- sensor ----------

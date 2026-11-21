@@ -32,7 +32,7 @@
 #include "log.h"
 
 enum class PState { IDLE, SETTLE, MEASURE, CAL_PULSE, MAIN, TOPUP, VENT, DONE, ERROR };
-enum class PErr   { NONE, SENSOR, OVER, LEAK, TIMEOUT, LOW_P, LOW_V };   // LOW_P: LEARN DEFLATE below LEARN_DEF_MIN_BAR; LOW_V: AUX1 sagged
+enum class PErr   { NONE, SENSOR, OVER, LEAK, TIMEOUT, LOW_P, LOW_V, VALVE };   // VALVE: pressure falls while the valve should be shut   // LOW_P: LEARN DEFLATE below LEARN_DEF_MIN_BAR; LOW_V: AUX1 sagged
 enum class Phase  { START, AFTER_CAL, AFTER_MAIN, AFTER_TOPUP, AFTER_VENT };
 enum class Mode   { NONE, INF, DEF };
 
@@ -75,6 +75,8 @@ class Pump {
     if (busy()) logEnd("STOPPED");
     state_ = PState::IDLE; endT_ = millis();
   }
+  // main loop, idle: the line keeps falling with both outputs off -> valve (or its relay) stuck open; outputs off, ERR VALVE OPEN
+  void valveStuck(float p) { pulseT_ = 0; p0_ = pStatic_ = p; mode_ = Mode::NONE; runStart_ = millis(); fail(PErr::VALVE); }
   void lowVoltage() { if (busy() && on_) fail(PErr::LOW_V); }   // main loop: AUX1 below LOW_V for LOW_V_MS
   bool busy() const { return state_ != PState::IDLE && state_ != PState::DONE && state_ != PState::ERROR; }
   void clearResult() { if (!busy()) state_ = PState::IDLE; }
@@ -208,7 +210,7 @@ class Pump {
   }
   void fail(PErr e) {
     relay(false); valve(false); err_ = e; state_ = PState::ERROR; endT_ = millis();
-    static const char* N[] = {"NONE", "SENSOR", "OVER", "LEAK", "TIMEOUT", "LOW_P", "LOW_V"};
+    static const char* N[] = {"NONE", "SENSOR", "OVER", "LEAK", "TIMEOUT", "LOW_P", "LOW_V", "VALVE"};
     logEnd(String("ERR_") + N[(int)e]);
   }
   void done() { state_ = PState::DONE; endT_ = millis(); logEnd(inBand_ ? "IN_BAND" : "DONE"); }

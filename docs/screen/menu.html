@@ -51,6 +51,7 @@ code{font:12px Menlo,Consolas,monospace;background:#eef0f2;color:#333;border-rad
  <div class="mi">OFFSET: AUTO / 0.05–1.50 bar</div><div class="md">Поправка датчика во время подкачки. AUTO = учится сама. Нажатие: редактировать, <code>turn: change  press: save  hold: back</code>.</div>
  <div class="mi">SETTLE: AUTO / 1–10 s</div><div class="md">Пауза перед замером. AUTO = ждёт, пока давление успокоится.</div>
  <div class="mi">[x] VALVE</div><div class="md">Клапан спуска стоит: DEFLATE, LEARN DEFLATE, OUTPUT TEST VALVE. Сохраняется.</div>
+ <div class="mi">[x] VALVE CHECK</div><div class="md">В покое оба выхода выключены, а давление ровно падает 0,008-0,1 bar/с дольше 15 с: ERR VALVE OPEN, три низких сигнала. Резкий сброс (снял шланг) и медленный прокол не считаются.</div>
  <div class="mi">[x] VOLT CHECK</div><div class="md">Читать AUX1 с модуля 0-25 V: мотор работает / заглушен, защита ERR LOW VOLTAGE ниже 11,5 В под компрессором.</div>
  <div class="mi">[x] ENGINE CONFIRM</div><div class="md">Третье нажатие перед подкачкой, если мотор заглушен или напряжения нет.</div>
  <div class="mi">[x] WATCHDOG</div><div class="md">Прошивка зависла дольше 5 с: перезапуск, компрессор и клапан выключаются, потом на экране WATCHDOG RESET. Выключать только для отладки.</div>

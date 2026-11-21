@@ -67,8 +67,8 @@ enum IdleDir { D_UP, D_DOWN, D_OK, D_ABOVE, D_DEAD };   // what a start would do
 enum class Screen { MAIN, MENU, EDIT, CAL, OTA, VERSION, SENSOR, CUSTOM, LEARN_PICK, LEARN_CONF, LEARN_MSG, HOURS, HOURS_CONF, OUT_TEST, WIFI_PASS };
 Screen screen = Screen::MAIN;
 int menuPos = 0;
-enum MenuItem { M_CAL, M_LEARN, M_SENSOR, M_OUTPUT, M_DEMO, M_UNITS, M_TYRE, M_OFFSET, M_SETTLE, M_VALVE, M_VCHECK, M_ECONF, M_WDOG, M_SCREEN, M_RESET, M_UPDATE, M_WIFIPASS, M_VERSION, M_HOURS, M_EXIT };
-const char* const MENU[] = {"CALIBRATE", "LEARN", "SENSOR", "OUTPUT TEST", "DEMO", "UNITS", "TYRE", "OFFSET", "SETTLE", "VALVE", "VOLT CHECK", "ENGINE CONFIRM", "WATCHDOG", "SCREEN", "RESET LEARNING", "WIFI: UPDATE + LOG", "WIFI PASSWORD", "VERSION", "HOURS", "EXIT"};
+enum MenuItem { M_CAL, M_LEARN, M_SENSOR, M_OUTPUT, M_DEMO, M_UNITS, M_TYRE, M_OFFSET, M_SETTLE, M_VALVE, M_VSTUCK, M_VCHECK, M_ECONF, M_WDOG, M_SCREEN, M_RESET, M_UPDATE, M_WIFIPASS, M_VERSION, M_HOURS, M_EXIT };
+const char* const MENU[] = {"CALIBRATE", "LEARN", "SENSOR", "OUTPUT TEST", "DEMO", "UNITS", "TYRE", "OFFSET", "SETTLE", "VALVE", "VALVE CHECK", "VOLT CHECK", "ENGINE CONFIRM", "WATCHDOG", "SCREEN", "RESET LEARNING", "WIFI: UPDATE + LOG", "WIFI PASSWORD", "VERSION", "HOURS", "EXIT"};
 const int MENU_N = sizeof(MENU) / sizeof(MENU[0]);
 
 // ---------- OFFSET / SETTLE editor: index 0 = AUTO ----------
@@ -368,6 +368,25 @@ void loop() {
   M5.update();
   sensor.update();
   supply.update();
+  {   // valve stuck open: idle, both outputs off, the line falls steadily (menu VALVE CHECK, only with VALVE)
+    static float hist[VCHK_WINDOW_S + 1]; static int n = 0; static uint32_t lastS = 0, quietT = 0;
+    const bool idle = !pump.busy() && !pump.pulsing() && !ota.running() && !g_demo;
+    if (!idle || !settings.vchk2 || !g_valve || sensor.fault()) { n = 0; quietT = millis(); }
+    else if (millis() - quietT > VCHK_QUIET_MS && millis() - lastS >= 1000) {
+      lastS = millis();
+      const float p = sensor.bar(settings.calA, settings.calB);
+      if (n <= VCHK_WINDOW_S) hist[n++] = p; else { memmove(hist, hist + 1, VCHK_WINDOW_S * sizeof(float)); hist[VCHK_WINDOW_S] = p; }
+      if (n > VCHK_WINDOW_S && hist[0] > VCHK_MIN_BAR) {
+        int down = 0; float maxStep = 0;
+        for (int i = 1; i <= VCHK_WINDOW_S; i++) { const float d = hist[i - 1] - hist[i]; if (d > 0) down++; maxStep = max(maxStep, d); }
+        const float rate = (hist[0] - hist[VCHK_WINDOW_S]) / VCHK_WINDOW_S;
+        if (rate > VCHK_MIN && rate < VCHK_MAX && maxStep < 0.15f && down >= VCHK_WINDOW_S * 2 / 3) {
+          wlog::ev("VALVE_STUCK", wlog::kv("p", p) + wlog::kv("rate", rate, 4));
+          pump.valveStuck(p); n = 0; quietT = millis();
+        }
+      }
+    }
+  }
   {   // battery guard: compressor running, AUX1 below LOW_V for LOW_V_MS -> stop (VOLT CHECK on, module fitted)
     static uint32_t lowT = 0;
     const bool low = settings.vcheck && supply.fitted() && pump.compressorOn() && supply.volts() < LOW_V;
@@ -459,6 +478,7 @@ void loop() {
             settings.save(); wlog::ev("VALVE", wlog::kv("on", String(g_valve ? 1 : 0))); break;
           case M_VCHECK:  settings.vcheck = !settings.vcheck; settings.save(); break;
           case M_ECONF:   settings.econfirm = !settings.econfirm; settings.save(); break;
+          case M_VSTUCK:  settings.vchk2 = !settings.vchk2; settings.save(); break;
           case M_WDOG:
             settings.wdog = !settings.wdog; settings.save();
             if (settings.wdog) esp_task_wdt_add(NULL); else esp_task_wdt_delete(NULL);
