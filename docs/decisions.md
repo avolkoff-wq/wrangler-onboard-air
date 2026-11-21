@@ -161,4 +161,4 @@
 - Menu [x] WATCHDOG (saved, on by default): off only for debugging.
 - "Disconnect hoses" reminder: owner said no.
 - Valve stuck open (menu [x] VALVE CHECK, saved, only with VALVE): idle, both outputs off, 10 s after any run or pulse, line above 0.3 bar and falling 0.008-0.1 bar/s over 15 s, mostly every second, no single step over 0.15 bar (a hose pulled off is a step). Then ERR VALVE OPEN, three low beeps, log VALVE_STUCK, outputs off. Helps when the relay or firmware holds the valve; a mechanically jammed valve is only reported.
-- Next candidate: relay contact welded.
+- Compressor stuck on (menu [x] PUMP CHECK, saved): idle, both outputs off, 10 s after any run, the line rose > 0.1 bar over 8 s in at least 3 rising seconds and no single second carries 80 % of it (hooking a hose to a tyre is one step). Then PUMP ON: SWITCH AUX1 OFF, the fast low series (as OVER), log PUMP_STUCK, repeats while it keeps rising. AUX1 off cuts VT when the Unit 2Relay contact is welded; if the ARB relay itself is welded, pull the ARB fuse.

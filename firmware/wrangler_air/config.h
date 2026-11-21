@@ -43,6 +43,10 @@ constexpr float    VCHK_MIN      = 0.008f;
 constexpr float    VCHK_MAX      = 0.10f;
 constexpr int      VCHK_WINDOW_S = 15;
 constexpr uint32_t VCHK_QUIET_MS = 10000;  // after any run, pulse or start: let the line settle first
+// compressor stuck on (menu PUMP CHECK): idle, outputs off, the line rose more than PCHK_RISE over PCHK_WINDOW_S
+// in at least 3 rising seconds, and no single second carries most of it (connecting a hose to a tyre is one step).
+constexpr int      PCHK_WINDOW_S = 8;
+constexpr float    PCHK_RISE     = 0.10f;
 constexpr uint32_t WDT_MS    = 5000;  // main loop watchdog: longest normal block is ~2 s (ERR OVER sound), so 5 s never fires by itself
 
 // ---------- sensor ----------

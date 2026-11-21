@@ -67,8 +67,8 @@ enum IdleDir { D_UP, D_DOWN, D_OK, D_ABOVE, D_DEAD };   // what a start would do
 enum class Screen { MAIN, MENU, EDIT, CAL, OTA, VERSION, SENSOR, CUSTOM, LEARN_PICK, LEARN_CONF, LEARN_MSG, HOURS, HOURS_CONF, OUT_TEST, WIFI_PASS };
 Screen screen = Screen::MAIN;
 int menuPos = 0;
-enum MenuItem { M_CAL, M_LEARN, M_SENSOR, M_OUTPUT, M_DEMO, M_UNITS, M_TYRE, M_OFFSET, M_SETTLE, M_VALVE, M_VSTUCK, M_VCHECK, M_ECONF, M_WDOG, M_SCREEN, M_RESET, M_UPDATE, M_WIFIPASS, M_VERSION, M_HOURS, M_EXIT };
-const char* const MENU[] = {"CALIBRATE", "LEARN", "SENSOR", "OUTPUT TEST", "DEMO", "UNITS", "TYRE", "OFFSET", "SETTLE", "VALVE", "VALVE CHECK", "VOLT CHECK", "ENGINE CONFIRM", "WATCHDOG", "SCREEN", "RESET LEARNING", "WIFI: UPDATE + LOG", "WIFI PASSWORD", "VERSION", "HOURS", "EXIT"};
+enum MenuItem { M_CAL, M_LEARN, M_SENSOR, M_OUTPUT, M_DEMO, M_UNITS, M_TYRE, M_OFFSET, M_SETTLE, M_VALVE, M_VSTUCK, M_PSTUCK, M_VCHECK, M_ECONF, M_WDOG, M_SCREEN, M_RESET, M_UPDATE, M_WIFIPASS, M_VERSION, M_HOURS, M_EXIT };
+const char* const MENU[] = {"CALIBRATE", "LEARN", "SENSOR", "OUTPUT TEST", "DEMO", "UNITS", "TYRE", "OFFSET", "SETTLE", "VALVE", "VALVE CHECK", "PUMP CHECK", "VOLT CHECK", "ENGINE CONFIRM", "WATCHDOG", "SCREEN", "RESET LEARNING", "WIFI: UPDATE + LOG", "WIFI PASSWORD", "VERSION", "HOURS", "EXIT"};
 const int MENU_N = sizeof(MENU) / sizeof(MENU[0]);
 
 // ---------- OFFSET / SETTLE editor: index 0 = AUTO ----------
@@ -95,7 +95,7 @@ void beep(int n = 1) {
 // Every error: three short low beeps. OVER (pressure above the safe limit) is the only one to come at once: a fast low series ~2 s.
 constexpr int TONE_LOW = 1800;
 void beepErr(PErr e) {
-  if (e == PErr::OVER) { for (int i = 0; i < 10; i++) { M5.Speaker.tone(TONE_LOW, 90); delay(200); } return; }
+  if (e == PErr::OVER || e == PErr::PUMP_ON) { for (int i = 0; i < 10; i++) { M5.Speaker.tone(TONE_LOW, 90); delay(200); } return; }
   for (int i = 0; i < 3; i++) { M5.Speaker.tone(TONE_LOW, 120); delay(220); }
 }
 
@@ -387,6 +387,25 @@ void loop() {
       }
     }
   }
+  {   // compressor stuck on: idle, both outputs off, yet the line keeps rising (menu PUMP CHECK)
+    static float hist[PCHK_WINDOW_S + 1]; static int n = 0; static uint32_t lastS = 0, quietT = 0;
+    const bool idle = !pump.busy() && !pump.pulsing() && !ota.running() && !g_demo;
+    if (!idle || !settings.pchk || sensor.fault()) { n = 0; quietT = millis(); }
+    else if (millis() - quietT > VCHK_QUIET_MS && millis() - lastS >= 1000) {
+      lastS = millis();
+      const float p = sensor.bar(settings.calA, settings.calB);
+      if (n <= PCHK_WINDOW_S) hist[n++] = p; else { memmove(hist, hist + 1, PCHK_WINDOW_S * sizeof(float)); hist[PCHK_WINDOW_S] = p; }
+      if (n > PCHK_WINDOW_S) {
+        int up = 0; float maxStep = 0;
+        for (int i = 1; i <= PCHK_WINDOW_S; i++) { const float d = hist[i] - hist[i - 1]; if (d > 0.005f) up++; maxStep = max(maxStep, d); }
+        const float rise = hist[PCHK_WINDOW_S] - hist[0];
+        if (rise > PCHK_RISE && up >= 3 && maxStep < 0.8f * rise) {
+          wlog::ev("PUMP_STUCK", wlog::kv("p", p) + wlog::kv("rise", rise));
+          pump.pumpStuck(p); n = 0; quietT = millis();
+        }
+      }
+    }
+  }
   {   // battery guard: compressor running, AUX1 below LOW_V for LOW_V_MS -> stop (VOLT CHECK on, module fitted)
     static uint32_t lowT = 0;
     const bool low = settings.vcheck && supply.fitted() && pump.compressorOn() && supply.volts() < LOW_V;
@@ -478,6 +497,7 @@ void loop() {
             settings.save(); wlog::ev("VALVE", wlog::kv("on", String(g_valve ? 1 : 0))); break;
           case M_VCHECK:  settings.vcheck = !settings.vcheck; settings.save(); break;
           case M_ECONF:   settings.econfirm = !settings.econfirm; settings.save(); break;
+          case M_PSTUCK:  settings.pchk = !settings.pchk; settings.save(); break;
           case M_VSTUCK:  settings.vchk2 = !settings.vchk2; settings.save(); break;
           case M_WDOG:
             settings.wdog = !settings.wdog; settings.save();
