@@ -195,7 +195,8 @@ void drawMain() {
   // background by phase: compressor pumping = dark amber, valve venting = dark blue, pauses and results = black
   canvas.fillSprite(pump.compressorOn() ? rgb(90, 38, 0) : pump.valveOpen() ? rgb(0, 40, 90) : TFT_BLACK);
   const bool est = pump.estimating();
-  const float cur = est ? pump.estimate() : (pump.mode() == Mode::NONE ? sensor.bar(settings.calA, settings.calB) : pump.staticBar());
+  // after an error always the live line pressure: what the tyres hold right now (stuck valve, air from AUX2, leak)
+  const float cur = est ? pump.estimate() : (pump.mode() == Mode::NONE || st == PState::ERROR ? sensor.bar(settings.calA, settings.calB) : pump.staticBar());
   const String tm = phaseTimer(pump.phaseMs(), pump.phaseLenMs());
   const String pause = String(pump.pauseLeftMs() / 1000.0f, 1) + "s";
   String line; uint16_t col = TFT_WHITE;
