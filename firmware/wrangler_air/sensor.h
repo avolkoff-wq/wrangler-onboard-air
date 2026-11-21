@@ -15,7 +15,8 @@ class Sensor {
   }
   // call every loop: keeps a short running average (~50 ms)
   void update() {
-    if (BENCH_SIM) vG1_ = simTyre();
+    if (g_fakeV >= 0) vG1_ = g_fakeV;          // USB bench: a typed pressure instead of the pin
+    else if (BENCH_SIM) vG1_ = simTyre();
     else {
       float mv = 0;
       for (int i = 0; i < 8; i++) mv += analogReadMilliVolts(PIN_SENSOR);

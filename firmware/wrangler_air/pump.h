@@ -60,8 +60,9 @@ class Pump {
   float testBefore() const { return p0_; }
   // menu OUTPUT TEST: one OUTPUT_PULSE_MS pulse on the compressor (K1) or the valve (K4), never latched.
   // relay() / valve() keep the other output off. Not during a run.
-  bool pulse(bool valveOut) {
+  bool pulse(bool valveOut, uint32_t ms = OUTPUT_PULSE_MS) {
     if (busy() || pulseT_ || (valveOut && !DEFLATE)) return false;
+    pulseLen_ = ms;
     pulseValve_ = valveOut; pulseBefore_ = s_->bar(st_->calA, st_->calB);
     if (valveOut) { relay(false); valve(true); } else relay(true);
     pulseT_ = millis(); if (!pulseT_) pulseT_ = 1;
@@ -69,6 +70,8 @@ class Pump {
   }
   bool pulsing() const { return pulseT_ != 0; }
   bool pulseIsValve() const { return pulseValve_; }
+  uint32_t pulseLeft() const { return pulseT_ ? pulseLen_ - min(pulseLen_, (uint32_t)(millis() - pulseT_)) : 0; }
+  void pulseOff() { if (pulseT_) { pulseLen_ = 0; } }   // ends at the next update(), logged like a timed pulse
   void stop() {
     pulseT_ = 0;
     relay(false); valve(false);
@@ -127,7 +130,7 @@ class Pump {
   void update() {
     const uint32_t now = millis();
     const float sb = s_->bar(st_->calA, st_->calB);
-    if (pulseT_ && (now - pulseT_ >= OUTPUT_PULSE_MS || s_->fault() || sb > TARGET_MAX + 0.05f)) {
+    if (pulseT_ && (now - pulseT_ >= pulseLen_ || s_->fault() || sb > TARGET_MAX + 0.05f)) {
       relay(false); valve(false); pulseT_ = 0;
       wlog::ev("OUTPUT_TEST", wlog::kv("output", String(pulseValve_ ? "VALVE" : "K1")) + wlog::kv("p_before", pulseBefore_) +
                wlog::kv("p_after", sb) + wlog::kv("fault", s_->fault() ? "1" : "0"));
@@ -407,7 +410,7 @@ class Pump {
   Sensor* s_ = nullptr; Settings* st_ = nullptr;
   PState state_ = PState::IDLE; PErr err_ = PErr::NONE; Phase phase_ = Phase::START; Mode mode_ = Mode::NONE;
   Mode test_ = Mode::NONE; bool testOk_ = false; float testRes_ = 0;
-  uint32_t pulseT_ = 0; bool pulseValve_ = false; float pulseBefore_ = 0;
+  uint32_t pulseT_ = 0, pulseLen_ = OUTPUT_PULSE_MS; bool pulseValve_ = false; float pulseBefore_ = 0;
   bool on_ = false, vOn_ = false, inBand_ = false;
   uint32_t t0_ = 0, runStart_ = 0, endT_ = 0, topupMs_ = 0, ventMs_ = 0, leakT_ = 0, onT_ = 0, tS_ = 0, settleEl_ = 0;
   float pStatic_ = 0, p0_ = 0, est_ = 0, pumpTime_ = 0, leakRef_ = 0, aim_ = 0;

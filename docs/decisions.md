@@ -164,3 +164,8 @@
 - Compressor stuck on (menu [x] PUMP CHECK, saved). Owner: describe it as "the controller gives no signal, yet the pressure rises", and only on a clear, longer rise. Idle, both outputs off, 10 s after any run: the line rose > 0.5 bar over 20 s in at least 6 rising seconds with no single second carrying 80 % of it (hooking a hose to a tyre is one step), or the line stays above 5 bar for 3 s (hoses off, closed manifold). Screen NO SIGNAL, PRESSURE RISING, hint AUX2 ON? ELSE A RELAY IS STUCK in red, the fast low series, log PUMP_STUCK. Owner: the air then comes from another source, so the message names the sources: AUX2 bypass (on purpose or forgotten), a welded Unit 2Relay contact (AUX1 off stops it), the ARB relay (pull the ARB fuse). One alarm per episode: the next only after the line held still 30 s or after a run, so using AUX2 on purpose costs one alarm.
 
 - Owner: every error screen shows the live line pressure (big number), not the last static value, so a falling or rising pressure is visible at once.
+
+## 2026-11-22 IO TEST and the Mac bench app
+- Menu OUTPUT TEST became IO TEST: press = output on (max 30 s, countdown), press again = off, one output at a time; live pressure, G13 volts, AUX1.
+- USB: k1 on|off, valve on|off (same 30 s cap, Pump pulse path, all safety checks), fake <bar>|off (the sensor reads a typed pressure, FAKE tag, RAM only), io (one CSV line for the app).
+- tools/bench_app.html: Chrome + Web Serial on the Mac, no install. Output buttons, FAKE slider, live tiles, 2-minute chart with compressor / valve bands, console, save log. Claude cannot reach the USB port itself, so this is how the owner drives the bench.

@@ -406,19 +406,22 @@ void drawVersion() {
 }
 void drawOutTest() {
   canvas.fillSprite(TFT_BLACK);
-  drawHint("press: 1 s pulse  turn: choose  hold: back");
+  drawHint("press: on / off (30 s max)  turn: choose  hold: back");
   canvas.setFont(portrait() ? F_SMALL : F_TEXT); canvas.setTextDatum(middle_left);
   for (int i = 0; i < OUT_N; i++) {
     const int y = 12 + i * 24;
     if (i == outPos) canvas.fillRoundRect(3, y - 11, W() - 6, 22, 4, TFT_DARKGREEN);
     canvas.setTextColor(TFT_WHITE);
+    const bool on = i < OUT_N - 1 && pump.pulsing() && pump.pulseIsValve() == (i == 1);
     canvas.drawString(i == OUT_N - 1 ? "BACK" : i == 0 ? "COMPRESSOR (K1)" : "VALVE (K4)", 8, y);
+    if (on) { canvas.setTextDatum(middle_right); canvas.setTextColor(i == 1 ? TFT_SKYBLUE : TFT_ORANGE);
+              canvas.drawString(String("ON ") + String((pump.pulseLeft() + 999) / 1000) + "s", W() - 8, y); canvas.setTextDatum(middle_left); }
   }
   const int y0 = 8 + OUT_N * 24;
   const float vg = sensor.vG1();
   textAt(sensor.fault() ? String("SENSOR FAULT") : String(fmt(sensor.bar(settings.calA, settings.calB))) + " " + unitName() + "  " + String(vg * DIVIDER, 2) + " V",
          W() / 2, y0, F_TEXT, sensor.fault() ? TFT_RED : TFT_GREENYELLOW, top_center, F_SMALL, W() - 4);
-  if (pump.pulsing()) textAt(pump.pulseIsValve() ? "VALVE PULSE" : "K1 PULSE", W() / 2, y0 + 18, F_TEXT, pump.pulseIsValve() ? TFT_SKYBLUE : TFT_ORANGE, top_center);
+  textAt(supply.fitted() ? String("AUX1 ") + String(supply.volts(), 1) + " V" : String("AUX1 --"), W() / 2, y0 + 18, F_TEXT, C_LGREY, top_center, F_SMALL, W() - 4);
   push();
 }
 void drawHours(bool confirm) {

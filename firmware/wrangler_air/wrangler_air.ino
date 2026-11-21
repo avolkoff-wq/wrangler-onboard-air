@@ -68,7 +68,7 @@ enum class Screen { MAIN, MENU, EDIT, CAL, OTA, VERSION, SENSOR, CUSTOM, LEARN_P
 Screen screen = Screen::MAIN;
 int menuPos = 0;
 enum MenuItem { M_CAL, M_LEARN, M_SENSOR, M_OUTPUT, M_DEMO, M_UNITS, M_TYRE, M_OFFSET, M_SETTLE, M_VALVE, M_VSTUCK, M_PSTUCK, M_VCHECK, M_ECONF, M_WDOG, M_SCREEN, M_RESET, M_UPDATE, M_WIFIPASS, M_VERSION, M_HOURS, M_EXIT };
-const char* const MENU[] = {"CALIBRATE", "LEARN", "SENSOR", "OUTPUT TEST", "DEMO", "UNITS", "TYRE", "OFFSET", "SETTLE", "VALVE", "VALVE CHECK", "PUMP CHECK", "VOLT CHECK", "ENGINE CONFIRM", "WATCHDOG", "SCREEN", "RESET LEARNING", "WIFI: UPDATE + LOG", "WIFI PASSWORD", "VERSION", "HOURS", "EXIT"};
+const char* const MENU[] = {"CALIBRATE", "LEARN", "SENSOR", "IO TEST", "DEMO", "UNITS", "TYRE", "OFFSET", "SETTLE", "VALVE", "VALVE CHECK", "PUMP CHECK", "VOLT CHECK", "ENGINE CONFIRM", "WATCHDOG", "SCREEN", "RESET LEARNING", "WIFI: UPDATE + LOG", "WIFI PASSWORD", "VERSION", "HOURS", "EXIT"};
 const int MENU_N = sizeof(MENU) / sizeof(MENU[0]);
 
 // ---------- OFFSET / SETTLE editor: index 0 = AUTO ----------
@@ -105,11 +105,12 @@ void beepErr(PErr e) {
 
 // every screen ends here: in DEMO a magenta tag in the top right corner, so virtual tyres are never mistaken for real ones
 void push() {
-  if (g_demo) {
+  if (g_demo || g_fakeV >= 0) {   // DEMO: virtual tyres; FAKE: a pressure typed over USB
+    const char* tag = g_demo ? "DEMO" : "FAKE";
     canvas.setFont(&fonts::Font2); canvas.setTextDatum(top_right);
-    const int w = canvas.textWidth("DEMO") + 6;
+    const int w = canvas.textWidth(tag) + 6;
     canvas.fillRect(canvas.width() - w - 1, 0, w + 1, 17, TFT_MAGENTA);
-    canvas.setTextColor(TFT_WHITE); canvas.drawString("DEMO", canvas.width() - 4, 1);
+    canvas.setTextColor(TFT_WHITE); canvas.drawString(tag, canvas.width() - 4, 1);
   }
   canvas.pushSprite(0, 0);
 }
@@ -234,7 +235,8 @@ void benchCommand(String c) {
   c.trim(); c.toLowerCase();
   if (!c.length()) return;
   if (c == "help") {
-    Serial.println("# commands: status | log | runs | run <id> | clear | pulse k1 | pulse valve | help");
+    Serial.println("# commands: status | log | runs | run <id> | clear | pulse k1 | pulse valve | k1 on|off | valve on|off | fake <bar>|off | io | help");
+    Serial.println("# k1 / valve on: held up to 30 s, never both; fake: the sensor reads the typed pressure (FAKE tag), off at power-up");
   } else if (c == "status") {
     Serial.printf("# fw %s  preset %s  target %.2f bar  sensor %.3f bar (%.3f V)%s  state %d err %d\n", FW_VERSION,
                   PRESETS[settings.preset].name, settings.target, sensor.bar(settings.calA, settings.calB), sensor.vG1() * DIVIDER,
@@ -269,6 +271,25 @@ void benchCommand(String c) {
     if (v && !DEFLATE) Serial.println("# no valve in this build");
     else if (!pump.pulse(v)) Serial.println("# blocked: a run or a pulse is active");
     else Serial.printf("# %s pulse %lu ms\n", v ? "VALVE" : "K1", (unsigned long)OUTPUT_PULSE_MS);
+  } else if (c == "io") {   // one line for the Mac bench app: IO,t,bar,pinV,aux1V,k1,valve,fake,state,err
+    Serial.printf("IO,%.1f,%.3f,%.3f,%.2f,%d,%d,%d,%d,%d\n", millis() / 1000.0f, sensor.bar(settings.calA, settings.calB), sensor.vG1(),
+                  supply.volts(), pump.compressorOn() ? 1 : 0, pump.valveOpen() ? 1 : 0, g_fakeV >= 0 ? 1 : 0, (int)pump.state(), (int)pump.error());
+  } else if (c == "k1 on" || c == "valve on") {
+    const bool v = c.startsWith("valve");
+    if (v && !DEFLATE) Serial.println("# no valve (menu VALVE off)");
+    else { pump.pulseOff(); pump.update(); if (!pump.pulse(v, IO_HOLD_MS)) Serial.println("# blocked: a run is active");
+           else Serial.printf("# %s ON, auto off in %lu s\n", v ? "VALVE" : "K1", (unsigned long)(IO_HOLD_MS / 1000)); }
+  } else if (c == "k1 off" || c == "valve off") {
+    pump.pulseOff(); Serial.println("# outputs off");
+  } else if (c.startsWith("fake")) {
+    String a = c.substring(4); a.trim();
+    if (a == "off" || !a.length()) { g_fakeV = -1; sensor.resetFilter(); Serial.println("# fake off: real sensor"); }
+    else {   // typed bar (calibrated) -> raw bar -> pin voltage, so every screen and check sees it as the sensor
+      const float bar = a.toFloat(), raw = (bar - settings.calB) / settings.calA;
+      g_fakeV = max(0.0f, (raw / SENSOR_FS * SENSOR_SPAN + SENSOR_V0) / DIVIDER); sensor.resetFilter();
+      Serial.printf("# fake %.2f bar (pin %.3f V)\n", bar, g_fakeV);
+      wlog::ev("FAKE", wlog::kv("bar", bar));
+    }
   } else {
     Serial.println("# unknown command, type help");
   }
@@ -610,12 +631,16 @@ void loop() {
       else drawVersion();
       break;
 
-    case Screen::OUT_TEST:   // COMPRESSOR (K1) / VALVE (K4, valve builds) / BACK: press = one 1 s pulse
+    case Screen::OUT_TEST:   // IO TEST: COMPRESSOR (K1) / VALVE (K4) / BACK: press = on (up to 30 s) / off, never both
       if (steps) outPos = constrain(outPos + steps, 0, OUT_N - 1);
       if (b == input::Btn::LONG) { pump.stop(); screen = Screen::MENU; }
       if (b == input::Btn::SHORT) {
         if (outPos == OUT_N - 1) { pump.stop(); screen = Screen::MENU; }
-        else if (!pump.pulse(outPos == 1)) beep();                     // already pulsing (or a run is active)
+        else {
+          const bool v = outPos == 1, wasThis = pump.pulsing() && pump.pulseIsValve() == v;
+          pump.pulseOff(); pump.update();                              // whatever was on goes off first
+          if (!wasThis && !pump.pulse(v, IO_HOLD_MS)) beep();          // a run is active
+        }
       }
       if (screen == Screen::OUT_TEST) drawOutTest();
       break;
