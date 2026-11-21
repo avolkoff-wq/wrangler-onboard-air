@@ -1,4 +1,4 @@
-// Pressure sensor: 0.5-4.5 V on G1 through a 10k/20k divider, or (SENSOR_DIRECT) 0-3.3 V straight on G13
+// Pressure sensor 0-3.3 V straight on G13; in DEMO a virtual 4-tyre system answers the outputs instead
 #pragma once
 #include <Arduino.h>
 #include "config.h"
@@ -9,41 +9,39 @@ class Sensor {
   void begin() {
     analogReadResolution(12);
     analogSetPinAttenuation(PIN_SENSOR, ADC_11db);
-#if SENSOR_DIRECT && !BENCH_SIM
     analogReadMilliVolts(PIN_SENSOR);                   // attach the pin to the ADC first...
     gpio_pulldown_en((gpio_num_t)PIN_SENSOR);           // ...then pull it down: a broken signal wire reads 0 V, not noise
     gpio_pullup_dis((gpio_num_t)PIN_SENSOR);
-#endif
   }
   // call every loop: keeps a short running average (~50 ms)
   void update() {
-#if BENCH_SIM
-    vG1_ = simTyre();
-#else
-    float mv = 0;
-    for (int i = 0; i < 8; i++) mv += analogReadMilliVolts(PIN_SENSOR);
-    vG1_ = (mv / 8.0f) / 1000.0f;
-#endif
+    if (BENCH_SIM) vG1_ = simTyre();
+    else {
+      float mv = 0;
+      for (int i = 0; i < 8; i++) mv += analogReadMilliVolts(PIN_SENSOR);
+      vG1_ = (mv / 8.0f) / 1000.0f;
+    }
     filt_ = (filt_ < 0) ? vG1_ : filt_ + 0.2f * (vG1_ - filt_);
   }
   float vG1() const { return filt_; }
+  void  resetFilter() { filt_ = -1; }                   // after DEMO on / off
+  static void simReset() { simP = SIM_START_BAR; simFlow = 0; simLast = 0; }
   bool  fault() const { return filt_ < G1_MIN_V || filt_ > G1_MAX_V; }
   // raw bar from the datasheet line, before calibration
   float rawBar() const { return (filt_ * DIVIDER - SENSOR_V0) / SENSOR_SPAN * SENSOR_FS; }
   float bar(float a, float b) const { return a * rawBar() + b; }
 
- private:
-#if BENCH_SIM
  public:
   // Virtual 4-tyre system. Flow ramps up/down with the compressor (spin-up),
   // falls as the tyres fill, and the sensor reads tyres + SIM_C * rise rate.
   static inline float simP = SIM_START_BAR;  // real tyre pressure, bar (harness may set it)
   static inline float simFlow = 0;           // 0..1 compressor flow
+  static inline uint32_t simLast = 0;
  private:
   float simTyre() {
-    static uint32_t last = millis();
     const uint32_t now = millis();
-    const float dt = (now - last) / 1000.0f; last = now;
+    if (!simLast) simLast = now;
+    const float dt = (now - simLast) / 1000.0f; simLast = now;
     const bool on = digitalRead(PIN_K1) == HIGH;
     simFlow += ((on ? 1.0f : 0.0f) - simFlow) * min(1.0f, dt / SIM_SPINUP_S);
     const float rise = SIM_RATE * simFlow * max(0.0f, 1.0f - simP / SIM_PMAX);
@@ -56,7 +54,7 @@ class Sensor {
     const float reading = max(0.0f, simP + SIM_C * rise - SIM_C_D * fall) + noise;
     return (reading / SENSOR_FS * SENSOR_SPAN + SENSOR_V0) / DIVIDER;
   }
-#endif
+ private:
   float vG1_ = 0, filt_ = -1;
 };
 
@@ -91,3 +89,4 @@ class Supply {
   float filt_ = -1;
 };
 
+enum class Eng { RUN, OFF, NOMOD, NOCHECK };   // engine state before inflating (wrangler_air.ino engine())

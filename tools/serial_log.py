@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Wrangler Air bench: save the DinMeter USB live stream to CSV and optionally plot it.
 
-Needs the bench firmware (bin/wrangler_air_bench.bin, or any *_SIM.bin) and pyserial (pip install pyserial;
+Needs firmware 0.5.0+ (bin/wrangler_air.bin, USB is always on; menu DEMO for the desk) and pyserial (pip install pyserial;
 --plot also needs matplotlib).
 
 Usage:

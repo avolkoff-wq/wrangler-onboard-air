@@ -141,3 +141,9 @@
 ## 2026-11-21 One output connector
 - Owner: all outputs in one connector. -X8 5P on the left gland pigtail: 1 VT (ARB), 2 OG (valve), 3 RD +5 V, 4 BK GND, 5 YE signal. Behind the pins the harness splits: VT to the ARB (-V1 / -V2 there), OG to the valve, the sensor pigtail. -X10 dropped.
 - The 254PCS kit has 1P-4P only; a 5P pair comes separately.
+
+## 2026-11-21 One firmware, options in the menu; engine confirmation
+- Owner: merge the 7 builds. bin/wrangler_air.bin (0.5.0) for schematic C only. Menu: [x] VALVE (saved), [ ] DEMO (virtual tyres, never saved, off at power-up, magenta DEMO tag), [x] VOLT CHECK, [x] ENGINE CONFIRM (saved). USB log always on.
+- The stage-1 wiring (sensor on G1 through a divider) is dropped: it swaps G1 and G13, a wrong menu choice would drive the pin the sensor output sits on.
+- Inflate start: engine runs (AUX1 >= 13.2 V) = 2 presses. Engine off or no module (owner: also 3) with ENGINE CONFIRM = 3 presses, the second shows ENGINE OFF / NO VOLTAGE and PRESS AGAIN: CONFIRM (log ENGINE_CONFIRM). VOLT CHECK off = ENGINE ON?. LEARN INFLATE the same.
+- Battery guard: VOLT CHECK on, module fitted, compressor on, AUX1 < 11.5 V for 2 s = stop, ERR LOW VOLTAGE (log LOW_VOLTAGE, END ERR_LOW_V).

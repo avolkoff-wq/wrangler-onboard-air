@@ -1,49 +1,29 @@
-// Wrangler Onboard Air - stage 1 (K1 drives the compressor relay K2)
+// Wrangler Onboard Air (schematic C: compressor relay, deflate valve, sensor on G13, AUX1 voltage on G15)
 // All tunable numbers live here.
 #pragma once
 #include <Arduino.h>
 
-#ifndef BENCH_USB
-#define BENCH_USB 0     // 1 = bench builds only (dinmeter-bench, *-sim): USB serial log mirror, LIVE stream, commands
-#endif
-#ifndef DEFLATE
-#define DEFLATE 0       // 1 = schematic C: Unit 2Relay relay 1 (PORT.B white, G1) opens the deflate valve. Only with SENSOR_DIRECT
-#endif
-#if SENSOR_DIRECT && DEFLATE && BENCH_USB && !BENCH_SIM
-#define FW_VERSION "0.4.0-bench"
-#elif SENSOR_DIRECT && DEFLATE
-#define FW_VERSION "0.4.0-deflate"
-#elif SENSOR_DIRECT
-#define FW_VERSION "0.4.0-direct"
-#else
-#define FW_VERSION "0.4.0-stage1"
-#endif
+// One build for everything (since 0.5.0). What used to be build variants is now in the menu:
+//   VALVE (deflate valve fitted, schematic C), DEMO (virtual tyres for the desk, never saved, off at every power-up).
+// The USB serial log, LIVE stream and commands are always on.
+#define BENCH_USB 1
+#define FW_VERSION "0.5.0"
+inline bool g_valve = true;     // menu VALVE, saved (Settings::valve)
+inline bool g_demo  = false;    // menu DEMO, RAM only
+#define DEFLATE   (g_valve)
+#define BENCH_SIM (g_demo)
 
-// ---------- sensor variant ----------
-// 0 = 0.5-4.5 V sensor on G1 (PORT.B) through a 10k/20k divider (original board)
-// 1 = 0-3.3 V sensor straight on G13 (PORT.A yellow), 2 m Grove cable, no ADC, no divider
-//     (schematic A, hardware/enclosure/hammond_1591c/power_schematic.png). Build: pio run -e dinmeter-direct
-#ifndef SENSOR_DIRECT
-#define SENSOR_DIRECT 0
-#endif
+// ---------- hardware: schematic C only ----------
+// 0-3.3 V sensor straight on G13 (PORT.A yellow), Unit 2Relay on PORT.B (G2 compressor, G1 valve), 0-25 V module on G15.
+// The old stage-1 wiring (0.5-4.5 V sensor on G1 through a divider) is no longer supported: it swaps G1 and G13, and a wrong
+// choice in a menu would drive the pin the sensor output is wired to.
 
 // ---------- pins (M5Stack DinMeter v1.1, StampS3A) ----------
 constexpr int PIN_K1       = 2;   // G2, PORT.B yellow: M5 Mini Relay (DIN) / K1 -> compressor
-#if SENSOR_DIRECT
 constexpr int PIN_SENSOR   = 13;  // G13, PORT.A yellow: sensor output 0-3.3 V (ADC2: not read while Wi-Fi is on, OTA only)
-#if DEFLATE
-constexpr int PIN_K4       = 1;   // G1, PORT.B white: Unit 2Relay relay 1 (far end) -> deflate valve -Y1 (schematic C)
-#else
-constexpr int PIN_K4       = -1;  // PORT.A is taken by the sensor: no deflate output in this build
-#endif
+constexpr int PIN_K4       = 1;   // G1, PORT.B white: Unit 2Relay relay 1 (far end) -> deflate valve -Y1; kept LOW without VALVE
 #define SENSOR_PIN_NAME "G13"
-constexpr int PIN_VBAT     = 15;  // G15, PORT.A white: module 0-25 V (-A3) on AUX1, divider 1:5 (schematic C). ADC2 like G13
-#else
-constexpr int PIN_VBAT     = -1;  // no supply voltage input in this build
-constexpr int PIN_SENSOR   = 1;   // G1, PORT.B: sensor through 10k/20k divider
-constexpr int PIN_K4       = 13;  // G13, PORT.A: K4 (stage 3, deflate). Kept LOW in stage 1
-#define SENSOR_PIN_NAME "G1"
-#endif
+constexpr int PIN_VBAT     = 15;  // G15, PORT.A white: module 0-25 V (-A3) on AUX1, divider 1:5. ADC2 like G13
 constexpr int PIN_ENC_A    = 41;
 constexpr int PIN_ENC_B    = 40;
 constexpr int PIN_BTN      = 42;  // encoder push, active LOW
@@ -53,9 +33,10 @@ constexpr int PIN_HOLD     = 46;  // power hold, HIGH = stay on
 constexpr float VBAT_DIV     = 5.0f;   // module 0-25 V: 7.5k / 30k
 constexpr float VBAT_MIN_V   = 6.0f;   // below: no module fitted, engine state unknown -> plain "ENGINE ON?" reminder
 constexpr float ENGINE_ON_V  = 13.2f;  // at or above: alternator charging, engine runs -> no question before inflating
+constexpr float LOW_V        = 11.5f;  // while the compressor runs (VOLT CHECK, module fitted): below this for LOW_V_MS = stop, ERR LOW VOLTAGE
+constexpr uint32_t LOW_V_MS  = 2000;
 
 // ---------- sensor ----------
-#if SENSOR_DIRECT
 // G1/8 ceramic sensor 0-1.2 MPa, 5 V supply, output 0-3.3 V (AliExpress 1005004559608411, "output 0-3.3V")
 constexpr float DIVIDER      = 1.0f;   // no divider
 constexpr float SENSOR_V0    = 0.0f;   // 0 bar = 0 V: a broken wire cannot be told from 0 bar by voltage,
@@ -63,21 +44,13 @@ constexpr float SENSOR_SPAN  = 3.3f;   //   so the pin has a pull-down and the p
 constexpr float SENSOR_FS    = 12.0f;  // 1.2 MPa full scale, bar
 constexpr float G1_MIN_V     = -1.0f;  // no low limit
 constexpr float G1_MAX_V     = 3.10f;  // ADC ceiling at 11 dB (~11.3 bar): above = fault
-#else
-constexpr float DIVIDER      = 1.5f;   // V_sensor = V_G1 * 1.5  (R1 10k series, R2 20k to GND)
-constexpr float SENSOR_V0    = 0.5f;   // 0 bar
-constexpr float SENSOR_SPAN  = 4.0f;   // 0.5..4.5 V
-constexpr float SENSOR_FS    = 6.895f; // 100 psi full scale, bar
-constexpr float G1_MIN_V     = 0.25f;  // below: wire broken / sensor missing
-constexpr float G1_MAX_V     = 3.05f;  // above: sensor fault / over range
-#endif
 // plausibility while the compressor runs: the line is never near 0 bar once air flows into the tyres
 constexpr uint32_t DEAD_AFTER_MS = 3000;   // compressor on this long...
 constexpr float    DEAD_BAR      = 0.10f;  // ...and the sensor still reads below this: wire broken, stop
 
 // ---------- control ----------
 constexpr float TARGET_MAX       = 3.0f;   // bar, hard cap for the program
-constexpr float TARGET_MIN       = DEFLATE ? 0.5f : 0.0f;   // bar, lowest target (deflate build: 0.5)
+#define TARGET_MIN (DEFLATE ? 0.5f : 0.0f)   // bar, lowest target (with the valve: 0.5)
 constexpr float TARGET_LOW_WARN  = 0.8f;   // below this the screen shows LOW: bead may come off without beadlocks
 constexpr float START_BAND       = 0.10f;  // at start: within +/-0.1 bar of the target nothing is done
 constexpr float TARGET_STEP      = 0.1f;
@@ -158,9 +131,6 @@ constexpr float DEFAULT_RATE   = inflRate(1.5f, AIR_V_L);   // bar/s, ~0.011 fro
 
 // ---------- bench simulation ----------
 // 1 = no sensor needed: a virtual 4-tyre system answers K1. For desk testing only.
-#ifndef BENCH_SIM
-#define BENCH_SIM 0
-#endif
 // physics of the virtual system (see sensor.h)
 constexpr float SIM_START_BAR = 1.0f;   // tyres at power-up
 constexpr float SIM_RATE      = 0.07f;  // bar/s at 0 bar with full flow, 4 tyres

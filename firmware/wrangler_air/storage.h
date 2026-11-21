@@ -9,6 +9,9 @@ struct Settings {
   float target  = PRESETS[0].bar; // bar
   bool  psi     = false;          // display units
   uint8_t rot   = 1;              // screen rotation: 1 wide (knob right), 0 portrait, 3 / 2 the same turned 180
+  bool  valve   = true;           // menu VALVE: deflate valve fitted (g_valve follows it)
+  bool  vcheck  = true;           // menu VOLT CHECK: read AUX1 through the 0-25 V module on G15
+  bool  econfirm = true;          // menu ENGINE CONFIRM: third press before inflating when the engine is off or unknown
 
   // flow offset: dynamic sensor reading minus real tyre pressure
   bool  offAuto   = true;         // true: learned; false: offManual
@@ -69,6 +72,9 @@ struct Settings {
     target       = presetBar(preset);
     psi          = p.getBool ("psi", psi);
     rot          = p.getUChar("rot", rot) & 3;
+    valve        = p.getBool ("valve", valve); g_valve = valve;
+    vcheck       = p.getBool ("vchk", vcheck);
+    econfirm     = p.getBool ("econf", econfirm);
     offAuto      = p.getBool ("offAuto", offAuto);
     offManual    = p.getFloat("offMan", offManual);
     offset       = p.getFloat("offset", offset);
@@ -104,6 +110,9 @@ struct Settings {
     p.putFloat("target", target);
     p.putBool ("psi", psi);
     p.putUChar("rot", rot);
+    p.putBool ("valve", valve);
+    p.putBool ("vchk", vcheck);
+    p.putBool ("econf", econfirm);
     p.putBool ("offAuto", offAuto);
     p.putFloat("offMan", offManual);
     p.putFloat("offset", w.offset);

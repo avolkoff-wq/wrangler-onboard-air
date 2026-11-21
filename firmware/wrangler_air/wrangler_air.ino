@@ -59,13 +59,23 @@ Calibration cal;
 Ota ota;
 Trace trace;   // pressure trace of the current run, written to /runs at its end
 M5Canvas canvas(&M5.Display);
+// every screen ends here: in DEMO a magenta tag in the top right corner, so virtual tyres are never mistaken for real ones
+auto push = []() {   // a lambda, not a function: the Arduino prototype pass must not hoist anything above the enums
+  if (g_demo) {
+    canvas.setFont(&fonts::Font2); canvas.setTextDatum(top_right);
+    const int w = canvas.textWidth("DEMO") + 6;
+    canvas.fillRect(canvas.width() - w - 1, 0, w + 1, 17, TFT_MAGENTA);
+    canvas.setTextColor(TFT_WHITE); canvas.drawString("DEMO", canvas.width() - 4, 1);
+  }
+  canvas.pushSprite(0, 0);
+};
 
 enum IdleDir { D_UP, D_DOWN, D_OK, D_ABOVE, D_DEAD };   // what a start would do from the idle screen
 enum class Screen { MAIN, MENU, EDIT, CAL, OTA, VERSION, SENSOR, CUSTOM, LEARN_PICK, LEARN_CONF, LEARN_MSG, HOURS, HOURS_CONF, OUT_TEST };
 Screen screen = Screen::MAIN;
 int menuPos = 0;
-enum MenuItem { M_CAL, M_LEARN, M_SENSOR, M_OUTPUT, M_UNITS, M_TYRE, M_OFFSET, M_SETTLE, M_SCREEN, M_RESET, M_UPDATE, M_VERSION, M_HOURS, M_EXIT };
-const char* MENU[] = {"CALIBRATE", "LEARN", "SENSOR", "OUTPUT TEST", "UNITS", "TYRE", "OFFSET", "SETTLE", "SCREEN", "RESET LEARNING", "WIFI: UPDATE + LOG", "VERSION", "HOURS", "EXIT"};
+enum MenuItem { M_CAL, M_LEARN, M_SENSOR, M_OUTPUT, M_DEMO, M_UNITS, M_TYRE, M_OFFSET, M_SETTLE, M_VALVE, M_VCHECK, M_ECONF, M_SCREEN, M_RESET, M_UPDATE, M_VERSION, M_HOURS, M_EXIT };
+const char* MENU[] = {"CALIBRATE", "LEARN", "SENSOR", "OUTPUT TEST", "DEMO", "UNITS", "TYRE", "OFFSET", "SETTLE", "VALVE", "VOLT CHECK", "ENGINE CONFIRM", "SCREEN", "RESET LEARNING", "WIFI: UPDATE + LOG", "VERSION", "HOURS", "EXIT"};
 constexpr int MENU_N = sizeof(MENU) / sizeof(MENU[0]);
 
 // ---------- helpers ----------
@@ -427,14 +437,24 @@ IdleDir idleDir(float bar) {
   if (now < bar) return D_UP;
   return DEFLATE ? D_DOWN : D_ABOVE;                                   // inflate-only builds do nothing above the target
 }
-// two-press start: the first press arms, a second one within ARM_MS starts; knob, long press or timeout disarm
+// engine state before the compressor starts (menu VOLT CHECK / ENGINE CONFIRM, AUX1 on G15)
+Eng engine() {
+  if (!settings.vcheck) return Eng::NOCHECK;
+  if (!supply.fitted()) return Eng::NOMOD;
+  return supply.engineOn() ? Eng::RUN : Eng::OFF;
+}
+const char* engText(Eng e) { return e == Eng::RUN ? "" : e == Eng::OFF ? "ENGINE OFF" : e == Eng::NOMOD ? "NO VOLTAGE" : "ENGINE ON?"; }
+uint16_t engColor(Eng e) { return e == Eng::OFF ? TFT_RED : TFT_ORANGE; }
+bool engConfirm() { return settings.econfirm && engine() != Eng::RUN; }   // a third press before the compressor
+// two-press start: the first press arms, a second one within ARM_MS starts; knob, long press or timeout disarm.
+// Inflating with the engine off or unknown (ENGINE CONFIRM): the second press only confirms, a third one starts.
 constexpr uint32_t ARM_MS = 3000;
-bool armed = false; uint32_t armT = 0;
+bool armed = false; uint8_t armStage = 0; uint32_t armT = 0;
 void arm() {   // only when a start would inflate or deflate
   const IdleDir d = idleDir(settings.target);
-  if (d == D_UP || d == D_DOWN) { armed = true; armT = millis(); } else beep();
+  if (d == D_UP || d == D_DOWN) { armed = true; armStage = 1; armT = millis(); } else beep();
 }
-void disarm(const char* why) { if (!armed) return; armed = false; wlog::ev("ARM_CANCEL", wlog::kv("reason", String(why))); }
+void disarm(const char* why) { if (!armed) return; armed = false; armStage = 0; wlog::ev("ARM_CANCEL", wlog::kv("reason", String(why))); }
 // hold-for-menu bar along the bottom edge: from 0.3 s of holding, full at the LONG press (2.0 s)
 constexpr uint32_t HOLD_SHOW_MS = 300;
 void drawHoldBar() {
@@ -494,7 +514,7 @@ void drawIdle(bool edit) {
   auto idleHint = [&]() {
     if (edit) { drawHint(wsel ? "turn: wheels  press: OK  hold: back" : "turn: 0.1  press: next  hold: cancel"); return; }
     if (armed && !dead) {   // ARMED: white hint, a bar running out over ARM_MS under it
-      drawHint("PRESS AGAIN: START  turn: cancel", TFT_WHITE, H() - 4);
+      drawHint(armStage == 2 ? "PRESS AGAIN: CONFIRM  turn: cancel" : "PRESS AGAIN: START  turn: cancel", armStage == 2 ? TFT_RED : TFT_WHITE, H() - 4);
       const float left = 1.0f - constrain((float)(millis() - armT) / ARM_MS, 0.0f, 1.0f);
       canvas.fillRect(20, H() - 3, (int)((W() - 40) * left), 3, TFT_WHITE);
       return;
@@ -517,8 +537,8 @@ void drawIdle(bool edit) {
     if (!edit) {
       canvas.fillRect(10, 94, W() - 20, 2, dead ? dim : dc);
       if (dead) textAt("CONNECT SYSTEM", W() / 2, 99, F_TEXT, C_LGREY, top_center);
-      else if (armed && dir == D_UP && *supply.engineText())                // compressor ahead: engine off / unknown -> the second press confirms
-        textAt(supply.engineText(), W() / 2, 99, F_TEXT, supply.fitted() ? TFT_RED : TFT_ORANGE, top_center);
+      else if (armed && dir == D_UP && *engText(engine()))                  // compressor ahead: engine off / unknown
+        textAt(engText(engine()), W() / 2, 99, F_TEXT, engColor(engine()), top_center);
       else dirLine(99, false);
     }
     idleHint();
@@ -533,16 +553,16 @@ void drawIdle(bool edit) {
       if (dead) {
         textAt("CONNECT", W() / 2, 173, F_TEXT, C_LGREY, top_center);
         textAt("SYSTEM", W() / 2, 190, F_TEXT, C_LGREY, top_center);
-      } else if (armed && dir == D_UP && *supply.engineText()) {   // compressor ahead: engine off / unknown -> the second press confirms
+      } else if (armed && dir == D_UP && *engText(engine())) {   // compressor ahead: engine off / unknown
         dirLine(173, true);
         canvas.fillRect(0, 189, W(), 17, TFT_BLACK);
-        textAt(supply.engineText(), W() / 2, 190, F_TEXT, supply.fitted() ? TFT_RED : TFT_ORANGE, top_center);
+        textAt(engText(engine()), W() / 2, 190, F_TEXT, engColor(engine()), top_center);
       } else dirLine(173, true);
     }
     idleHint();
   }
   if (!edit) drawHoldBar();
-  canvas.pushSprite(0, 0);
+  push();
 }
 
 // result of a menu LEARN test
@@ -557,7 +577,7 @@ void drawLearnResult() {
     drawLines({ {def ? "LEARN DEFLATE" : "LEARN INFLATE", F_TEXT, TFT_ORANGE}, {"NO RESULT", F_MID, TFT_ORANGE},
                 {"before " + fmt(pump.testBefore()) + "  after " + fmt(pump.staticBar()), F_SMALL, C_LGREY} }, 0, H() - 18);
   drawHint("press: back");
-  canvas.pushSprite(0, 0);
+  push();
 }
 
 void drawMain() {
@@ -589,6 +609,7 @@ void drawMain() {
         case PErr::LEAK:    line = "ERR NO RISE: LEAK?"; break;
         case PErr::TIMEOUT: line = "ERR TIMEOUT"; break;
         case PErr::LOW_P:   line = "PUMP UP TO " + fmt(LEARN_DEF_MIN_BAR) + " FIRST"; break;
+        case PErr::LOW_V:   line = "ERR LOW VOLTAGE"; break;
         default:            line = "ERR"; break;
       }
       break;
@@ -636,7 +657,7 @@ void drawMain() {
   drawHint(pump.busy() ? "press: STOP" : "press: back");
   if (pump.compressorOn()) canvas.fillCircle(W() - 10, 10, 6, TFT_ORANGE);
   if (pump.valveOpen())    canvas.fillCircle(W() - 10, 10, 6, TFT_SKYBLUE);
-  canvas.pushSprite(0, 0);
+  push();
 }
 
 String rotName() {
@@ -662,15 +683,21 @@ void drawMenu() {
     if (i == M_OFFSET) t += ": " + offText(offIdx());
     if (i == M_SETTLE) t += ": " + setText(setIdx());
     if (i == M_SCREEN) t += ": " + rotName();
+    if (i == M_DEMO || i == M_VALVE || i == M_VCHECK || i == M_ECONF) {
+      const bool on = i == M_DEMO ? g_demo : i == M_VALVE ? settings.valve : i == M_VCHECK ? settings.vcheck : settings.econfirm;
+      t = String(on ? "[x] " : "[ ] ") + t;
+      if (i == M_ECONF && portrait()) t = String(on ? "[x] " : "[ ] ") + "ENG CONFIRM";
+    }
     if (i == M_RESET && resetArm && millis() - resetArm < 3000) t = "PRESS AGAIN";
     else if (i == M_RESET && portrait()) t = "RESET LEARN";
     canvas.drawString(t, 8, y);
   }
-  canvas.pushSprite(0, 0);
+  push();
 }
 
 // ---------- menu LEARN ----------
-constexpr int LEARN_N = DEFLATE ? 3 : 2;
+#define LEARN_N (DEFLATE ? 3 : 2)
+bool learnArm = false;   // LEARN INFLATE waiting for the engine confirmation
 int learnPos = 0; Mode learnSel = Mode::INF; String learnMsg;
 Mode learnItem(int i) { if (i == 0) return Mode::INF; if (DEFLATE && i == 1) return Mode::DEF; return Mode::NONE; }
 void drawLearnPick() {
@@ -684,17 +711,17 @@ void drawLearnPick() {
     canvas.setTextColor(TFT_WHITE);
     canvas.drawString(m == Mode::INF ? "LEARN INFLATE" : m == Mode::DEF ? "LEARN DEFLATE" : "BACK", 8, y);
   }
-  canvas.pushSprite(0, 0);
+  push();
 }
 void drawLearnConf() {
   canvas.fillSprite(TFT_BLACK);
   const bool def = learnSel == Mode::DEF;
   drawLines({ {def ? "LEARN DEFLATE:" : "LEARN INFLATE:", F_TEXT, def ? TFT_SKYBLUE : TFT_ORANGE},
               {def ? "valve " + String(LEARN_DEF_MS / 1000) + " s." : "compressor " + String(CAL_PULSE_MS / 1000) + " s.", F_TEXT, TFT_WHITE},
-              {def ? "" : supply.engineText(), F_TEXT, supply.fitted() ? TFT_RED : TFT_ORANGE},
+              {def ? "" : engText(engine()), F_TEXT, engColor(engine())},
               {"Measure, pulse, measure.", F_SMALL, C_LGREY} }, 0, H() - 18);
-  drawHint("press: start  hold: back");
-  canvas.pushSprite(0, 0);
+  drawHint(learnArm ? "PRESS AGAIN: CONFIRM  hold: back" : "press: start  hold: back", learnArm ? TFT_RED : C_LGREY);
+  push();
 }
 
 void drawEdit() {
@@ -707,7 +734,7 @@ void drawEdit() {
               {off ? offText(editIdx) : setText(editIdx), F_LARGE, TFT_GREENYELLOW, F_MID},
               {hint, F_SMALL, TFT_LIGHTGREY} }, 0, H() - 18);
   drawHint("turn: change  press: save  hold: back");
-  canvas.pushSprite(0, 0);
+  push();
 }
 
 void drawCustom() { drawIdle(true); }   // CUSTOM value: idle layout, value and name in cyan
@@ -748,7 +775,7 @@ void drawCal() {
       drawHint("press: back"); break;
     default: break;
   }
-  canvas.pushSprite(0, 0);
+  push();
 }
 
 void drawOta() {
@@ -757,7 +784,7 @@ void drawOta() {
               {"192.168.4.1  (log: /log)", F_TEXT, TFT_WHITE, F_SMALL},
               {ota.progress() ? String(ota.progress() / 1024) + " kB received" : "", F_SMALL, TFT_LIGHTGREY} }, 0, H() - 18);
   drawHint("hold: exit");
-  canvas.pushSprite(0, 0);
+  push();
 }
 
 void drawVersion() {
@@ -771,7 +798,7 @@ void drawVersion() {
               {DEFLATE ? "tauD " + String(settings.tauD, 0) + "s " + (settings.learnedD ? "learned" : "model") : "", F_SMALL, TFT_LIGHTGREY},
               {settings.learned ? "learned" : "not learned yet", F_SMALL, TFT_LIGHTGREY} }, 0, H() - 16);
   drawHint("press: back");
-  canvas.pushSprite(0, 0);
+  push();
 }
 
 // live sensor check for the bench: what the sensor sends, what the input pin sees (after the divider if any), and the pressure
@@ -823,7 +850,7 @@ void traceStep() {
 }
 
 // ---------- menu OUTPUT TEST ----------
-constexpr int OUT_N = DEFLATE ? 3 : 2;   // COMPRESSOR, (VALVE), BACK
+#define OUT_N (DEFLATE ? 3 : 2)   // COMPRESSOR, (VALVE), BACK
 int outPos = 0;
 void drawOutTest() {
   canvas.fillSprite(TFT_BLACK);
@@ -840,7 +867,7 @@ void drawOutTest() {
   textAt(sensor.fault() ? String("SENSOR FAULT") : fmt(sensor.bar(settings.calA, settings.calB)) + " " + unitName() + "  " + String(vg * DIVIDER, 2) + " V",
          W() / 2, y0, F_TEXT, sensor.fault() ? TFT_RED : TFT_GREENYELLOW, top_center, F_SMALL, W() - 4);
   if (pump.pulsing()) textAt(pump.pulseIsValve() ? "VALVE PULSE" : "K1 PULSE", W() / 2, y0 + 18, F_TEXT, pump.pulseIsValve() ? TFT_SKYBLUE : TFT_ORANGE, top_center);
-  canvas.pushSprite(0, 0);
+  push();
 }
 
 // ---------- bench builds only (BENCH_USB): USB serial live stream and commands ----------
@@ -873,7 +900,8 @@ void benchCommand(String c) {
     Serial.printf("# fw %s  preset %s  target %.2f bar  sensor %.3f bar (%.3f V)%s  state %d err %d\n", FW_VERSION,
                   PRESETS[settings.preset].name, settings.target, sensor.bar(settings.calA, settings.calB), sensor.vG1() * DIVIDER,
                   sensor.fault() ? " FAULT" : "", (int)pump.state(), (int)pump.error());
-    Serial.printf("# AUX1 %.2f V  %s\n", supply.volts(), !supply.fitted() ? "no module" : supply.engineOn() ? "engine on" : "engine off");
+    Serial.printf("# AUX1 %.2f V  %s  volt check %d  engine confirm %d  valve %d  demo %d\n", supply.volts(),
+                  !supply.fitted() ? "no module" : supply.engineOn() ? "engine on" : "engine off", settings.vcheck, settings.econfirm, g_valve, g_demo);
     Serial.printf("# tyre %s  rate %.4f  kTop %.4f  offset %.3f  c %.2f  tauD %.1f  learned %d/%d  cal a %.4f b %.3f\n",
                   TYRES[settings.tyre].name, settings.rate, settings.kTop, settings.offset, settings.c, settings.tauD,
                   settings.learned, settings.learnedD, settings.calA, settings.calB);
@@ -947,7 +975,7 @@ void drawHours(bool confirm) {
                 {"since service " + hmm(svc), F_TEXT, TFT_WHITE, F_SMALL} }, 0, H() - 18);
     drawHint("hold 2 s: reset service  press: back");
   }
-  canvas.pushSprite(0, 0);
+  push();
 }
 
 void drawSensor() {
@@ -960,7 +988,7 @@ void drawSensor() {
               {sensor.fault() ? "OUT OF RANGE" : fmt(sensor.bar(settings.calA, settings.calB)) + " " + unitName() + "  (raw " + String(sensor.rawBar(), 2) + ")", F_TEXT, sensor.fault() ? TFT_RED : TFT_WHITE},
               }, 0, H() - 18);
   drawHint("press: back");
-  canvas.pushSprite(0, 0);
+  push();
 }
 
 void applyRotation() {
@@ -1005,7 +1033,7 @@ void splash() {
       textAt("VOLKOV ", x0, 30, &fonts::FreeSansBold18pt7b, white, top_left);
       textAt("AIR", x0 + tw, 30, &fonts::FreeSansBold18pt7b, amb, top_left);
     }
-    canvas.pushSprite(0, 0);
+    push();
     while (millis() - t0 < FRAME_MS) delay(1);
   }
   while (digitalRead(PIN_BTN) == LOW) delay(5);   // a press that skipped the splash does not reach the main screen
@@ -1048,6 +1076,13 @@ void loop() {
   M5.update();
   sensor.update();
   supply.update();
+  {   // battery guard: compressor running, AUX1 below LOW_V for LOW_V_MS -> stop (VOLT CHECK on, module fitted)
+    static uint32_t lowT = 0;
+    const bool low = settings.vcheck && supply.fitted() && pump.compressorOn() && supply.volts() < LOW_V;
+    if (!low) lowT = 0;
+    else if (!lowT) lowT = millis();
+    else if (millis() - lowT >= LOW_V_MS) { wlog::ev("LOW_VOLTAGE", wlog::kv("aux1", supply.volts(), 1)); pump.lowVoltage(); lowT = 0; }
+  }
   pump.update();
   if (!pump.busy()) settings.useWheels(4);   // a CUSTOM run on fewer wheels is over: learning back to the 4-wheel volume
   cal.update();
@@ -1082,7 +1117,10 @@ void loop() {
       else if (b == input::Btn::SHORT) {
         if (pump.state() == PState::DONE || pump.state() == PState::ERROR) pump.clearResult();
         else if (noAir) { disarm("NO_AIR"); beep(); }                  // CONNECT SYSTEM: nothing to start
-        else if (armed) { armed = false; settings.useWheels(settings.preset == P_CUSTOM ? settings.wheels : 4); pump.start(); }               // second press within ARM_MS: go
+        else if (armed && armStage == 1 && idleDir(settings.target) == D_UP && engConfirm()) {   // engine off / unknown: confirm first
+          armStage = 2; armT = millis(); wlog::ev("ENGINE_CONFIRM", wlog::kv("eng", String(engText(engine()))) + wlog::kv("aux1", supply.volts(), 1));
+        }
+        else if (armed) { armed = false; armStage = 0; settings.useWheels(settings.preset == P_CUSTOM ? settings.wheels : 4); pump.start(); }               // second press within ARM_MS: go
         else if (settings.preset == P_CUSTOM) { customEdit = settings.custom; customWheels = settings.wheels; customStep = 0; screen = Screen::CUSTOM; }   // check the value first
         else arm();
       }
@@ -1117,6 +1155,14 @@ void loop() {
           } break;
           case M_OFFSET:  editItem = M_OFFSET; editIdx = offIdx(); screen = Screen::EDIT; break;
           case M_SETTLE:  editItem = M_SETTLE; editIdx = setIdx(); screen = Screen::EDIT; break;
+          case M_DEMO:    // virtual tyres for the desk: never saved, off at every power-up
+            g_demo = !g_demo; Sensor::simReset(); sensor.resetFilter(); wlog::ev("DEMO", wlog::kv("on", String(g_demo ? 1 : 0))); break;
+          case M_VALVE:
+            settings.valve = g_valve = !settings.valve; pump.stop();
+            if (settings.target < TARGET_MIN) settings.target = TARGET_MIN;
+            settings.save(); wlog::ev("VALVE", wlog::kv("on", String(g_valve ? 1 : 0))); break;
+          case M_VCHECK:  settings.vcheck = !settings.vcheck; settings.save(); break;
+          case M_ECONF:   settings.econfirm = !settings.econfirm; settings.save(); break;
           case M_SCREEN:  settings.rot = (settings.rot + 1) % 4; settings.save(); applyRotation(); break;
           case M_RESET:   // two presses within 3 s, so a stray click cannot wipe what was learned
             if (resetArm && millis() - resetArm < 3000) { settings.resetLearning(); wlog::ev("RESET_LEARNING", ""); beep(); resetArm = 0; }
@@ -1170,20 +1216,24 @@ void loop() {
         if (m == Mode::NONE) screen = Screen::MENU;
         else if (sensor.fault() || now <= LEARN_MIN_BAR) { learnMsg = "CONNECT SYSTEM"; screen = Screen::LEARN_MSG; }
         else if (m == Mode::DEF && now < LEARN_DEF_MIN_BAR) { learnMsg = "PUMP UP TO " + fmt(LEARN_DEF_MIN_BAR) + " FIRST"; screen = Screen::LEARN_MSG; }
-        else { learnSel = m; screen = Screen::LEARN_CONF; }
+        else { learnSel = m; learnArm = false; screen = Screen::LEARN_CONF; }
       }
       if (screen == Screen::LEARN_PICK) drawLearnPick();
       break;
 
     case Screen::LEARN_CONF:
       if (b == input::Btn::LONG) screen = Screen::LEARN_PICK;
-      if (b == input::Btn::SHORT) { pump.learnTest(learnSel); screen = Screen::MAIN; }
+      if (b == input::Btn::SHORT) {
+        if (learnSel == Mode::INF && engConfirm() && !learnArm) learnArm = true;    // engine off / unknown: one more press
+        else { learnArm = false; pump.learnTest(learnSel); screen = Screen::MAIN; }
+      }
+      if (b == input::Btn::LONG) learnArm = false;
       if (screen == Screen::LEARN_CONF) drawLearnConf();
       break;
 
     case Screen::LEARN_MSG:
       if (b == input::Btn::SHORT || b == input::Btn::LONG) screen = Screen::LEARN_PICK;
-      else { canvas.fillSprite(TFT_BLACK); drawLines({ {learnMsg, F_TEXT, TFT_ORANGE} }, 0, H() - 18); drawHint("press: back"); canvas.pushSprite(0, 0); }
+      else { canvas.fillSprite(TFT_BLACK); drawLines({ {learnMsg, F_TEXT, TFT_ORANGE} }, 0, H() - 18); drawHint("press: back"); push(); }
       break;
 
     case Screen::CAL:

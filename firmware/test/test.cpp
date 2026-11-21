@@ -1,10 +1,8 @@
-#define SENSOR_DIRECT 1
-#define DEFLATE 1
-#define BENCH_SIM 1
 #include "config.h"
 uint32_t g_ms=0; int g_pins[64]={0};
 inline void analogReadResolution(int){} inline void analogSetPinAttenuation(int,int){} 
 #define ADC_11db 0
+inline uint32_t analogReadMilliVolts(int){ return 0; }   // DEMO reads the virtual tyres, the ADC is never used
 #include "sensor.h"
 #include "storage.h"
 #include "pump.h"
@@ -28,6 +26,7 @@ static String runTraced(Pump& p, Sensor& s, Settings& st, const char* preset) {
   return tr.finish(String(h));
 }
 int main(int argc,char**argv){
+  g_demo = true; g_valve = true;   // virtual tyres, valve fitted (menu DEMO / VALVE in the firmware)
   String example; int exampleScore = -1;
   Settings st; Sensor s; Pump p; p.begin(&s,&st);
   float starts[]={2.4,2.4,2.4,1.2,0.9,2.3}; float targets[]={1.2,0.8,1.2,2.4,2.4,2.25};
