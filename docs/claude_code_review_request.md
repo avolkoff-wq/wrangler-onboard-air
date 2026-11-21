@@ -130,3 +130,9 @@ cd firmware && pio run -e dinmeter
 ## 7. Итог одной строкой
 
 Урезанный sketch восстановлен, UI вынесен в `ui_draw.h` / `ui_screens.h`, горячие `String` ужаты, добавлены бипы / Wi‑Fi password / sensor probe; битая git-история схлопнута и запушена на `improvements-wifi-pinout-log-sensor` (UI: `d9a3f98`), сборка PlatformIO зелёная.
+
+---
+
+## 8. Ревью (Claude Code, 21.11)
+
+Принято: разделение UI, буферы вместо String, бипы, WIFI PASSWORD, тайм-аут Wi-Fi, pinout.md. Убрано: sensor probe (компрессор мимо Pump, блокирующий delay, срабатывал только в 0,05-0,08 bar). Исправлено: возврат с экрана UPDATE после тайм-аута, README восстановлен, паузы бипов, заглушка Preferences для настольного теста. Подробно: docs/decisions.md.

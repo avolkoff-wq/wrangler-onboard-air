@@ -147,3 +147,8 @@
 - The stage-1 wiring (sensor on G1 through a divider) is dropped: it swaps G1 and G13, a wrong menu choice would drive the pin the sensor output sits on.
 - Inflate start: engine runs (AUX1 >= 13.2 V) = 2 presses. Engine off or no module (owner: also 3) with ENGINE CONFIRM = 3 presses, the second shows ENGINE OFF / NO VOLTAGE and PRESS AGAIN: CONFIRM (log ENGINE_CONFIRM). VOLT CHECK off = ENGINE ON?. LEARN INFLATE the same.
 - Battery guard: VOLT CHECK on, module fitted, compressor on, AUX1 < 11.5 V for 2 s = stop, ERR LOW VOLTAGE (log LOW_VOLTAGE, END ERR_LOW_V).
+
+## 2026-11-21 Review of PR #1 (UI split)
+- Accepted: ui_draw.h / ui_screens.h header-only split, char buffers instead of String in the formatters, error beeps, WIFI PASSWORD in the menu (NVS), Wi-Fi off after 10 min without requests, docs/pinout.md.
+- Removed: the sensor probe before inflating. It drove K1 directly, bypassing Pump (no stop button, no LOW VOLTAGE guard, no hours), blocked the loop 2.3 s, and could only fire between 0.05 and 0.08 bar because CONNECT SYSTEM blocks lower. Open line and dead sensor are already caught by ERR SENSOR (3 s) and LEAK.
+- Fixed: the OTA screen now returns to MAIN after the Wi-Fi timeout; README restored (the branch had cut it to 38 lines) and the wrong "no K4" line corrected; beep pauses longer than the tones; desk test stub gets getString / putString.

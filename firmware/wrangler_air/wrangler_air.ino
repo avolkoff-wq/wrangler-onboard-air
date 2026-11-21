@@ -99,13 +99,13 @@ void beepErr(PErr e) {
       M5.Speaker.tone(2800, 400); delay(450); M5.Speaker.tone(2800, 400); delay(450);
       break;
     case PErr::OVER:
-      M5.Speaker.tone(4000, 200); delay(100); M5.Speaker.tone(4000, 200); delay(100); M5.Speaker.tone(4000, 200); delay(200);
+      M5.Speaker.tone(4000, 200); delay(300); M5.Speaker.tone(4000, 200); delay(300); M5.Speaker.tone(4000, 200); delay(250);
       break;
     case PErr::TIMEOUT:
       M5.Speaker.tone(2200, 600); delay(650);
       break;
     case PErr::LOW_V:
-      M5.Speaker.tone(1800, 150); delay(100); M5.Speaker.tone(1800, 150); delay(100); M5.Speaker.tone(1800, 400); delay(450);
+      M5.Speaker.tone(1800, 150); delay(250); M5.Speaker.tone(1800, 150); delay(250); M5.Speaker.tone(1800, 400); delay(450);
       break;
     default:
       beep(4);
@@ -408,28 +408,10 @@ void loop() {
         else if (armed && armStage == 1 && idleDir(settings.target) == D_UP && engConfirm()) {   // engine off / unknown: confirm first
           armStage = 2; armT = millis(); wlog::ev("ENGINE_CONFIRM", wlog::kv("eng", String(engText(engine()))) + wlog::kv("aux1", supply.volts(), 1));
         }
-        else if (armed) {   // second press within ARM_MS: go (short sensor probe if the line reads ~empty)
+        else if (armed) {   // second press within ARM_MS: go
           armed = false; armStage = 0;
           settings.useWheels(settings.preset == P_CUSTOM ? settings.wheels : 4);
-          const float p0 = sensor.bar(settings.calA, settings.calB);
-          if (!sensor.fault() && p0 < 0.08f && idleDir(settings.target) == D_UP) {
-            digitalWrite(PIN_K1, HIGH);
-            delay(1500);
-            digitalWrite(PIN_K1, LOW);
-            delay(800);
-            sensor.update();
-            const float p1 = sensor.bar(settings.calA, settings.calB);
-            wlog::ev("SENSOR_PROBE", wlog::kv("p0", p0) + wlog::kv("p1", p1) + wlog::kv("ok", p1 >= p0 + 0.03f ? "1" : "0"));
-            if (p1 < p0 + 0.03f) {
-              beepErr(PErr::SENSOR);
-              canvas.fillSprite(TFT_BLACK);
-              drawLines({ {"ERR SENSOR", F_TEXT, TFT_RED}, {"no rise on probe", F_TEXT, TFT_WHITE},
-                          {String("before ") + fmt(p0) + "  after " + fmt(p1), F_SMALL, C_LGREY} }, 0, H() - 18);
-              drawHint("press: back"); push();
-              // stay on MAIN; next press clears via normal DONE/ERROR path — show until knob/press
-              delay(1500);
-            } else pump.start();
-          } else pump.start();
+          pump.start();
         }
         else if (settings.preset == P_CUSTOM) { customEdit = settings.custom; customWheels = settings.wheels; customStep = 0; screen = Screen::CUSTOM; }   // check the value first
         else arm();
@@ -563,6 +545,7 @@ void loop() {
 
     case Screen::OTA:
       if (b == input::Btn::LONG) { ota.stop(); screen = Screen::MAIN; }
+      else if (!ota.running()) screen = Screen::MAIN;                  // Wi-Fi switched itself off after 10 min without requests
       else drawOta();
       break;
 
