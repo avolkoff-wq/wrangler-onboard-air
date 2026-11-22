@@ -21,7 +21,8 @@ POD_X = 50.0         # centre of the DinMeter along the cap
 BASE_GAP = 1.0       # front plate low edge above the cap face
 EMBED = 0.6          # wedge sinks into the cap shell so it prints as one part
 
-PLATE_L, PLATE_W = 56.0, 33.0   # front face, bezel 53 x 30 sits on it; long side along X
+PLATE_L, PLATE_W = 58.0, 35.0   # front face, bezel 53 x 30 sits on its flat middle; long side along X
+ROUND = 3.0                     # edge radius of the front face
 CUT_L, CUT_W = 45.6, 23.1       # 1/32 DIN 45 x 22.5 + print clearance
 FRONT = 2.0                     # front wall = panel thickness for the back clip
 BODY_L, BODY_W, BODY_D = 49.0, 27.0, 36.0  # room behind the panel: body ~26 + plugs, clip arms
@@ -54,9 +55,15 @@ def place(m):
     return m.rotate([0, -ang, 0]).translate([x0, cy, z0 + BASE_GAP])
 
 
-plate = mf.Manifold.cube([PLATE_L, PLATE_W, FRONT]).translate([0, -PLATE_W / 2, -FRONT])
-pad = mf.Manifold.cube([PLATE_L, 26, 1.0]).translate([x0, cy - 13, min(z0, z1) - EMBED - 2])
-wedge = mf.Manifold.batch_hull([place(plate), pad]) - to_mf(cap_tm.convex_hull).translate([0, 0, -EMBED])
+# front plate with rounded corners and edges: hull of spheres at the corners
+rr = ROUND
+corners = [mf.Manifold.sphere(rr, 32).translate([x, y, -rr])
+           for x in (rr, PLATE_L - rr) for y in (-PLATE_W / 2 + rr, PLATE_W / 2 - rr)]
+plate = mf.Manifold.batch_hull(corners)
+# the wedge flows from the plate down onto the whole cap outline, so there are no gaps; only the
+# part above the cap face is kept (cap hull sunk by EMBED), the cap's own clips stay untouched
+cap_hull = to_mf(cap_tm.convex_hull)
+wedge = mf.Manifold.batch_hull([place(plate), cap_hull]) - cap_hull.translate([0, 0, -EMBED])
 
 cut = place(mf.Manifold.cube([CUT_L, CUT_W, FRONT * 3], center=True).translate([PLATE_L / 2, 0, -FRONT]))
 body = place(mf.Manifold.cube([BODY_L, BODY_W, BODY_D]).translate([(PLATE_L - BODY_L) / 2, -BODY_W / 2, -FRONT - BODY_D]))
