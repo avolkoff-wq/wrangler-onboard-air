@@ -3,52 +3,24 @@
 Контроллер бортового компрессора ARB Twin (CKMTA12) для Jeep Wrangler JL на M5Stack DinMeter.
 Задаёшь целевое давление энкодером, нажимаешь, система подкачивает 4 колеса сама и останавливается на цели.
 
-**Актуальное состояние:** [docs/decisions.md](docs/decisions.md) (решения), [docs/bom.md](docs/bom.md) (закупка), [hardware/enclosure/hammond_1591c/box_f100.png](hardware/enclosure/hammond_1591c/box_f100.png) (корпус), [power_schematic.png](hardware/enclosure/hammond_1591c/power_schematic.png) (схема A, датчик прямо) и [power_schematic_adc.png](hardware/enclosure/hammond_1591c/power_schematic_adc.png) (схема B, через ADC). Разделы ниже про плату Perma-Proto описывают прежний вариант, сейчас сборка на модулях M5 Grove (реле + ADC).
-
 ## Как устроено
 
-- **AUX1** питает DinMeter и плату. DinMeter читает датчик давления и через PhotoMOS K1 включает силовое реле компрессора K2.
-- **AUX2** обход мимо платы: через диод D2 прямо на катушку K2. Работает, даже если DinMeter вышел из строя.
-- **Датчик** 0.5-4.5V, 100 psi, через делитель 10k/20k на вход G1 (максимум 3.0V).
-- **Потолок** 3.0 bar в программе. Защита компрессора: его собственное реле давления 9.3/10.3 bar.
+- **AUX1** через -F1 3 A питает коробку (разъём -X7). DinMeter читает датчик давления (G13) и напряжение AUX1
+  через модуль 0-25 V (G15), Unit 2Relay на PORT.B включает реле компрессора ARB (K1) и клапан (K4), выход через -X8.
+- **AUX2** идёт мимо коробки прямо на катушку реле ARB: обход, если контроллер вышел из строя.
+- **Потолок** 3.0 bar в программе, защиты и проверки описаны в [firmware/README.md](firmware/README.md).
 
-## Этапы
+## Где что лежит
 
-| Этап | Что | Плата и коробка |
+| Папка | Что внутри | Главный файл |
 |---|---|---|
-| 1 | K1 управляет реле компрессора K2 | собираются целиком сразу |
-| 2 | K1 управляет клапаном подкачки, компрессор держит линию сам (K2 от AUX1/AUX2 через D4/D5) | без изменений |
-| 3 | K4 управляет клапаном спуска | без изменений |
+| [docs/](docs) | решения, закупка, распиновка, стенд | [decisions.md](docs/decisions.md), [bom.md](docs/bom.md), [pinout.md](docs/pinout.md), [bench_test.md](docs/bench_test.md) |
+| [electrical/](electrical) | электросхема и распиновка разъёмов | [power_schematic_def.png](electrical/power_schematic_def.png), [connectors_pinout.png](electrical/connectors_pinout.png) |
+| [enclosure/](enclosure) | печатная коробка 60 × 100 × 36: раскладка, провода, STL | [box_cust_def.png](enclosure/box_cust_def.png), [box_cust_adc_body.stl](enclosure/box_cust_adc_body.stl) + [lid](enclosure/box_cust_adc_lid.stl) |
+| [mounts/apillar/](mounts/apillar) | DinMeter в крышке ручки на передней стойке | [apillar_wedge.stl](mounts/apillar/apillar_wedge.stl) |
+| [firmware/](firmware) | прошивка, готовый bin, настольный тест | [README.md](firmware/README.md), [bin/wrangler_air.bin](firmware/bin/wrangler_air.bin) |
+| [screen/](screen) | макеты экранов и заставки, раскадровка | [storyboard.html](screen/storyboard.html), [menu.png](screen/menu.png) |
+| [tools/](tools) | приложение для стенда в Chrome, лог по USB, видео | [bench_app.html](tools/bench_app.html) |
+| [archive/](archive) | старые варианты: Hammond, F100, плата Perma-Proto, прежние схемы и макеты | только для истории |
 
-## Состав репозитория
-
-| Папка | Что внутри |
-|---|---|
-| `docs/index.html` | интерактивная схема с симулятором, плата, перечень компонентов, корпус. Открывается в любом браузере |
-| `hardware/board/` | раскладка Adafruit Perma-Proto Quarter: генератор рисунка и проверка разводки по списку соединений (`python3 netcheck.py`) |
-| `docs/bench.md` | стенд без накачки: потенциометр вместо датчика, реле вместо компрессора, проверки |
-| `hardware/enclosure/dinmeter_pod/` | отдельный корпус DinMeter для накладного монтажа |
-| `hardware/enclosure/` | корпус под плату и DinMeter: модель (`enc.py`, manifold3d), STL основания и крышки, рендер |
-| `firmware/` | прошивка этапа 1 (Arduino/PlatformIO, M5Unified), готовые .bin, в том числе стендовая версия без датчика |
-
-## Плата: распиновка клемм
-
-| Клемма | Контакты | Провода к DinMeter |
-|---|---|---|
-| J3 датчик | +5V, SIG, GND | |
-| J1 машина | GND, →K2, AUX1, →K4 | |
-| J2 DinMeter | 5V, G1, G2, G13 | от Grove PORT.B: красный 5V, белый G1, жёлтый G2; зелёный G13 проложен, не подключён |
-| J2b питание DinMeter | GND, +12V, DC− | чёрный от Grove → GND; оранжевый → +12V, синий → DC− |
-
-Цвета и правила: [docs/wiring_dinmeter.md](docs/wiring_dinmeter.md).
-
-## Статус
-
-- [x] Схема и логика
-- [x] Плата (универсальная под 3 этапа), разводка проверена
-- [x] Корпус, STL
-- [ ] Закупка
-- [ ] Прототип на беспаечной макетке
-- [x] Прошивка этапа 1: каркас, собирается
-- [ ] Проверка на стенде
-- [ ] Установка в машину
+Скрипты в `archive/` не запускаются с этого места: они ссылались на соседей по старым папкам.

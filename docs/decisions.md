@@ -7,7 +7,7 @@
 - **Каждая работа пишется в файл** `/runs/r<загрузка>_<номер>.csv`: раз в 0,5 с давление, оценка, фаза, компрессор, клапан, статические замеры отдельными строками.
   В памяти до конца работы, на флеш одной записью. Последние 20 работ, до ~8 kB на работу (дальше `truncated`).
 - **Страница Wi-Fi** 192.168.4.1: список работ и график по ссылке (SVG и простой JS, без библиотек, без интернета), скачать CSV, «Clear runs».
-  Живого графика нет, ADC2 при Wi-Fi не читается. Пример: `docs/screen/run_graph_example.html`.
+  Живого графика нет, ADC2 при Wi-Fi не читается. Пример: `screen/run_graph_example.html`.
 
 ## 18.11.2026 (этап 3: спуск)
 
@@ -43,7 +43,7 @@
 - **Корпус:** коробка IP65 F-100x68x50, чёрное основание 36 + прозрачная крышка 14, без ушек.
   DinMeter в торце, окно 46 x 22,8 целиком в основании (7,6 от дна, 5,6 до кромки), бобышки не режем.
   Внутренние размеры (~63 x 95 x 45) и высота бобышек на дне сняты с картинки продавца: замерить на коробке до резки окна.
-  Модель: `WA_BOX=f100` в `hardware/enclosure/hammond_1591c/layout_box.py`, чертёж `draw_f100.py` → `box_f100.png`.
+  Модель: `WA_BOX=f100` в `enclosure/layout_box.py`, чертёж `draw_f100.py` → `box_f100.png`.
   Hammond 1591CBK (Distrelec) остаётся запасным вариантом, чертежи `hammond_1591c.html`.
 - **Раскладка в F100, два варианта (оба в git):**
   A1 `box_f100.png` / `box_f100_3d.html`: реле вдоль слева, Grove 5 см. Левый ввод = датчик (Grove 2 м) + фиолетовый прямо с NO, правый = питание.
@@ -58,7 +58,7 @@
   На выходе из паза и на концах кольца 3:1 с клеем.
 - **Grove:** 5 см к реле (PORT.B), 2 м к датчику (PORT.A). ADC v1.1 и Grove 10 см в запасе.
 - **Две схемы хранятся обе:** вариант A `power_schematic.png` (датчик 0-3,3 V прямо на PORT.A, `power_svg_iec()`),
-  вариант B `power_schematic_adc.png` (датчик 0,5-4,5 V через ADC v1.1, `power_svg_iec_adc()`), обе в `hardware/enclosure/hammond_1591c/`.
+  вариант B `power_schematic_adc.png` (датчик 0,5-4,5 V через ADC v1.1, `power_svg_iec_adc()`), обе в `archive/electrical/`.
 - **Датчик (основной вариант):** 5 V питание, выход **0-3,3 V**, 0-1,2 MPa, G1/8 на бондовой шайбе в порт 1/8 BSPP манифолда ARB 171503.
   Подключение без ADC и без делителя: кабель Grove 2 м прямо из PORT.A, чёрный GND, красный +5 V, жёлтый G13 (вход АЦП), белый не подключён.
   У датчика разъём JWPF 3P (-X6). Обрыв провода ловит прошивка: компрессор работает N секунд, а давление не растёт → стоп и ошибка;
@@ -68,7 +68,7 @@
 
 ## Ранее
 
-- **Схема питания:** IEC-схема `hardware/enclosure/hammond_1591c/power_schematic.png` (`power_svg.py`).
+- **Схема питания:** IEC-схема `archive/electrical/power_schematic.png` (`power_svg.py`).
   AUX1 → F1 3 A → Y снаружи: DinMeter +12 V и COM реле. NO реле → VT → V1. AUX2 → V2. Катоды V1/V2 вместе
   с фиолетовым проводом ARB (X3). AUX2 в коробку не заходит никогда.
 - **D3 не нужен:** у ARB CKMTA12 свои реле внутри ([manual](https://store.arbusa.com/content/CKMTA12_Installation%20Guide.pdf)).
@@ -77,14 +77,14 @@
 - **Не использовать** запчасти Crown Automotive. Текст на экране DinMeter только латиницей.
 
 ## 2026-11-19 Boot splash
-- VOLKOV AIR (AIR amber), version below, a generic SUV drives over two bumps; 1.6 s, a press skips it. No Jeep grille or logo. Mock-up: docs/screen/splash.gif. Outputs stay off during the splash.
+- VOLKOV AIR (AIR amber), version below, a generic SUV drives over two bumps; 1.6 s, a press skips it. No Jeep grille or logo. Mock-up: screen/splash.gif. Outputs stay off during the splash.
 - Power off by switching AUX1 is fine: NVS and LittleFS survive a cut; mid-run the relays drop, the NC valve closes, only that run's hour-meter minutes and trace tail are lost.
 
 ## 2026-11-19 CUSTOM wheel count, hours labels, splash
 - CUSTOM: after the pressure, a second step picks 1-4 wheels on the line. The run scales the learned values to that air volume (rate, kTop x4/n, tauD, c x n/4); NVS always keeps the 4-wheel values, so learning carries over and a power cut mid-run leaves nothing scaled. Main screen shows "CUSTOM  2 WHEELS" (portrait "CUSTOM x2") when below 4.
 - HOURS: "compressor total" and "since cleaning".
 - Splash: no firmware version.
-- Silhouette (21.11): the owner's white-on-black reference image, used as a mask for all icons and the splash: docs/screen/suv_mask.png (512 px) for the mock-ups, firmware/wrangler_air/suv_bitmap.h (128x51, 1 bit) pushed rotated and zoomed with pushRotateZoomWithAA. 40 units long, pivot = ground under the rear wheel, nose to the right. Wheels about 27 % smaller relative to the body than the earlier hand-drawn one.
+- Silhouette (21.11): the owner's white-on-black reference image, used as a mask for all icons and the splash: screen/suv_mask.png (512 px) for the mock-ups, firmware/wrangler_air/suv_bitmap.h (128x51, 1 bit) pushed rotated and zoomed with pushRotateZoomWithAA. 40 units long, pivot = ground under the rear wheel, nose to the right. Wheels about 27 % smaller relative to the body than the earlier hand-drawn one.
 
 ## 2026-11-19 Over-pressure
 - The owner has a 4 bar relief valve on the wheel line, so the firmware over-pressure stop is a second layer, not the only protection.

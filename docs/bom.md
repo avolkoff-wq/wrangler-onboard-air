@@ -24,7 +24,7 @@ Grove: реле на 5 см, ADC на 10 см (расстояние до PORT.A 
 
 | Кабельный ввод M12 IP68, нейлон, 3-6,5 мм | 1 лот | M12 Black, 10 шт | 2.82 | [item](https://www.aliexpress.com/item/1005006830465138.html) |
 
-Чертёж: [hardware/enclosure/hammond_1591c/box_f100.png](../hardware/enclosure/hammond_1591c/box_f100.png).
+Чертёж: [enclosure/box_cust_def.png](../enclosure/box_cust_def.png).
 
 ## Провод и соединения
 
@@ -104,4 +104,4 @@ Mini 3A Relay из первого заказа остаётся запасным
 |---|---|---|---|
 | Набор герморазъёмов 1-6 pin, 254PCS: 1P ×8, 2P ×6, 3P ×4, 4P ×5 пар, по 52 контакта | 1 | 14.11 | [заказан 19.11](https://www.aliexpress.com/item/1005005818016241.html) |
 
-Используются: -X7 вход 2P (из набора) и -X8 выход 5P: в наборе 5P нет, пара отдельно ([AMP Super Seal 5P, 2 комплекта, CHF 1.62](https://de.aliexpress.com/item/32954133958.html), в корзине). Компрессор, клапан и датчик своими хвостами прямо в папу -X8. Распиновка, мама и папа: hardware/enclosure/hammond_1591c/connectors_pinout.png.
+Используются: -X7 вход 2P (из набора) и -X8 выход 5P: в наборе 5P нет, пара отдельно ([AMP Super Seal 5P, 2 комплекта, CHF 1.62](https://de.aliexpress.com/item/32954133958.html), в корзине). Компрессор, клапан и датчик своими хвостами прямо в папу -X8. Распиновка, мама и папа: electrical/connectors_pinout.png.
