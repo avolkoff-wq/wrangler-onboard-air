@@ -1,10 +1,10 @@
 # DinMeter pod on the A-pillar grab-handle cap (JL)
 
 ## Current: one-piece wedge (`apillar_wedge.stl`, `make_wedge.py`)
-Cap + wedge with the 1/32 DIN cutout in its face: DinMeter landscape, upright (wedge cancels the
-33 deg pillar lean), turned toward the driver (EYE). The whole body (~26 + plugs) sits inside the
-wedge, so it sticks out ~68 mm from the cap face. Clip goes on from inside with the cap off the car.
-`apillar_wedge_car.stl` is a preview in the car frame.
+Cap + wedge with the 1/32 DIN cutout. DinMeter long side along the cap, no turn. The upper (wide)
+end is lifted off the pillar by TILT = 20 deg; the wedge is ~20 mm high at the top, ~0 at the bottom.
+The body goes up to ~34 mm below the cap face at its lower end: measure the room behind the cap.
+Clip goes on from inside with the cap off the car.
 
 ## Plain cutout (`apillar_cutout.stl`, `make_cutout.py`)
 1/32 DIN hole 45.6 x 23.1 straight in the upper red cap, long side along the cap, centred at x 55
