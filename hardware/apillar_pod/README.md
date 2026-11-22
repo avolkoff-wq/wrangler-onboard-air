@@ -1,5 +1,13 @@
 # DinMeter pod on the A-pillar grab-handle cap (JL)
 
+## Chosen: plain cutout (`apillar_cutout.stl`, `make_cutout.py`)
+1/32 DIN hole 45.6 x 23.1 straight in the upper red cap, long side along the cap, centred at x 55
+(wide end, wide end points up in the car). Inner ribs cleared 49 x 25 for the stock back clip; the
+~2 mm shell is the panel. Needs ~35 mm free depth behind the cap face (body ~26 + plugs): measure
+from the cap face to the bolt head before printing.
+
+## Earlier concepts (kept for reference)
+
 Concept v1. Upper red cap of the driver-side grab handle carries a podium and a 1/32 DIN sleeve.
 The screen stands truly vertical (long side up) and turns toward the driver.
 
