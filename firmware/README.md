@@ -4,7 +4,8 @@
 
 | Способ | Как |
 |---|---|
-| Готовый файл | `bin/wrangler_air.bin`: залить через меню UPDATE (Wi-Fi) или esptool по USB-C |
+| Первая заливка, без установки | `bin/wrangler_air_full.bin` (загрузчик + разметка + прошивка) с адреса **0x0** через [ESP Web Flasher](https://espressif.github.io/esptool-js/) в Chrome по USB-C. Если порт не появляется: отключить, зажать G0 на Stamp-S3A, подключить USB, отпустить |
+| Обновления | `bin/wrangler_air.bin` (только прошивка): меню UPDATE (Wi-Fi) или esptool по USB-C с адреса 0x10000 |
 | Arduino IDE | открыть `wrangler_air/wrangler_air.ino`, плата M5Stack StampS3 (DinMeter), библиотека M5Unified, разметка памяти с двумя OTA-разделами, USB CDC On Boot: Enabled |
 | PlatformIO | `pio run`, прошить: `pio run -t upload` |
 
