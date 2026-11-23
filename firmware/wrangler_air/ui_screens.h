@@ -39,6 +39,7 @@ extern int outPos;
 extern const char* const MENU[];
 extern const int MENU_N;
 extern const int OFF_N;
+extern const int OMX_N;
 extern const int SET_N;
 
 IdleDir idleDir(float bar);
@@ -47,6 +48,8 @@ const char* engText(Eng e);
 uint16_t engColor(Eng e);
 bool filtersDue();
 int offIdx();
+int omxIdx();
+float omxVal(int i);
 int setIdx();
 Mode learnItem(int i);
 void push();
@@ -289,6 +292,7 @@ void drawMenu() {
     if (i == M_UNITS)  t += String(": ") + unitName();
     if (i == M_TYRE)   t += String(": ") + TYRES[settings.tyre].name;
     if (i == M_OFFSET) t += String(": ") + offText(offIdx());
+    if (i == M_OFFMAX) t += String(": ") + (settings.omAuto ? "AUTO " : "") + String(settings.offCap(), 2);
     if (i == M_SETTLE) t += String(": ") + setText(setIdx());
     if (i == M_SCREEN) t += String(": ") + rotName(settings.rot);
     if (i == M_DEMO || i == M_VALVE || i == M_VCHECK || i == M_ECONF || i == M_WDOG || i == M_VSTUCK || i == M_PSTUCK) {
@@ -330,12 +334,21 @@ void drawLearnConf() {
 
 void drawEdit() {
   canvas.fillSprite(TFT_BLACK);
-  const bool off = editItem == M_OFFSET;
-  String hint;
-  if (off) hint = "learned now: " + (settings.c > 0 ? "c " + String(settings.c, 1) + " s" : String(settings.offset, 2) + " bar");
-  else     hint = "last auto: " + String(settings.settleLearn, 1) + " s";
-  drawLines({ {off ? "OFFSET WHILE PUMPING" : "SETTLE BEFORE MEASURE", F_TEXT, TFT_CYAN},
-              {off ? String(offText(editIdx)) : String(setText(editIdx)), F_LARGE, TFT_GREENYELLOW, F_MID},
+  const bool off = editItem == M_OFFSET, omx = editItem == M_OFFMAX;
+  String hint, title, val;
+  if (off) {
+    title = "OFFSET WHILE PUMPING"; val = offText(editIdx);
+    hint = "learned now: " + (settings.c > 0 ? "c " + String(settings.c, 1) + " s" : String(settings.offset, 2) + " bar");
+  } else if (omx) {   // AUTO shows what it would use now: 1.5 x learned offset + 0.1 (0.60 until learned)
+    Settings a = settings; a.omAuto = true;
+    title = "MAX OFFSET (SAFETY)"; val = editIdx ? String(omxVal(editIdx), 2) + " bar" : "AUTO " + String(a.offCap(), 2);
+    hint = "learned offset " + String(settings.offset, 2) + (settings.learned ? " bar" : " bar (default)");
+  } else {
+    title = "SETTLE BEFORE MEASURE"; val = setText(editIdx);
+    hint = "last auto: " + String(settings.settleLearn, 1) + " s";
+  }
+  drawLines({ {title, F_TEXT, TFT_CYAN},
+              {val, F_LARGE, TFT_GREENYELLOW, F_MID},
               {hint, F_SMALL, TFT_LIGHTGREY} }, 0, H() - 18);
   drawHint("turn: change  press: save  hold: back");
   push();
@@ -397,7 +410,7 @@ void drawOta() {
 void drawVersion() {
   canvas.fillSprite(TFT_BLACK);
   drawLines({ {"Wrangler Air " FW_VERSION, F_TEXT, TFT_WHITE},
-              {"off " + String(settings.offset, 2) + "  c " + String(settings.c, 1) + (settings.offAuto ? " AUTO" : " MAN"), F_SMALL, TFT_LIGHTGREY},
+              {"off " + String(settings.offset, 2) + "  c " + String(settings.c, 1) + (settings.offAuto ? " AUTO" : " MAN") + "  max " + String(settings.offCap(), 2), F_SMALL, TFT_LIGHTGREY},
               {"rate " + String(settings.rate, 3) + "  top " + String(settings.kTop, 3), F_SMALL, TFT_LIGHTGREY},
               {"bias " + String(settings.bias, 2) + "  dev " + String(settings.dev, 2), F_SMALL, TFT_LIGHTGREY},
               {"settle " + String(settings.settleLearn, 1) + "s  starts " + String(pump.starts()), F_SMALL, TFT_LIGHTGREY},

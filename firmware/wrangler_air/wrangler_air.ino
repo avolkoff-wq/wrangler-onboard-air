@@ -68,8 +68,8 @@ enum IdleDir { D_UP, D_DOWN, D_OK, D_ABOVE, D_DEAD };   // what a start would do
 enum class Screen { MAIN, MENU, EDIT, CAL, OTA, VERSION, SENSOR, CUSTOM, LEARN_PICK, LEARN_CONF, LEARN_MSG, HOURS, HOURS_CONF, OUT_TEST, WIFI_PASS };
 Screen screen = Screen::MAIN;
 int menuPos = 0;
-enum MenuItem { M_CAL, M_LEARN, M_SENSOR, M_OUTPUT, M_DEMO, M_UNITS, M_TYRE, M_OFFSET, M_SETTLE, M_VALVE, M_VSTUCK, M_PSTUCK, M_VCHECK, M_ECONF, M_WDOG, M_SCREEN, M_RESET, M_UPDATE, M_WIFIPASS, M_VERSION, M_HOURS, M_EXIT };
-const char* const MENU[] = {"CALIBRATE", "LEARN", "SENSOR", "IO TEST", "DEMO", "UNITS", "TYRE", "OFFSET", "SETTLE", "VALVE", "VALVE CHECK", "PUMP CHECK", "VOLT CHECK", "ENGINE CONFIRM", "WATCHDOG", "SCREEN", "RESET LEARNING", "WIFI: UPDATE + LOG", "WIFI PASSWORD", "VERSION", "HOURS", "EXIT"};
+enum MenuItem { M_CAL, M_LEARN, M_SENSOR, M_OUTPUT, M_DEMO, M_UNITS, M_TYRE, M_OFFSET, M_OFFMAX, M_SETTLE, M_VALVE, M_VSTUCK, M_PSTUCK, M_VCHECK, M_ECONF, M_WDOG, M_SCREEN, M_RESET, M_UPDATE, M_WIFIPASS, M_VERSION, M_HOURS, M_EXIT };
+const char* const MENU[] = {"CALIBRATE", "LEARN", "SENSOR", "IO TEST", "DEMO", "UNITS", "TYRE", "OFFSET", "OFFSET MAX", "SETTLE", "VALVE", "VALVE CHECK", "PUMP CHECK", "VOLT CHECK", "ENGINE CONFIRM", "WATCHDOG", "SCREEN", "RESET LEARNING", "WIFI: UPDATE + LOG", "WIFI PASSWORD", "VERSION", "HOURS", "EXIT"};
 const int MENU_N = sizeof(MENU) / sizeof(MENU[0]);
 
 // ---------- OFFSET / SETTLE editor: index 0 = AUTO ----------
@@ -77,12 +77,15 @@ const int OFF_N = 30;                     // 0.05 .. 1.50 bar
 const int SET_N = 19;                     // 1.0 .. 10.0 s
 float offVal(int i) { return i * 0.05f; }
 float setVal(int i) { return 0.5f + i * 0.5f; }
+const int OMX_N = 25;                     // OFFSET MAX: index 0 = AUTO, 1..25 = 0.30 .. 1.50 bar
+float omxVal(int i) { return OFFMAX_LO - 0.05f + i * 0.05f; }
 int editItem = M_OFFSET, editIdx = 0;
 float customEdit = 2.0f;   // value being set on the CUSTOM screen
 int customStep = 0;        // CUSTOM screen: 0 = pressure, 1 = number of wheels
 uint8_t customWheels = 4;
 uint32_t resetArm = 0;   // RESET LEARNING waits for a second press
 int offIdx() { return settings.offAuto ? 0 : constrain((int)roundf(settings.offManual / 0.05f), 1, OFF_N); }
+int omxIdx() { return settings.omAuto ? 0 : constrain((int)roundf((settings.omMan - OFFMAX_LO) / 0.05f) + 1, 1, OMX_N); }
 int setIdx() { return settings.settleAuto ? 0 : constrain((int)roundf((settings.settleManual - 0.5f) / 0.5f), 1, SET_N); }
 
 constexpr uint32_t DONE_BEEP_MS = 1500;   // long beep when a run reaches its target
@@ -246,8 +249,8 @@ void benchCommand(String c) {
                   sensor.fault() ? " FAULT" : "", (int)pump.state(), (int)pump.error());
     Serial.printf("# AUX1 %.2f V  %s  volt check %d  engine confirm %d  valve %d  demo %d\n", supply.volts(),
                   !supply.fitted() ? "no module" : supply.engineOn() ? "engine on" : "engine off", settings.vcheck, settings.econfirm, g_valve, g_demo);
-    Serial.printf("# tyre %s  rate %.4f  kTop %.4f  offset %.3f  c %.2f  tauD %.1f  learned %d/%d  cal a %.4f b %.3f\n",
-                  TYRES[settings.tyre].name, settings.rate, settings.kTop, settings.offset, settings.c, settings.tauD,
+    Serial.printf("# tyre %s  rate %.4f  kTop %.4f  offset %.3f  c %.2f  offcap %.2f%s  tauD %.1f  learned %d/%d  cal a %.4f b %.3f\n",
+                  TYRES[settings.tyre].name, settings.rate, settings.kTop, settings.offset, settings.c, settings.offCap(), settings.omAuto ? " AUTO" : "", settings.tauD,
                   settings.learned, settings.learnedD, settings.calA, settings.calB);
     Serial.printf("# compressor %.2f h  valve %.2f h  since filter service %.2f h  boot %lu\n", settings.cmpSec / 3600.0f,
                   settings.ventSec / 3600.0f, settings.svcHours(), (unsigned long)settings.bootN);
@@ -376,7 +379,7 @@ void setup() {
   settings.bootN++; settings.save();
   wlog::begin(settings.bootN);
   wlog::ev("BOOT", wlog::kv("fw", FW_VERSION) + wlog::kv("tyre", String(TYRES[settings.tyre].name)) + wlog::kv("air_L", settings.airL(), 0) + wlog::kv("target", settings.target, 2) +
-                   wlog::kv("offset", settings.offset) + wlog::kv("c", settings.c, 2) + wlog::kv("rate", settings.rate, 4) +
+                   wlog::kv("offset", settings.offset) + wlog::kv("c", settings.c, 2) + wlog::kv("offcap", settings.offCap()) + wlog::kv("rate", settings.rate, 4) +
                    wlog::kv("kTop", settings.kTop, 4) + wlog::kv("bias", settings.bias) + wlog::kv("dev", settings.dev) +
                    wlog::kv("learned", settings.learned ? "1" : "0") + wlog::kv("tauD", settings.tauD, 1) +
                    wlog::kv("learnedD", settings.learnedD ? "1" : "0") + wlog::kv("calA", settings.calA, 4) + wlog::kv("calB", settings.calB) +
@@ -563,6 +566,7 @@ void loop() {
                              wlog::kv("air_L", settings.airL(), 0) + wlog::kv("rate", settings.rate, 4) + wlog::kv("tauD", settings.tauD, 1));
           } break;
           case M_OFFSET:  editItem = M_OFFSET; editIdx = offIdx(); screen = Screen::EDIT; break;
+          case M_OFFMAX:  editItem = M_OFFMAX; editIdx = omxIdx(); screen = Screen::EDIT; break;
           case M_SETTLE:  editItem = M_SETTLE; editIdx = setIdx(); screen = Screen::EDIT; break;
           case M_DEMO:    // virtual tyres for the desk: never saved, off at every power-up
             g_demo = !g_demo; Sensor::simReset(); sensor.resetFilter(); wlog::ev("DEMO", wlog::kv("on", String(g_demo ? 1 : 0))); break;
@@ -601,9 +605,13 @@ void loop() {
       break;
 
     case Screen::EDIT:
-      if (steps) editIdx = constrain(editIdx + steps, 0, editItem == M_OFFSET ? OFF_N : SET_N);
+      if (steps) editIdx = constrain(editIdx + steps, 0, editItem == M_OFFSET ? OFF_N : editItem == M_OFFMAX ? OMX_N : SET_N);
       if (b == input::Btn::SHORT) {
         if (editItem == M_OFFSET) { settings.offAuto = editIdx == 0; if (editIdx) settings.offManual = offVal(editIdx); }
+        else if (editItem == M_OFFMAX) {
+          settings.omAuto = editIdx == 0; if (editIdx) settings.omMan = omxVal(editIdx);
+          wlog::ev("OFFSET_MAX", wlog::kv("auto", String(settings.omAuto ? 1 : 0)) + wlog::kv("cap", settings.offCap()));
+        }
         else                      { settings.settleAuto = editIdx == 0; if (editIdx) settings.settleManual = setVal(editIdx); }
         settings.save(); beep(); screen = Screen::MENU;
       }

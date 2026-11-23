@@ -7,7 +7,7 @@
 //   VALVE (deflate valve fitted, schematic C), DEMO (virtual tyres for the desk, never saved, off at every power-up).
 // The USB serial log, LIVE stream and commands are always on.
 #define BENCH_USB 1
-#define FW_VERSION "0.5.2"
+#define FW_VERSION "0.5.3"
 inline bool g_valve = true;     // menu VALVE, saved (Settings::valve)
 inline bool g_demo  = false;    // menu DEMO, RAM only
 inline float g_fakeV = -1;      // USB "fake <bar>": pin voltage the sensor pretends to read (< 0 = off), RAM only
@@ -100,13 +100,18 @@ constexpr int      SETTLE_HITS   = 2;      // auto settle: checks in a row below
 constexpr uint32_t MEASURE_MS    = 800;    // averaging window for a static measurement
 constexpr uint32_t RATE_WINDOW_MS= 2500;   // window for the live rise rate while pumping
 constexpr uint32_t RATE_VALID_MS = 3000;   // rate is trusted this long after the compressor starts
-// AUTO flow offset never above this (pump.h offsetNow). Expected 0.3-0.5 bar (hose + valve cores at ARB flow, default 0.40).
-// Too large a learned c x a fast rise (fewer tyres than set, blocked line) would hide the real pressure: desk test with
-// c x4 overshot to 3.16 bar uncapped, 3.13 with a 1.0 cap, ~2.9 with 0.6. Capping is safe the other way round: if the real
-// offset is larger, the stop comes early, a top-up finishes, and the learned bias moves the next stops. Check STOP offset=
-// in the log on the car: if it sits at 0.60 every time, raise this.
-// The raw line while / after pumping is capped at TARGET_MAX + this + 0.1 bar (pump.h lineMax): ERR OVER.
-constexpr float    OFFSET_MAX    = 0.6f;
+// Cap on the AUTO flow offset (pump.h offsetNow), menu OFFSET MAX: AUTO or a fixed value.
+// Why: too large a learned c x a fast rise (fewer tyres than set, blocked line) hides the real pressure; desk test with
+// c x4: 3.16 bar uncapped, 2.71 with 0.6 (target 2.5). A cap below the real offset is safe: the stop comes early,
+// a top-up finishes, the learned bias moves the next stops.
+// AUTO: the cap follows the offset measured at every stop (line at stop minus the static after it, independent of c):
+//   cap = OFFMAX_K x learned offset + OFFMAX_ADD, within OFFMAX_LO..OFFMAX_HI; OFFMAX_DEFAULT until something is learned.
+// The raw line while / after pumping is capped at TARGET_MAX + cap + 0.1 bar (pump.h lineMax): ERR OVER.
+constexpr float    OFFMAX_DEFAULT = 0.6f;   // bar, before the first learned stop (default offset 0.40 x 1.5)
+constexpr float    OFFMAX_K       = 1.5f;   // room above the measured offset: it grows with flow, i.e. at low pressure
+constexpr float    OFFMAX_ADD     = 0.1f;   // bar
+constexpr float    OFFMAX_LO      = 0.3f;   // bar, also the lowest manual value
+constexpr float    OFFMAX_HI      = 1.5f;   // bar, also the highest manual value (= the OFFSET menu maximum)
 // CALIBRATE: worst gauge point off the fitted line above this = CALIBRATION FAILED, old one kept (dial step 0.05 bar,
 // a 4-point fit of a ceramic sensor against a dial gauge lands within ~0.05)
 constexpr float    CAL_FIT_MAX   = 0.10f;

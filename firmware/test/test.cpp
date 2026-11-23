@@ -52,10 +52,10 @@ static int regressions() {
     g_demo = true; g_fakeV = -1;
     Settings st; Sensor s; Pump p; p.begin(&s, &st);
     Sensor::simP = 1.2f; st.target = 2.4f; s.update(); p.start(); runToEnd(p, s); p.clearResult(); g_ms += 5000;
-    st.c *= 4; st.offset *= 4;
+    st.c *= 4;   // only c goes wrong: the scalar offset (and so the AUTO cap) is measured at every stop, not from c
     Sensor::simP = 1.0f; st.target = 2.5f; s.update(); p.start(); runToEnd(p, s);
-    char m[96]; snprintf(m, sizeof m, "c x4, target 2.5: tyres stay under 3.3 bar (tyres %.2f, err %s)", Sensor::simP, errName(p.error()));
-    check(Sensor::simP < 3.3f && !p.compressorOn(), m);
+    char m[96]; snprintf(m, sizeof m, "c x4, target 2.5: tyres stay under 3.0 bar (tyres %.2f, cap %.2f, err %s)", Sensor::simP, st.offCap(), errName(p.error()));
+    check(Sensor::simP < 3.0f && !p.compressorOn(), m);
     p.clearResult(); g_ms += 5000;
   }
   {   // 3: VALVE switched off while the valve is open: K4 must still close
@@ -108,6 +108,26 @@ static int regressions() {
     Settings st; Sensor s; Pump p; p.begin(&s, &st); Sensor::simP = 1.5f; s.update();
     p.pulse(false, IO_HOLD_MS); step(p, s, 200); p.lowVoltage();
     check(!p.pulsing() && !p.compressorOn() && p.state() == PState::IDLE, "low voltage during k1 on: output off, no error screen");
+  }
+  {   // 10: OFFSET MAX: AUTO follows the learned offset, manual value is used as is
+    Settings st;
+    const float c0 = st.offCap();
+    st.learned = true; st.offset = 0.40f; const float c1 = st.offCap();
+    st.offset = 0.90f; const float c2 = st.offCap();
+    st.offset = 5.0f;  const float c3 = st.offCap();
+    st.omAuto = false; st.omMan = 0.8f; const float c4 = st.offCap();
+    char m[128]; snprintf(m, sizeof m, "offCap: default %.2f, 0.40 -> %.2f, 0.90 -> %.2f, 5.0 -> %.2f, manual 0.80 -> %.2f", c0, c1, c2, c3, c4);
+    check(fabsf(c0 - 0.6f) < 1e-4f && fabsf(c1 - 0.7f) < 1e-4f && fabsf(c2 - 1.45f) < 1e-4f && fabsf(c3 - OFFMAX_HI) < 1e-4f && fabsf(c4 - 0.8f) < 1e-4f, m);
+  }
+  {   // 11: a real offset larger than the cap only stops early: still DONE at the target, no error
+    g_demo = true; g_fakeV = -1; g_valve = true;
+    Settings st; Sensor s; Pump p; p.begin(&s, &st);
+    Sensor::simP = 1.2f; st.target = 2.4f; s.update(); p.start(); runToEnd(p, s); p.clearResult(); g_ms += 5000;
+    st.omAuto = false; st.omMan = 0.30f;                         // cap far below the ~0.35-0.5 sim offset
+    Sensor::simP = 1.0f; st.target = 2.4f; s.update(); p.start(); runToEnd(p, s);
+    char m[112]; snprintf(m, sizeof m, "cap 0.30 under the real offset: DONE %.2f bar, starts %d, err %s", Sensor::simP, p.starts(), errName(p.error()));
+    check(p.state() == PState::DONE && fabsf(Sensor::simP - 2.4f) < 0.1f, m);
+    p.clearResult(); g_ms += 5000;
   }
   printf("==== regressions: %s (%d failed)\n", g_fail ? "FAILED" : "all ok", g_fail);
   return g_fail ? 1 : 0;

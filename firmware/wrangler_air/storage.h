@@ -23,6 +23,13 @@ struct Settings {
   float offManual = DEFAULT_OFFSET;
   float offset    = DEFAULT_OFFSET; // learned scalar (fallback until c is known)
   float c         = 0;            // learned: offset = c * rise rate (s); 0 = not learned
+  bool  omAuto    = true;         // menu OFFSET MAX: AUTO = from the learned offset, else omMan
+  float omMan     = OFFMAX_DEFAULT;
+  // highest AUTO offset the pump may subtract (config.h OFFMAX_*): AUTO follows the offset measured at the stops
+  float offCap() const {
+    if (!omAuto) return omMan;
+    return learned ? constrain(OFFMAX_K * offset + OFFMAX_ADD, OFFMAX_LO, OFFMAX_HI) : OFFMAX_DEFAULT;
+  }
   // settling pause before a static measurement
   bool  settleAuto   = true;      // true: wait until pressure is steady
   float settleManual = SETTLE_MS / 1000.0f;  // s
@@ -87,6 +94,8 @@ struct Settings {
     offManual    = p.getFloat("offMan", offManual);
     offset       = p.getFloat("offset", offset);
     c            = p.getFloat("c", c);
+    omAuto       = p.getBool ("omAuto", omAuto);
+    omMan        = p.getFloat("omMan", omMan);
     settleAuto   = p.getBool ("setAuto", settleAuto);
     settleManual = p.getFloat("setMan", settleManual);
     settleLearn  = p.getFloat("setLrn", settleLearn);
@@ -127,7 +136,8 @@ struct Settings {
     target       = constrain(target, (float)TARGET_MIN, TARGET_MAX);
     offManual    = fin(offManual, 0.05f, 1.5f, DEFAULT_OFFSET);           // menu range
     offset       = fin(offset, 0.0f, 2.0f, DEFAULT_OFFSET);               // learnMain accepts < 2.0
-    c            = fin(c, 0.0f, 240.0f, 0.0f);                            // learned 0.5..60, x4 room for tyre / wheel scaling
+    c            = fin(c, 0.0f, 240.0f, 0.0f);
+    omMan        = fin(omMan, OFFMAX_LO, OFFMAX_HI, OFFMAX_DEFAULT);       // menu range                            // learned 0.5..60, x4 room for tyre / wheel scaling
     settleManual = fin(settleManual, 0.5f, 10.0f, SETTLE_MS / 1000.0f);  // menu range
     settleLearn  = fin(settleLearn, 0.0f, 10.0f, SETTLE_MS / 1000.0f);
     rate         = fin(rate, 0.0001f, 2.0f, DEFAULT_RATE);
@@ -157,6 +167,8 @@ struct Settings {
     p.putFloat("offMan", offManual);
     p.putFloat("offset", w.offset);
     p.putFloat("c", w.c);
+    p.putBool ("omAuto", omAuto);
+    p.putFloat("omMan", omMan);
     p.putBool ("setAuto", settleAuto);
     p.putFloat("setMan", settleManual);
     p.putFloat("setLrn", settleLearn);

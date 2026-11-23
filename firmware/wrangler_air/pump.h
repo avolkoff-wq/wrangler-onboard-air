@@ -154,7 +154,7 @@ class Pump {
       if (now - runStart_ > RUN_TIMEOUT_MS)  return fail(PErr::TIMEOUT);
       // backstop on the raw line once we have pumped in this run, also while the compressor is off between our
       // pulses (settle, measure, vent): the line can not legally be above the cap + the largest flow offset.
-      // While pumping the est_ check below fires first (est_ = line - offset, offset capped at OFFSET_MAX).
+      // While pumping the est_ check below fires first (est_ = line - offset, offset capped at offCap()).
       // Not for tyres that start above the cap and only get vented (starts_ == 0).
       if ((on_ || starts_ > 0) && sb > lineMax()) return fail(PErr::OVER);
       // the "static above the cap after our pumping" check is in onStatic(): right after a stop the line still carries
@@ -255,7 +255,7 @@ class Pump {
   }
   bool deadSensor(float sb) const { return sb < DEAD_BAR || s_->rawBar() < DEAD_BAR; }
   // highest legal line reading while / after pumping: the cap + the largest offset the estimate may subtract + 0.1 bar
-  float lineMax() const { return TARGET_MAX + (st_->offAuto ? OFFSET_MAX : st_->offManual) + 0.1f; }
+  float lineMax() const { return TARGET_MAX + (st_->offAuto ? st_->offCap() : st_->offManual) + 0.1f; }
   void done() { state_ = PState::DONE; endT_ = millis(); logEnd(inBand_ ? "IN_BAND" : "DONE"); }
   void logEnd(const String& res) {
     wlog::ev("END", wlog::kv("result", res) + wlog::kv("mode", modeName()) + wlog::kv("target", st_->target, 2) +
@@ -285,12 +285,14 @@ class Pump {
     const float d = rN_ * stt - st * st;
     return d > 1e-6f ? (rN_ * stv - st * sv) / d : 0;
   }
-  // AUTO offset is limited to OFFSET_MAX: a fast rise (fewer tyres than set, a blocked line) times a learned c
-  // could otherwise subtract several bar and keep est_ under the cap while the tyres are far above it
+  // AUTO offset is limited to offCap() (menu OFFSET MAX, config.h OFFMAX_*): a fast rise (fewer tyres than set,
+  // a blocked line) times a learned c could otherwise subtract several bar and keep est_ under the cap while the
+  // tyres are far above it
   float offsetNow() const {
     if (!st_->offAuto) return st_->offManual;
-    if (st_->c > 0 && rateValid()) return constrain(st_->c * max(0.0f, rateNow()), 0.0f, OFFSET_MAX);
-    return constrain(st_->offset, 0.0f, OFFSET_MAX);
+    const float cap = st_->offCap();
+    if (st_->c > 0 && rateValid()) return constrain(st_->c * max(0.0f, rateNow()), 0.0f, cap);
+    return constrain(st_->offset, 0.0f, cap);
   }
 
   // ---------- stop + learning ----------
@@ -301,7 +303,7 @@ class Pump {
     relay(false);
     wlog::ev("STOP", wlog::kv("phase", String(ph)) + wlog::kv("t_s", pumpTime_, 2) + wlog::kv("line_bar", dynStop_) +
                      wlog::kv("est_bar", estStop_) + wlog::kv("offset", offStop_) + wlog::kv("rate", rateStop_, 4) +
-                     wlog::kv("margin", margin()));
+                     wlog::kv("margin", margin()) + wlog::kv("offcap", st_->offAuto ? st_->offCap() : st_->offManual));
   }
   static float ema(float old, float v) { return (1 - LEARN_ALPHA) * old + LEARN_ALPHA * v; }
 
