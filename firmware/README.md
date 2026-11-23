@@ -163,7 +163,7 @@
 ## 0.2.0: fewer compressor starts
 
 - Flow offset while pumping: **AUTO** learns `offset = c × rise rate`; **MANUAL** uses a fixed value. Menu → OFFSET (AUTO or 0.05-1.50 bar).
-- Settle before a measurement: **AUTO** waits until the reading is steady (1-6 s); **MANUAL** uses a fixed time. Menu → SETTLE (AUTO or 1.0-10.0 s).
+- Settle before a measurement: **AUTO** waits until the reading is steady: least-squares slope over the last 1 s below 0.005 bar/s on two checks in a row (every 0.25 s), 1-6 s; **MANUAL** uses a fixed time. Menu → SETTLE (AUTO or 1.0-10.0 s).
 - The stop margin adapts to how well earlier stops landed. Top-up time is learned separately.
 - Timers on screen (tenths of a second): the whole run time and the number of starts at the top, a countdown on pauses (settle, measure, learning pulse, top-up), a stopwatch while pumping. Calibration shows a countdown on the pause and a stopwatch while pumping.
 - Calibration result reads "Sensor reads 1.2% low / Zero: 0.02 bar high / Accuracy +/-0.02 bar" instead of a= b=.

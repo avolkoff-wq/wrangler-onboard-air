@@ -7,7 +7,7 @@
 //   VALVE (deflate valve fitted, schematic C), DEMO (virtual tyres for the desk, never saved, off at every power-up).
 // The USB serial log, LIVE stream and commands are always on.
 #define BENCH_USB 1
-#define FW_VERSION "0.5.0"
+#define FW_VERSION "0.5.1"
 inline bool g_valve = true;     // menu VALVE, saved (Settings::valve)
 inline bool g_demo  = false;    // menu DEMO, RAM only
 inline float g_fakeV = -1;      // USB "fake <bar>": pin voltage the sensor pretends to read (< 0 = off), RAM only
@@ -95,6 +95,8 @@ constexpr uint32_t SETTLE_MS     = 2000;   // default manual settle time
 constexpr uint32_t SETTLE_MIN_MS = 1000;   // auto settle: never shorter
 constexpr uint32_t SETTLE_MAX_MS = 6000;   // auto settle: never longer
 constexpr float    SETTLE_SLOPE  = 0.005f; // auto settle: steady when slower than this, bar/s
+constexpr uint32_t SETTLE_WIN_MS = 1000;   // auto settle: slope = least squares over this window (noise-proof)
+constexpr int      SETTLE_HITS   = 2;      // auto settle: checks in a row below SETTLE_SLOPE
 constexpr uint32_t MEASURE_MS    = 800;    // averaging window for a static measurement
 constexpr uint32_t RATE_WINDOW_MS= 2500;   // window for the live rise rate while pumping
 constexpr uint32_t RATE_VALID_MS = 3000;   // rate is trusted this long after the compressor starts

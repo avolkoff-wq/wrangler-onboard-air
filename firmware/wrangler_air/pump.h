@@ -20,7 +20,8 @@
 //   MANUAL offset = fixed value from the menu
 // Deflate does not use the reading while the valve is open (the line pressure says little), only static measurements.
 // Settling before a static measurement:
-//   AUTO   wait until the reading is steady (< 0.005 bar/s), 1..6 s
+//   AUTO   wait until the reading is steady: least-squares slope over the last 1 s < 0.005 bar/s
+//          on 2 checks in a row (every 0.25 s), never shorter than 1 s, never longer than 6 s
 //   MANUAL fixed time from the menu
 // Stop margin adapts to how well past stops landed (bias and spread of the miss).
 // Every phase, measurement and learning step goes to the log (log.h).
@@ -153,8 +154,16 @@ class Pump {
         const uint32_t el = now - t0_;
         bool steady;
         if (st_->settleAuto) {
-          if (now - tS_ >= 250) { slope_ = fabsf(sb - sS_) / ((now - tS_) / 1000.0f); sS_ = sb; tS_ = now; }
-          steady = (el >= SETTLE_MIN_MS && slope_ < SETTLE_SLOPE) || el >= SETTLE_MAX_MS;
+          // least-squares slope over the last SETTLE_WIN_MS, checked every 250 ms; steady after
+          // SETTLE_HITS checks in a row below the threshold (one noisy sample cannot end or extend the pause)
+          trackRate(now, sb, SETTLE_WIN_MS);
+          if (now - tS_ >= 250) {
+            tS_ = now;
+            const bool full = rN_ >= 5 && rT_[(rH_ + rN_ - 1) % RN] - rT_[rH_] >= SETTLE_WIN_MS - 150;
+            slope_ = full ? fabsf(rateNow()) : 99;
+            hits_ = slope_ < SETTLE_SLOPE ? hits_ + 1 : 0;
+          }
+          steady = (el >= SETTLE_MIN_MS && hits_ >= SETTLE_HITS) || el >= SETTLE_MAX_MS;
         } else {
           steady = el >= (uint32_t)(st_->settleManual * 1000);
         }
@@ -226,16 +235,16 @@ class Pump {
                     wlog::kv("cmp_h", st_->cmpSec / 3600.0f, 2) + wlog::kv("vent_h", st_->ventSec / 3600.0f, 2));
   }
   String modeName() const { return mode_ == Mode::INF ? "INF" : mode_ == Mode::DEF ? "DEF" : "-"; }
-  void goSettle(Phase ph) { phase_ = ph; state_ = PState::SETTLE; t0_ = millis(); tS_ = t0_; sS_ = -99; slope_ = 99; }
+  void goSettle(Phase ph) { phase_ = ph; state_ = PState::SETTLE; t0_ = millis(); tS_ = t0_; slope_ = 99; hits_ = 0; rN_ = 0; }
 
   // ---------- live rise rate while pumping ----------
-  void trackRate(uint32_t now, float sb) {
+  void trackRate(uint32_t now, float sb, uint32_t win = RATE_WINDOW_MS) {
     if (rN_ == 0 || now - rT_[(rH_ + rN_ - 1) % RN] >= 100) {   // one sample per 100 ms
       const int i = (rH_ + rN_) % RN;
       if (rN_ == RN) rH_ = (rH_ + 1) % RN; else rN_++;
       rT_[i] = now; rV_[i] = sb;
     }
-    while (rN_ > 2 && now - rT_[rH_] > RATE_WINDOW_MS) { rH_ = (rH_ + 1) % RN; rN_--; }
+    while (rN_ > 2 && now - rT_[rH_] > win) { rH_ = (rH_ + 1) % RN; rN_--; }
   }
   bool rateValid() const { return on_ && millis() - onT_ >= RATE_VALID_MS && rN_ >= 10; }
   float rateNow() const {   // least-squares slope over the window, bar/s
@@ -412,9 +421,10 @@ class Pump {
   Mode test_ = Mode::NONE; bool testOk_ = false; float testRes_ = 0;
   uint32_t pulseT_ = 0, pulseLen_ = OUTPUT_PULSE_MS; bool pulseValve_ = false; float pulseBefore_ = 0;
   bool on_ = false, vOn_ = false, inBand_ = false;
+  int hits_ = 0;
   uint32_t t0_ = 0, runStart_ = 0, endT_ = 0, topupMs_ = 0, ventMs_ = 0, leakT_ = 0, onT_ = 0, tS_ = 0, settleEl_ = 0;
   float pStatic_ = 0, p0_ = 0, est_ = 0, pumpTime_ = 0, leakRef_ = 0, aim_ = 0;
-  float dynStop_ = 0, estStop_ = 0, offStop_ = 0, rateStop_ = 0, sS_ = 0, slope_ = 99;
+  float dynStop_ = 0, estStop_ = 0, offStop_ = 0, rateStop_ = 0, slope_ = 99;
   int topups_ = 0, starts_ = 0, vents_ = 0;
   Averager avg_;
 };
