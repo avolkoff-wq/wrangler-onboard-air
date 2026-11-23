@@ -25,6 +25,94 @@ static String runTraced(Pump& p, Sensor& s, Settings& st, const char* preset) {
            preset, st.target, p.p0(), p.staticBar(), p.state() == PState::DONE ? (p.inBand() ? "IN_BAND" : "DONE") : "ERR", t0 / 1000.0, p.starts(), p.vents(), (g_ms - t0) / 1000.0);
   return tr.finish(String(h));
 }
+
+// ---------- regression checks for the 0.5.2 review fixes: exit code 1 if any fails ----------
+static int g_fail = 0;
+static void check(bool ok, const char* what) { printf("  [%s] %s\n", ok ? "ok" : "FAIL", what); if (!ok) g_fail++; }
+static void step(Pump& p, Sensor& s, uint32_t ms) { for (uint32_t t = 0; t < ms; t += 20) { g_ms += 20; s.update(); p.update(); } }
+static void runToEnd(Pump& p, Sensor& s) { uint32_t t0 = g_ms; while (p.busy() && g_ms - t0 < 10*60*1000) step(p, s, 20); }
+static float fakeV(float rawBar) { return rawBar / SENSOR_FS * SENSOR_SPAN; }   // pin volts for a raw (uncalibrated) bar
+
+static int regressions() {
+  wlog::verbose = false;
+  printf("==== regressions (0.5.2)\n");
+  {   // 1: target near the cap: the live line right after a stop carries the flow offset -> used to give ERR OVER
+    g_demo = true; g_fakeV = -1; g_valve = true;
+    Settings st; Sensor s; Pump p; p.begin(&s, &st);
+    Sensor::simP = 1.2f; st.target = 2.4f; s.update(); p.start(); runToEnd(p, s); p.clearResult(); g_ms += 5000;   // learn first
+    const float tg[] = {3.0f, 3.0f, 2.9f}, st0[] = {2.0f, 2.5f, 2.6f};
+    for (int i = 0; i < 3; i++) {
+      Sensor::simP = st0[i]; st.target = tg[i]; s.update(); p.start(); runToEnd(p, s);
+      char m[96]; snprintf(m, sizeof m, "%.1f -> %.1f bar ends DONE, no ERR OVER (err %s, tyres %.2f)", st0[i], tg[i], errName(p.error()), Sensor::simP);
+      check(p.state() == PState::DONE && Sensor::simP < 3.06f, m);
+      p.clearResult(); g_ms += 5000;
+    }
+  }
+  {   // 2: a learned c far too large hid the real pressure: the offset is capped now
+    g_demo = true; g_fakeV = -1;
+    Settings st; Sensor s; Pump p; p.begin(&s, &st);
+    Sensor::simP = 1.2f; st.target = 2.4f; s.update(); p.start(); runToEnd(p, s); p.clearResult(); g_ms += 5000;
+    st.c *= 4; st.offset *= 4;
+    Sensor::simP = 1.0f; st.target = 2.5f; s.update(); p.start(); runToEnd(p, s);
+    char m[96]; snprintf(m, sizeof m, "c x4, target 2.5: tyres stay under 3.3 bar (tyres %.2f, err %s)", Sensor::simP, errName(p.error()));
+    check(Sensor::simP < 3.3f && !p.compressorOn(), m);
+    p.clearResult(); g_ms += 5000;
+  }
+  {   // 3: VALVE switched off while the valve is open: K4 must still close
+    g_demo = true; g_fakeV = -1; g_valve = true;
+    Settings st; Sensor s; Pump p; p.begin(&s, &st); Sensor::simP = 2.0f; s.update();
+    p.pulse(true, IO_HOLD_MS); step(p, s, 200);
+    const bool wasOpen = g_pins[PIN_K4] == HIGH;
+    g_valve = false; p.stop();
+    check(wasOpen && g_pins[PIN_K4] == LOW && !p.valveOpen(), "valve open, VALVE off + stop: K4 LOW");
+    g_valve = true;
+  }
+  {   // 4: a run start cancels an IO TEST / USB output
+    g_demo = true; g_fakeV = -1; g_valve = true;
+    Settings st; Sensor s; Pump p; p.begin(&s, &st); Sensor::simP = 1.5f; st.target = 2.0f; s.update();
+    p.pulse(false, IO_HOLD_MS); step(p, s, 200);
+    const bool k1Was = g_pins[PIN_K1] == HIGH;
+    p.start(); step(p, s, 40);
+    check(k1Was && !p.pulsing() && p.state() == PState::SETTLE && g_pins[PIN_K1] == LOW, "k1 on, then start: pulse ended, K1 off for the start measurement");
+    p.stop();
+  }
+  {   // 5: a valve pulse is not cut above the cap (that is when venting is wanted); a K1 pulse is
+    g_demo = true; g_fakeV = -1; g_valve = true;
+    Settings st; Sensor s; Pump p; p.begin(&s, &st); Sensor::simP = 3.4f; for (int i = 0; i < 20; i++) s.update();
+    p.pulse(true, IO_HOLD_MS); step(p, s, 500);
+    check(p.pulsing() && p.valveOpen(), "valve pulse at 3.4 bar keeps running");
+    p.stop();
+    p.pulse(false, IO_HOLD_MS); step(p, s, 200);
+    check(!p.pulsing() && !p.compressorOn(), "K1 pulse at 3.4 bar is cut");
+  }
+  {   // 6: open signal wire (0 V) with a calibration zero of +0.2 bar: still ERR SENSOR
+    g_demo = false; g_valve = true;
+    Settings st; st.calB = 0.2f; st.learned = true; Sensor s; Pump p; p.begin(&s, &st);
+    g_fakeV = fakeV(1.0f); for (int i = 0; i < 20; i++) s.update();
+    st.target = 2.5f; p.start(); step(p, s, 4000);                 // settle + measure, then MAIN
+    const bool pumping = p.compressorOn();
+    g_fakeV = 0; step(p, s, 4000);
+    check(pumping && p.state() == PState::ERROR && p.error() == PErr::SENSOR, "0 V while pumping with calB 0.2: ERR SENSOR");
+    p.clearResult(); g_fakeV = -1;
+  }
+  {   // 7: every error has a name (the trace table used to stop at LOW_P)
+    check(String(errName(PErr::LOW_V)) == "LOW_V" && String(errName(PErr::PUMP_ON)) == "PUMP_ON" && String(errName((PErr)42)) == "UNKNOWN", "errName covers all PErr");
+  }
+  {   // 8: NaN / absurd values from NVS fall back to defaults
+    g_valve = true;
+    Settings st; st.calA = NAN; st.calB = 0.1f; st.rate = INFINITY; st.tauD = -3; st.custom = 0.2f; st.sanitize();
+    check(st.calA == 1.0f && st.calB == 0.0f && st.rate == DEFAULT_RATE && st.tauD == TAU_D_DEFAULT && st.custom >= 0.5f, "sanitize: NaN cal, inf rate, bad tau, custom < 0.5 with VALVE");
+  }
+  {   // 9: LOW_V during a pulse switches the output off; during a run it is ERR LOW_V
+    g_demo = true; g_fakeV = -1; g_valve = true;
+    Settings st; Sensor s; Pump p; p.begin(&s, &st); Sensor::simP = 1.5f; s.update();
+    p.pulse(false, IO_HOLD_MS); step(p, s, 200); p.lowVoltage();
+    check(!p.pulsing() && !p.compressorOn() && p.state() == PState::IDLE, "low voltage during k1 on: output off, no error screen");
+  }
+  printf("==== regressions: %s (%d failed)\n", g_fail ? "FAILED" : "all ok", g_fail);
+  return g_fail ? 1 : 0;
+}
+
 int main(int argc,char**argv){
   g_demo = true; g_valve = true;   // virtual tyres, valve fitted (menu DEMO / VALVE in the firmware)
   String example; int exampleScore = -1;
@@ -63,4 +151,5 @@ int main(int argc,char**argv){
     printf("  -> state %d err %d ok %d result %.4f  before %.3f after %.3f  tauD %.1f rate %.4f  time %.0fs\n",(int)p.state(),(int)p.error(),p.testOk(),p.testResult(),p.testBefore(),p.staticBar(),st.tauD,st.rate,(g_ms-t0)/1000.0);
     p.clearResult(); g_ms+=5000;
   }
+  return regressions();
 }

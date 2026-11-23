@@ -36,6 +36,12 @@ enum class PState { IDLE, SETTLE, MEASURE, CAL_PULSE, MAIN, TOPUP, VENT, DONE, E
 enum class PErr   { NONE, SENSOR, OVER, LEAK, TIMEOUT, LOW_P, LOW_V, VALVE, PUMP_ON };   // PUMP_ON: pressure rises with both outputs off   // VALVE: pressure falls while the valve should be shut   // LOW_P: LEARN DEFLATE below LEARN_DEF_MIN_BAR; LOW_V: AUX1 sagged
 enum class Phase  { START, AFTER_CAL, AFTER_MAIN, AFTER_TOPUP, AFTER_VENT };
 enum class Mode   { NONE, INF, DEF };
+// one name table for every PErr (log END, run trace header); index = (int)PErr
+inline const char* errName(PErr e) {
+  static const char* const N[] = {"NONE", "SENSOR", "OVER", "LEAK", "TIMEOUT", "LOW_P", "LOW_V", "VALVE", "PUMP_ON"};
+  const int i = (int)e;
+  return i >= 0 && i < (int)(sizeof(N) / sizeof(N[0])) ? N[i] : "UNKNOWN";
+}
 
 class Pump {
  public:
@@ -43,6 +49,9 @@ class Pump {
 
   void start() {
     if (busy()) return;
+    // an IO TEST / USB output left on would spoil the start measurement and later switch off in the middle of the run
+    if (pulseT_) endPulse(s_->bar(st_->calA, st_->calB), "RUN_START");
+    relay(false); valve(false);
     test_ = Mode::NONE; testOk_ = false; testRes_ = 0;
     err_ = PErr::NONE; topups_ = 0; starts_ = 0; vents_ = 0; inBand_ = false; mode_ = Mode::NONE; runStart_ = millis();
     wlog::ev("RUN", wlog::kv("target", st_->target, 2) + wlog::kv("fw", FW_VERSION));
@@ -83,7 +92,12 @@ class Pump {
   void valveStuck(float p) { pulseT_ = 0; p0_ = pStatic_ = p; mode_ = Mode::NONE; runStart_ = millis(); fail(PErr::VALVE); }
   // main loop, idle: the line keeps rising with both outputs off -> compressor running on its own (relay contacts welded)
   void pumpStuck(float p) { pulseT_ = 0; p0_ = pStatic_ = p; mode_ = Mode::NONE; runStart_ = millis(); fail(PErr::PUMP_ON); }
-  void lowVoltage() { if (busy() && on_) fail(PErr::LOW_V); }   // main loop: AUX1 below LOW_V for LOW_V_MS
+  // main loop: AUX1 below LOW_V for LOW_V_MS with the compressor on. A run fails with ERR LOW VOLTAGE,
+  // an IO TEST / USB "k1 on" output is switched off (same battery guard, no error screen outside a run)
+  void lowVoltage() {
+    if (busy() && on_) fail(PErr::LOW_V);
+    else if (pulseT_ && on_) endPulse(s_->bar(st_->calA, st_->calB), "LOW_V");
+  }
   bool busy() const { return state_ != PState::IDLE && state_ != PState::DONE && state_ != PState::ERROR; }
   void clearResult() { if (!busy()) state_ = PState::IDLE; }
 
@@ -131,20 +145,24 @@ class Pump {
   void update() {
     const uint32_t now = millis();
     const float sb = s_->bar(st_->calA, st_->calB);
-    if (pulseT_ && (now - pulseT_ >= pulseLen_ || s_->fault() || sb > TARGET_MAX + 0.05f)) {
-      relay(false); valve(false); pulseT_ = 0;
-      wlog::ev("OUTPUT_TEST", wlog::kv("output", String(pulseValve_ ? "VALVE" : "K1")) + wlog::kv("p_before", pulseBefore_) +
-               wlog::kv("p_after", sb) + wlog::kv("fault", s_->fault() ? "1" : "0"));
-    }
+    // pulse ends: time up, sensor fault, or (compressor only) the line above the cap. A valve pulse may run above the cap:
+    // venting over-inflated tyres is exactly what it is for.
+    if (pulseT_ && (now - pulseT_ >= pulseLen_ || s_->fault() || (!pulseValve_ && sb > TARGET_MAX + 0.05f))) endPulse(sb, "");
 
     if (busy()) {
       if (s_->fault())                       return fail(PErr::SENSOR);
       if (now - runStart_ > RUN_TIMEOUT_MS)  return fail(PErr::TIMEOUT);
-      // over-pressure after our own pumping (tyres that start above 3 bar are fine to deflate)
-      if (!on_ && starts_ > 0 && sb > TARGET_MAX + 0.05f) return fail(PErr::OVER);
+      // backstop on the raw line once we have pumped in this run, also while the compressor is off between our
+      // pulses (settle, measure, vent): the line can not legally be above the cap + the largest flow offset.
+      // While pumping the est_ check below fires first (est_ = line - offset, offset capped at OFFSET_MAX).
+      // Not for tyres that start above the cap and only get vented (starts_ == 0).
+      if ((on_ || starts_ > 0) && sb > lineMax()) return fail(PErr::OVER);
+      // the "static above the cap after our pumping" check is in onStatic(): right after a stop the line still carries
+      // the flow offset and relaxes for ~1 s, so a check on the live line here gave a false ERR OVER at targets near 3.0
     }
-    // compressor has been running for a while, yet the sensor reads ~0: signal wire broken or sensor dead
-    if (busy() && on_ && now - onT_ > DEAD_AFTER_MS && sb < DEAD_BAR) return fail(PErr::SENSOR);
+    // compressor has been running for a while, yet the sensor reads ~0: signal wire broken or sensor dead.
+    // Raw bar too: an open wire reads 0 V = raw 0, which a calibration zero (calB) could lift above DEAD_BAR.
+    if (busy() && on_ && now - onT_ > DEAD_AFTER_MS && deadSensor(sb)) return fail(PErr::SENSOR);
     if (on_) trackRate(now, sb);
     est_ = on_ ? sb - offsetNow() : sb;
     if (busy() && on_ && est_ > TARGET_MAX)  return fail(PErr::OVER);
@@ -218,15 +236,26 @@ class Pump {
     on_ = on; digitalWrite(PIN_K1, on ? HIGH : LOW);
   }
   void valve(bool open) {
-    if (PIN_K4 < 0 || !DEFLATE) { vOn_ = false; return; }
-    if (open) { digitalWrite(PIN_K1, LOW); on_ = false; vents_++; }
-    vOn_ = open; digitalWrite(PIN_K4, open ? HIGH : LOW);
+    if (PIN_K4 < 0) { vOn_ = false; return; }
+    // closing always drives the pin LOW, even with VALVE switched off in the menu: switching VALVE off while the valve
+    // was open used to return here first and leave K4 latched (and a later relay(true) then ran K1 with the valve open)
+    if (!open) { vOn_ = false; digitalWrite(PIN_K4, LOW); return; }
+    if (!DEFLATE) { vOn_ = false; digitalWrite(PIN_K4, LOW); return; }   // no valve fitted: never open
+    digitalWrite(PIN_K1, LOW); on_ = false; vents_++;
+    vOn_ = true; digitalWrite(PIN_K4, HIGH);
   }
   void fail(PErr e) {
     relay(false); valve(false); err_ = e; state_ = PState::ERROR; endT_ = millis();
-    static const char* N[] = {"NONE", "SENSOR", "OVER", "LEAK", "TIMEOUT", "LOW_P", "LOW_V", "VALVE", "PUMP_ON"};
-    logEnd(String("ERR_") + N[(int)e]);
+    logEnd(String("ERR_") + errName(e));
   }
+  void endPulse(float sb, const char* why) {
+    relay(false); valve(false); pulseT_ = 0;
+    wlog::ev("OUTPUT_TEST", wlog::kv("output", String(pulseValve_ ? "VALVE" : "K1")) + wlog::kv("p_before", pulseBefore_) +
+             wlog::kv("p_after", sb) + wlog::kv("fault", s_->fault() ? "1" : "0") + (why[0] ? wlog::kv("cut", String(why)) : String("")));
+  }
+  bool deadSensor(float sb) const { return sb < DEAD_BAR || s_->rawBar() < DEAD_BAR; }
+  // highest legal line reading while / after pumping: the cap + the largest offset the estimate may subtract + 0.1 bar
+  float lineMax() const { return TARGET_MAX + (st_->offAuto ? OFFSET_MAX : st_->offManual) + 0.1f; }
   void done() { state_ = PState::DONE; endT_ = millis(); logEnd(inBand_ ? "IN_BAND" : "DONE"); }
   void logEnd(const String& res) {
     wlog::ev("END", wlog::kv("result", res) + wlog::kv("mode", modeName()) + wlog::kv("target", st_->target, 2) +
@@ -256,10 +285,12 @@ class Pump {
     const float d = rN_ * stt - st * st;
     return d > 1e-6f ? (rN_ * stv - st * sv) / d : 0;
   }
+  // AUTO offset is limited to OFFSET_MAX: a fast rise (fewer tyres than set, a blocked line) times a learned c
+  // could otherwise subtract several bar and keep est_ under the cap while the tyres are far above it
   float offsetNow() const {
     if (!st_->offAuto) return st_->offManual;
-    if (st_->c > 0 && rateValid()) return st_->c * max(0.0f, rateNow());
-    return st_->offset;
+    if (st_->c > 0 && rateValid()) return constrain(st_->c * max(0.0f, rateNow()), 0.0f, OFFSET_MAX);
+    return constrain(st_->offset, 0.0f, OFFSET_MAX);
   }
 
   // ---------- stop + learning ----------
@@ -328,6 +359,8 @@ class Pump {
     pStatic_ = p;
     static const char* PH[] = {"START", "AFTER_CAL", "AFTER_MAIN", "AFTER_TOPUP", "AFTER_VENT"};
     wlog::ev("STATIC", wlog::kv("after", String(PH[(int)phase_])) + wlog::kv("p", p) + wlog::kv("settle_s", settleEl_ / 1000.0f, 1));
+    // over the cap after our own pumping, read on the settled line (tyres that start above 3 bar are fine to deflate)
+    if (starts_ > 0 && p > TARGET_MAX + 0.05f) return fail(PErr::OVER);
     if (test_ != Mode::NONE) return onTestStatic(p);
     if (phase_ == Phase::START)       p0_ = p;
     if (phase_ == Phase::AFTER_CAL)   learnMain(p0_, p, true);
@@ -341,7 +374,7 @@ class Pump {
       wlog::ev("MODE", wlog::kv("mode", modeName()) + wlog::kv("p0", p) + wlog::kv("target", st_->target, 2));
     }
     // tyres can not drop to ~0 within one aimed vent: the signal wire is gone
-    if (mode_ == Mode::DEF && p < DEAD_BAR && p0_ > 0.5f) return fail(PErr::SENSOR);
+    if (mode_ == Mode::DEF && deadSensor(p) && p0_ > 0.5f) return fail(PErr::SENSOR);
 
     const float deficit = st_->target - p;
     if (fabsf(deficit) <= DONE_TOL) return done();
@@ -379,7 +412,7 @@ class Pump {
       return;
     }
     if (phase_ == Phase::AFTER_VENT) {
-      if (p < DEAD_BAR && p0_ > 0.5f) return fail(PErr::SENSOR);
+      if (deadSensor(p) && p0_ > 0.5f) return fail(PErr::SENSOR);
       const float old = st_->tauD, t = ventMs_ / 1000.0f;
       float tau = 0;
       if (p0_ - p > 0.01f) tau = t / logf((p0_ + P_ATM) / (p + P_ATM));

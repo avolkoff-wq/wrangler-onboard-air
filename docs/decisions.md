@@ -171,3 +171,16 @@
 - tools/bench_app.html: Chrome + Web Serial on the Mac, no install. Output buttons, FAKE slider, live tiles, 2-minute chart with compressor / valve bands, console, save log. Claude cannot reach the USB port itself, so this is how the owner drives the bench.
 - 0.5.1 (23.11): AUTO settle reads the slope by least squares over the last 1 s and needs 2 checks in a row (every 0.25 s) below 0.005 bar/s; min 1 s, max 6 s as before. The old two-point slope over 0.25 s let sensor noise end the pause early: in a simulated 0.1 bar / 1 s relax with 2-4 mbar noise it stopped with 8-13 mbar still settling; the new one stops with ~1.5-2 mbar, about 1.5 s later. Check settle_s in the log on the bench.
 - 23.11: the DinMeter LiPo (3.7 V 250 mAh) stays out, BATTERY SOCKET empty: AUX1 off must switch everything off, and a LiPo under the windscreen / on the A-pillar sees 60-80 C in summer. Hours are saved at the end of each run.
+
+## 2026-11-23 Code review, firmware 0.5.2
+- Full review of 0.5.1 (two reviewers, every finding checked against the code, desk test extended with 12 regression checks that fail the build script). All fixed in 0.5.2; normal desk runs give the same result as 0.5.1.
+- ERR OVER after our pumping is read on the static measurement, not on the live line right after a stop (it still carries the ~0.4 bar flow offset): targets 2.7-3.0 always ended in a false ERR OVER.
+- New limit OFFSET_MAX 0.6 bar on the AUTO flow offset, raw line backstop 3.0 + 0.6 + 0.1 bar. Desk test with c x4: 3.16 bar uncapped, 3.13 with 1.0, 2.71 with 0.6 (target 2.5). Too low a cap only stops early (top-up, bias learns it). Check STOP offset= in the car log; raise if it sits at 0.60.
+- New limit CAL_FIT_MAX 0.1 bar: a gauge point farther from the fitted line fails the calibration (a mis-dialled 3 bar as 2 was saved with a = 0.70).
+- Hold 2 s during a run now stops it (the LONG was ignored and the run went on). Medium press stops calibration pumping and switches IO TEST off.
+- Calibration pumping counts as busy for PUMP / VALVE CHECK (PUMP CHECK stopped it as "no signal, pressure rising"), gets the battery guard and the ENGINE CONFIRM press like LEARN INFLATE.
+- Pump: valve(false) always drives K4 LOW (VALVE off with the valve open left K4 latched); run start ends an IO TEST / USB pulse; a valve pulse is not cut above 3.05 bar; LOW_V switches a K1 pulse off; open wire caught on raw 0 V as well (calB could hide it).
+- Run trace: ERR LOW VOLTAGE read past the end of the error name table (one table now, errName). Trace 24 kB (~8 min) instead of 8 kB (~165 s).
+- PUMP CHECK "above 5 bar for 3 s" fires after 3 s, not ~21 s. VALVE CHECK one alarm per episode (it repeated every ~26 s).
+- Settings from NVS are range-checked on load (NaN calA disabled every pressure check). CUSTOM clamped to 0.5 bar when VALVE is switched on.
+- Wi-Fi: watchdog fed during upload and log download (a 1.3 MB upload blocks loop far longer than 5 s), aborted upload reset, handlers registered once, ADC2 not read and USB output commands refused while Wi-Fi is on. Real OTA rollback: a Wi-Fi image is marked valid after 30 s of normal running, a crash or hang before that boots the old one.

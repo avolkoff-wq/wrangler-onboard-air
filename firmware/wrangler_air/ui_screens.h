@@ -33,6 +33,7 @@ extern uint32_t resetArm;
 extern int learnPos;
 extern Mode learnSel;
 extern bool learnArm;
+extern bool calEngArm;
 extern String learnMsg;
 extern int outPos;
 extern const char* const MENU[];
@@ -350,8 +351,10 @@ void drawCal() {
   const String n = "CAL " + String(i + 1) + "/4";
   switch (cal.state()) {
     case CState::ZERO_WAIT:
-      drawLines({ {"CAL 1/4", F_TEXT, TFT_WHITE}, {"hose open to air", F_TEXT, TFT_WHITE} }, top, H() - 18);
-      drawHint("press when ready: next  hold: abort"); break;
+      // the next press starts the compressor: same engine line and confirmation as LEARN INFLATE (ENGINE CONFIRM)
+      drawLines({ {"CAL 1/4", F_TEXT, TFT_WHITE}, {"hose open to air", F_TEXT, TFT_WHITE},
+                  {engText(engine()), F_TEXT, engColor(engine())} }, top, H() - 18);
+      drawHint(calEngArm ? "PRESS AGAIN: CONFIRM  hold: abort" : "press when ready: next  hold: abort", calEngArm ? TFT_RED : C_LGREY); break;
     case CState::PUMPING:
       drawLines({ {n + ": pumping to ~" + String(cal.points[i], 0), F_TEXT, TFT_WHITE},
                   {mmss(cal.phaseMs()), F_LARGE, TFT_ORANGE, F_MID} }, top, H() - 18);

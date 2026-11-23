@@ -20,6 +20,8 @@ class Calibration {
   void start() { i_ = 0; state_ = CState::ZERO_WAIT; relay(false); tStart_ = millis(); }
   uint32_t totalMs() const { return millis() - tStart_; }
   void abort() { relay(false); state_ = CState::OFF; }
+  // main loop battery guard (AUX1 low while calibration pumps): compressor off, CAL FAILED on screen
+  void fail(const char* why) { relay(false); state_ = CState::FAILED; wlog::ev("CAL_FAIL", wlog::kv("reason", String(why))); }
   bool active() const { return state_ != CState::OFF; }
   CState state() const { return state_; }
   int    index() const { return i_; }
@@ -70,6 +72,9 @@ class Calibration {
     if (a < 0.7f || a > 1.3f || fabsf(b) > 0.5f) { state_ = CState::FAILED; wlog::ev("CAL_FAIL", wlog::kv("a", a, 4) + wlog::kv("b", b)); return; }  // implausible
     fitErr_ = 0;
     for (int k = 0; k < N; k++) fitErr_ = max(fitErr_, fabsf(a * raw_[k] + b - ref_[k]));
+    // a point far off the line is a mis-dialled gauge value (or a leak between pumping and reading): do not save it.
+    // Example: 0/1/2/3 bar dialled as 0/1/2/2 gives a = 0.70 (still "plausible") but a 0.3 bar point error.
+    if (fitErr_ > CAL_FIT_MAX) { state_ = CState::FAILED; wlog::ev("CAL_FAIL", wlog::kv("a", a, 4) + wlog::kv("b", b) + wlog::kv("fit_err", fitErr_)); return; }
     wlog::ev("CAL_DONE", wlog::mv("calA", st_->calA, a, 4) + wlog::mv("calB", st_->calB, b) + wlog::kv("fit_err", fitErr_));
     st_->calA = a; st_->calB = b; st_->save();
     state_ = CState::DONE;

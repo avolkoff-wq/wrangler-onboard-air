@@ -12,6 +12,10 @@
 #include "log.h"
 #include "trace.h"
 
+// feed the main-loop watchdog from inside long web handlers; only when this task is subscribed (menu WATCHDOG on),
+// esp_task_wdt_reset() on an unsubscribed task returns an error and prints it
+inline void wdtFeed() { if (esp_task_wdt_status(NULL) == ESP_OK) esp_task_wdt_reset(); }
+
 class Ota {
  public:
   void start(const bool* psi = nullptr, const char* pass = nullptr) {
@@ -23,6 +27,8 @@ class Ota {
     const char* pwd = (pass && strlen(pass) >= 8) ? pass : OTA_PASS;
     WiFi.softAP(OTA_SSID, pwd);
     auto touch = [this]() { lastActivity_ = millis(); };
+    // handlers are registered once: WebServer keeps every on() it is given, a second UPDATE session used to add them again
+    if (!routes_) { routes_ = true;
     server_.on("/", HTTP_GET, [this, touch]() {
       touch();
       server_.send(200, "text/html",
@@ -50,7 +56,7 @@ class Ota {
         String first = f.readStringUntil('\n');               // the header line goes out once
         if (!header) { server_.sendContent(first + "\n"); header = true; }
         uint8_t buf[512];
-        while (f.available()) { const size_t n = f.read(buf, sizeof buf); server_.sendContent((const char*)buf, n); }
+        while (f.available()) { const size_t n = f.read(buf, sizeof buf); server_.sendContent((const char*)buf, n); wdtFeed(); }
         f.close();
       }
       server_.sendContent("");
@@ -79,7 +85,7 @@ class Ota {
       File d = LittleFS.open("/runs");
       String names[64]; int n = 0;
       if (d) { for (File f = d.openNextFile(); f && n < 64; f = d.openNextFile()) { names[n++] = String(f.name()); f.close(); } d.close(); }
-      for (int i = 0; i < n; i++) { LittleFS.remove("/runs/" + names[i].substring(names[i].lastIndexOf('/') + 1)); esp_task_wdt_reset(); }
+      for (int i = 0; i < n; i++) { LittleFS.remove("/runs/" + names[i].substring(names[i].lastIndexOf('/') + 1)); wdtFeed(); }
       wlog::ev("LOG", "runs_cleared=1;");
       server_.sendHeader("Location", "/"); server_.send(303);
     });
@@ -91,17 +97,26 @@ class Ota {
     server_.on("/update", HTTP_POST,
       [this, touch]() {
         touch();
-        const bool ok = !Update.hasError();
+        const bool ok = !Update.hasError() && Update.isFinished();   // finished = END reached and the image checked
         server_.send(200, "text/plain", ok ? "OK, rebooting" : "Update FAILED");
         if (ok) { delay(500); ESP.restart(); }
       },
       [this, touch]() {
         touch();
         HTTPUpload& u = server_.upload();
-        if (u.status == UPLOAD_FILE_START)      { Update.begin(UPDATE_SIZE_UNKNOWN); progress_ = 0; }
-        else if (u.status == UPLOAD_FILE_WRITE) { Update.write(u.buf, u.currentSize); progress_ += u.currentSize; }
-        else if (u.status == UPLOAD_FILE_END)   { Update.end(true); }
+        // WebServer reads the whole multipart upload inside one handleClient(): loop() and its watchdog reset do not run
+        // meanwhile, and 1.3 MB over Wi-Fi plus a flash erase per 4 kB takes far longer than WDT_MS. Feed it per chunk.
+        wdtFeed();
+        if (u.status == UPLOAD_FILE_START) {
+          if (Update.isRunning()) Update.abort();            // a broken earlier upload must not block this one
+          progress_ = 0;
+          if (!Update.begin(UPDATE_SIZE_UNKNOWN)) wlog::ev("OTA", wlog::kv("begin_err", String((int)Update.getError())));
+        }
+        else if (u.status == UPLOAD_FILE_WRITE) { if (Update.isRunning()) { Update.write(u.buf, u.currentSize); progress_ += u.currentSize; } }
+        else if (u.status == UPLOAD_FILE_END)   { if (Update.isRunning()) Update.end(true); }
+        else if (u.status == UPLOAD_FILE_ABORTED) { Update.abort(); wlog::ev("OTA", "aborted=1;"); }   // phone left mid-upload
       });
+    }   // routes_
     server_.begin();
     running_ = true;
   }
@@ -162,6 +177,6 @@ class Ota {
 
   const bool* psi_ = nullptr;
   WebServer server_{80};
-  bool running_ = false;
+  bool running_ = false, routes_ = false;
   size_t progress_ = 0;
 };

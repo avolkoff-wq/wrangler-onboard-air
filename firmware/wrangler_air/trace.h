@@ -11,12 +11,13 @@
 #include "config.h"
 
 constexpr uint32_t TRACE_DT_MS  = 500;    // one row every 0.5 s
-constexpr size_t   TRACE_MAX    = 8000;   // bytes per run; longer runs stop recording ("truncated=1")
+constexpr size_t   TRACE_MAX    = 24000;  // bytes per run, ~24 B per 0.5 s row: covers the 8 min run timeout (was 8000 = ~165 s,
+                                          // a SAND -> HIGHWAY inflate lost its end). Longer stops recording ("truncated=1")
 constexpr int      TRACE_KEEP   = 20;     // newest runs kept on the flash
 
 class Trace {
  public:
-  void begin(uint32_t nowMs) { body_ = ""; t0_ = nowMs; lastMs_ = 0; first_ = true; truncated_ = false; active_ = true; }
+  void begin(uint32_t nowMs) { body_ = ""; body_.reserve(TRACE_MAX); t0_ = nowMs; lastMs_ = 0; first_ = true; truncated_ = false; active_ = true; }
   bool active() const { return active_; }
   // one sample; call every loop, it keeps its own 0.5 s pace
   void sample(uint32_t nowMs, float line, float est, char ph, bool k1, bool valve) {

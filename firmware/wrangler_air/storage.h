@@ -2,6 +2,7 @@
 #pragma once
 #include <Preferences.h>
 #include <cstring>
+#include <cmath>
 #include "config.h"
 
 struct Settings {
@@ -73,8 +74,7 @@ struct Settings {
   void load() {
     Preferences p; p.begin("air", true);
     preset       = p.getUChar("preset", preset); if (preset >= N_PRESETS) preset = 0;
-    custom       = constrain(p.getFloat("custom", custom), TARGET_MIN, TARGET_MAX);
-    target       = presetBar(preset);
+    custom       = p.getFloat("custom", custom);   // clamped in sanitize(), once g_valve is loaded
     psi          = p.getBool ("psi", psi);
     rot          = p.getUChar("rot", rot) & 3;
     valve        = p.getBool ("valve", valve); g_valve = valve;
@@ -113,8 +113,31 @@ struct Settings {
       if (strlen(wifiPass) < 8) strncpy(wifiPass, OTA_PASS, sizeof wifiPass);
     }
     p.end();
-    if (target > TARGET_MAX) target = TARGET_MAX;
-    if (target < TARGET_MIN) target = TARGET_MIN;
+    sanitize();
+  }
+  // Every float from NVS goes through here: a NaN or absurd value would otherwise live forever (calA = NaN makes every
+  // pressure NaN and every "> cap" / "< dead" comparison false, so the safety stops would never fire).
+  // Out of range = back to the default, or clamped where the edge is meaningful.
+  static float fin(float v, float lo, float hi, float def) { return std::isfinite(v) && v >= lo && v <= hi ? v : def; }
+  void sanitize() {
+    // custom after g_valve is known: TARGET_MIN depends on the VALVE setting
+    custom       = std::isfinite(custom) ? constrain(custom, (float)TARGET_MIN, TARGET_MAX) : PRESETS[P_CUSTOM].bar;
+    target       = presetBar(preset);
+    if (!std::isfinite(target)) target = PRESETS[0].bar;
+    target       = constrain(target, (float)TARGET_MIN, TARGET_MAX);
+    offManual    = fin(offManual, 0.05f, 1.5f, DEFAULT_OFFSET);           // menu range
+    offset       = fin(offset, 0.0f, 2.0f, DEFAULT_OFFSET);               // learnMain accepts < 2.0
+    c            = fin(c, 0.0f, 240.0f, 0.0f);                            // learned 0.5..60, x4 room for tyre / wheel scaling
+    settleManual = fin(settleManual, 0.5f, 10.0f, SETTLE_MS / 1000.0f);  // menu range
+    settleLearn  = fin(settleLearn, 0.0f, 10.0f, SETTLE_MS / 1000.0f);
+    rate         = fin(rate, 0.0001f, 2.0f, DEFAULT_RATE);
+    kTop         = fin(kTop, 0.0001f, 2.0f, DEFAULT_RATE * 0.6f);
+    bias         = fin(bias, -1.0f, 1.0f, 0.0f);
+    dev          = fin(dev, 0.0f, 1.0f, 0.05f);
+    tauD         = fin(tauD, 5.0f, 3000.0f, TAU_D_DEFAULT);               // the learning accepts 5..3000 s
+    if (!(std::isfinite(calA) && calA >= 0.7f && calA <= 1.3f && std::isfinite(calB) && fabsf(calB) <= 0.5f)) {
+      calA = 1.0f; calB = 0.0f;                                           // calibration.h accepts only this box
+    }
   }
   void save() const {
     Preferences p; p.begin("air", false);

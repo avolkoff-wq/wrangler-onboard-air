@@ -42,6 +42,7 @@
 
 #include "suv_bitmap.h"
 #include <esp_task_wdt.h>
+#include <esp_ota_ops.h>
 #include <M5Unified.h>
 #include "config.h"
 #include "storage.h"
@@ -123,7 +124,8 @@ bool noAir = true;
 void updateNoAir() {
   static uint32_t okSince = 0;
   const float now = sensor.bar(settings.calA, settings.calB);
-  if (sensor.fault() || now < NOAIR_IN) { noAir = true; okSince = 0; }
+  // raw bar too: an open signal wire reads 0 V = raw 0, while the calibrated value is lifted by calB
+  if (sensor.fault() || now < NOAIR_IN || sensor.rawBar() < NOAIR_IN) { noAir = true; okSince = 0; }
   else if (noAir) {
     if (now <= NOAIR_OUT) okSince = 0;
     else if (!okSince) okSince = millis();
@@ -160,6 +162,7 @@ void disarm(const char* why) { if (!armed) return; armed = false; armStage = 0; 
 // ---------- menu LEARN ----------
 #define LEARN_N (DEFLATE ? 3 : 2)
 bool learnArm = false;   // LEARN INFLATE waiting for the engine confirmation
+bool calEngArm = false;  // CALIBRATE: point 1 starts the compressor, same engine confirmation
 int learnPos = 0; Mode learnSel = Mode::INF; String learnMsg;
 Mode learnItem(int i) { if (i == 0) return Mode::INF; if (DEFLATE && i == 1) return Mode::DEF; return Mode::NONE; }
 
@@ -189,8 +192,8 @@ void traceStep() {
     trace.sample(now, sensor.bar(settings.calA, settings.calB), pump.estimate(), phaseChar(st), pump.compressorOn(), pump.valveOpen());
     if (prev == PState::MEASURE && st != PState::MEASURE) trace.marker(now, pump.staticBar());
     if (!pump.busy()) {
-      static const char* E[] = {"NONE", "SENSOR", "OVER", "LEAK", "TIMEOUT", "LOW_P"};
-      const String res = st == PState::DONE ? (pump.inBand() ? "IN_BAND" : "DONE") : st == PState::ERROR ? String("ERR_") + E[(int)pump.error()] : "STOPPED";
+      // errName() (pump.h) knows every PErr; the old local table stopped at LOW_P and read past its end on ERR LOW VOLTAGE
+      const String res = st == PState::DONE ? (pump.inBand() ? "IN_BAND" : "DONE") : st == PState::ERROR ? String("ERR_") + errName(pump.error()) : "STOPPED";
       const Mode tm = pump.testMode();
       const String hdr = wlog::kv("preset", String(PRESETS[settings.preset].name)) + wlog::kv("target", settings.target, 2) +
                          wlog::kv("p0", pump.p0()) + wlog::kv("p", pump.staticBar()) + wlog::kv("result", res) +
@@ -266,6 +269,9 @@ void benchCommand(String c) {
     benchDump(("/runs/" + id).c_str());
   } else if (c == "clear") {
     wlog::clear(); wlog::ev("LOG", "cleared=1;"); Serial.println("# log cleared (runs kept)");
+  } else if (ota.running() && !c.endsWith("off") && (c.startsWith("pulse") || c.startsWith("k1") || c.startsWith("valve"))) {
+    // Wi-Fi is on: the sensor (ADC2) can not be read, so the pressure cut-offs of a pulse would be blind
+    Serial.println("# blocked: Wi-Fi UPDATE is on, outputs stay off");
   } else if (c == "pulse k1" || c == "pulse valve") {
     const bool v = c.endsWith("valve");
     if (v && !DEFLATE) Serial.println("# no valve in this build");
@@ -334,6 +340,24 @@ int outPos = 0;
 int wifiPassPos = 0;   // digit index 0..7 while editing Wi-Fi password
 char wifiPassEdit[9] = "";
 
+// ---------- OTA rollback ----------
+// The Arduino core (CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=1) marks a new Wi-Fi image valid before setup() unless this
+// returns true. We keep it pending and mark it valid only after APP_OK_MS of normal loop passes. A new image that
+// crashes or hangs (watchdog) before that restarts in the pending state, and the bootloader goes back to the old one.
+// Images flashed over USB are not pending: the call is then a no-op.
+constexpr uint32_t APP_OK_MS = 30000;
+extern "C" bool verifyRollbackLater() { return true; }   // overrides the weak C function in esp32-hal-misc.c
+void markAppValid() {
+  static bool done = false;
+  if (done || millis() < APP_OK_MS) return;
+  done = true;
+  esp_ota_img_states_t st;
+  if (esp_ota_get_state_partition(esp_ota_get_running_partition(), &st) == ESP_OK && st == ESP_OTA_IMG_PENDING_VERIFY) {
+    esp_ota_mark_app_valid_cancel_rollback();
+    wlog::ev("OTA", "app_valid=1;");
+  }
+}
+
 // ---------- setup / loop ----------
 void setup() {
   // outputs first: compressor and K4 must never twitch at boot
@@ -386,24 +410,34 @@ void setup() {
 
 void loop() {
   if (settings.wdog) esp_task_wdt_reset();
+  markAppValid();
   M5.update();
-  sensor.update();
-  supply.update();
+  // ADC2 (G13 sensor, G15 AUX1) can not be read while Wi-Fi is on: keep the last values instead of reading junk
+  // (the slow AUX1 filter would otherwise drift to 0 and show NO VOLTAGE for a while after UPDATE)
+  if (!ota.running()) { sensor.update(); supply.update(); }
+  // idle for the stuck-output checks: nothing of ours drives K1 / K4. Calibration pumps K1 directly (calibration.h),
+  // so it must count as busy, or PUMP CHECK sees its rise as "no signal, pressure rising" and stops it.
+  const bool chkIdle = !pump.busy() && !pump.pulsing() && !cal.active() && !ota.running() && !g_demo;
   {   // valve stuck open: idle, both outputs off, the line falls steadily (menu VALVE CHECK, only with VALVE)
-    static float hist[VCHK_WINDOW_S + 1]; static int n = 0; static uint32_t lastS = 0, quietT = 0;
-    const bool idle = !pump.busy() && !pump.pulsing() && !ota.running() && !g_demo;
-    if (!idle || !settings.vchk2 || !g_valve || sensor.fault()) { n = 0; quietT = millis(); }
+    // One alarm per episode, like PUMP CHECK: re-armed after the line stopped falling for PCHK_REARM_S or after a run.
+    // Before, ERROR counted as idle and the alarm came again every ~26 s while the line kept falling.
+    static float hist[VCHK_WINDOW_S + 1]; static int n = 0; static uint32_t lastS = 0, quietT = 0, steadyS = 0; static bool fired = false;
+    if (!chkIdle || !settings.vchk2 || !g_valve || sensor.fault()) { n = 0; quietT = millis(); if (pump.busy()) fired = false; }
     else if (millis() - quietT > VCHK_QUIET_MS && millis() - lastS >= 1000) {
       lastS = millis();
       const float p = sensor.bar(settings.calA, settings.calB);
       if (n <= VCHK_WINDOW_S) hist[n++] = p; else { memmove(hist, hist + 1, VCHK_WINDOW_S * sizeof(float)); hist[VCHK_WINDOW_S] = p; }
-      if (n > VCHK_WINDOW_S && hist[0] > VCHK_MIN_BAR) {
+      if (n > VCHK_WINDOW_S) {
         int down = 0; float maxStep = 0;
         for (int i = 1; i <= VCHK_WINDOW_S; i++) { const float d = hist[i - 1] - hist[i]; if (d > 0) down++; maxStep = max(maxStep, d); }
         const float rate = (hist[0] - hist[VCHK_WINDOW_S]) / VCHK_WINDOW_S;
-        if (rate > VCHK_MIN && rate < VCHK_MAX && maxStep < 0.15f && down >= VCHK_WINDOW_S * 2 / 3) {
+        if (fired) {   // wait until it stops falling
+          steadyS = (fabsf(hist[VCHK_WINDOW_S] - hist[VCHK_WINDOW_S - 1]) < 0.01f) ? steadyS + 1 : 0;
+          if (steadyS >= PCHK_REARM_S) { fired = false; steadyS = 0; }
+        }
+        if (!fired && hist[0] > VCHK_MIN_BAR && rate > VCHK_MIN && rate < VCHK_MAX && maxStep < 0.15f && down >= VCHK_WINDOW_S * 2 / 3) {
           wlog::ev("VALVE_STUCK", wlog::kv("p", p) + wlog::kv("rate", rate, 4));
-          pump.valveStuck(p); n = 0; quietT = millis();
+          pump.valveStuck(p); fired = true; steadyS = 0;
         }
       }
     }
@@ -412,35 +446,45 @@ void loop() {
     // the air comes from another source: AUX2 bypass (on purpose or forgotten), a welded Unit 2Relay contact, or the ARB relay.
     // One alarm per episode: re-armed only after the line has been steady again for PCHK_REARM_S (AUX2 used on purpose = one alarm).
     static float hist[PCHK_WINDOW_S + 1]; static int n = 0; static uint32_t lastS = 0, quietT = 0, steadyS = 0; static bool fired = false;
-    const bool idle = !pump.busy() && !pump.pulsing() && !ota.running() && !g_demo;
-    if (!idle || !settings.pchk || sensor.fault()) { n = 0; quietT = millis(); if (pump.busy()) fired = false; }
+    if (!chkIdle || !settings.pchk || sensor.fault()) { n = 0; quietT = millis(); if (pump.busy() || cal.active()) fired = false; }
     else if (millis() - quietT > VCHK_QUIET_MS && millis() - lastS >= 1000) {
       lastS = millis();
       const float p = sensor.bar(settings.calA, settings.calB);
       if (n <= PCHK_WINDOW_S) hist[n++] = p; else { memmove(hist, hist + 1, PCHK_WINDOW_S * sizeof(float)); hist[PCHK_WINDOW_S] = p; }
+      const int last = n - 1;   // newest sample
+      // "above PCHK_HIGH for 3 s" = the last 4 one-second samples. Checked as soon as there are 4, not only once the
+      // 20 s rise window is full (it used to fire ~21 s after the quiet time instead of 3 s)
+      bool high = n >= 4;
+      for (int i = last - 3; high && i <= last; i++) high = hist[i] > PCHK_HIGH;
+      if (fired && n >= 2) {   // wait until it stops rising
+        steadyS = (fabsf(hist[last] - hist[last - 1]) < 0.01f) ? steadyS + 1 : 0;
+        if (steadyS >= PCHK_REARM_S) { fired = false; steadyS = 0; }
+      }
+      bool rising = false; float rise = 0;
       if (n > PCHK_WINDOW_S) {
         int up = 0; float maxStep = 0;
         for (int i = 1; i <= PCHK_WINDOW_S; i++) { const float d = hist[i] - hist[i - 1]; if (d > 0.005f) up++; maxStep = max(maxStep, d); }
-        const float rise = hist[PCHK_WINDOW_S] - hist[0];
-        if (fired) {   // wait until it stops rising
-          steadyS = (fabsf(hist[PCHK_WINDOW_S] - hist[PCHK_WINDOW_S - 1]) < 0.01f) ? steadyS + 1 : 0;
-          if (steadyS >= PCHK_REARM_S) { fired = false; steadyS = 0; }
-        }
-        bool high = true;
-        for (int i = PCHK_WINDOW_S - 3; i <= PCHK_WINDOW_S; i++) high &= hist[i] > PCHK_HIGH;
-        if (!fired && (high || (rise > PCHK_RISE && up >= PCHK_UP && maxStep < 0.8f * rise))) {
-          wlog::ev("PUMP_STUCK", wlog::kv("p", p) + wlog::kv("rise", rise));
-          pump.pumpStuck(p); fired = true; steadyS = 0;
-        }
+        rise = hist[PCHK_WINDOW_S] - hist[0];
+        rising = rise > PCHK_RISE && up >= PCHK_UP && maxStep < 0.8f * rise;
+      }
+      if (!fired && (high || rising)) {
+        wlog::ev("PUMP_STUCK", wlog::kv("p", p) + wlog::kv("rise", rise) + wlog::kv("high", String(high ? 1 : 0)));
+        pump.pumpStuck(p); fired = true; steadyS = 0;
       }
     }
   }
   {   // battery guard: compressor running, AUX1 below LOW_V for LOW_V_MS -> stop (VOLT CHECK on, module fitted)
+    // covers a run (ERR LOW VOLTAGE), IO TEST / USB "k1 on" (output off) and calibration pumping (CAL FAILED)
     static uint32_t lowT = 0;
-    const bool low = settings.vcheck && supply.fitted() && pump.compressorOn() && supply.volts() < LOW_V;
+    const bool calPump = cal.state() == CState::PUMPING;
+    const bool low = settings.vcheck && supply.fitted() && (pump.compressorOn() || calPump) && supply.volts() < LOW_V;
     if (!low) lowT = 0;
     else if (!lowT) lowT = millis();
-    else if (millis() - lowT >= LOW_V_MS) { wlog::ev("LOW_VOLTAGE", wlog::kv("aux1", supply.volts(), 1)); pump.lowVoltage(); lowT = 0; }
+    else if (millis() - lowT >= LOW_V_MS) {
+      wlog::ev("LOW_VOLTAGE", wlog::kv("aux1", supply.volts(), 1) + wlog::kv("in", String(calPump ? "CAL" : pump.busy() ? "RUN" : "PULSE")));
+      if (calPump) cal.fail("low_voltage"); else pump.lowVoltage();
+      lowT = 0;
+    }
   }
   pump.update();
   if (!pump.busy()) settings.useWheels(4);   // a CUSTOM run on fewer wheels is over: learning back to the 4-wheel volume
@@ -453,7 +497,7 @@ void loop() {
   ota.update();
 
   int steps = input::takeSteps();
-  const input::Btn b = input::button();
+  input::Btn b = input::button();   // not const: MAIN swallows the press that stopped a run
 
   switch (screen) {
     case Screen::MAIN: {
@@ -471,8 +515,10 @@ void loop() {
       if (steps) { dirty = true; lastTurn = millis(); }
       if (dirty && millis() - lastTurn > 2000) { settings.save(); dirty = false; }   // spare the flash
 
-      // stop never needs two presses: while running any release before the LONG (2 s) stops at once
-      if (pump.busy() && (b == input::Btn::SHORT || b == input::Btn::MID)) pump.stop();
+      // stop never needs two presses: while running any press stops, a short or medium one on release, a hold at 2 s
+      // (the hold used to fire LONG, which is ignored during a run, and its release then gave nothing: the run went on)
+      const bool stopNow = pump.busy() && (b == input::Btn::SHORT || b == input::Btn::MID || b == input::Btn::LONG);
+      if (stopNow) { pump.stop(); b = input::Btn::NONE; }   // the same hold must not open the menu right after the stop
       else if (b == input::Btn::SHORT) {
         if (pump.state() == PState::DONE || pump.state() == PState::ERROR) pump.clearResult();
         else if (noAir) { disarm("NO_AIR"); beep(); }                  // CONNECT SYSTEM: nothing to start
@@ -505,7 +551,7 @@ void loop() {
       if (b == input::Btn::LONG) screen = Screen::MAIN;
       if (b == input::Btn::SHORT) {
         switch (menuPos) {
-          case M_CAL:     cal.start(); screen = Screen::CAL; break;
+          case M_CAL:     cal.start(); calEngArm = false; screen = Screen::CAL; break;
           case M_LEARN:   learnPos = 0; screen = Screen::LEARN_PICK; break;
           case M_SENSOR:  screen = Screen::SENSOR; break;
           case M_OUTPUT:  outPos = 0; screen = Screen::OUT_TEST; break;
@@ -521,8 +567,11 @@ void loop() {
           case M_DEMO:    // virtual tyres for the desk: never saved, off at every power-up
             g_demo = !g_demo; Sensor::simReset(); sensor.resetFilter(); wlog::ev("DEMO", wlog::kv("on", String(g_demo ? 1 : 0))); break;
           case M_VALVE:
-            settings.valve = g_valve = !settings.valve; pump.stop();
+            pump.stop();   // outputs off BEFORE g_valve changes (pump valve() closes K4 either way since 0.5.2)
+            settings.valve = g_valve = !settings.valve;
+            // with the valve the lowest target is 0.5 bar: the CUSTOM value too, not only the active target
             if (settings.target < TARGET_MIN) settings.target = TARGET_MIN;
+            if (settings.custom < TARGET_MIN) settings.custom = TARGET_MIN;
             settings.save(); wlog::ev("VALVE", wlog::kv("on", String(g_valve ? 1 : 0))); break;
           case M_VCHECK:  settings.vcheck = !settings.vcheck; settings.save(); break;
           case M_ECONF:   settings.econfirm = !settings.econfirm; settings.save(); break;
@@ -571,6 +620,7 @@ void loop() {
       } else {                 // number of wheels on the line: the air volume and the learning scale with it
         if (steps) customWheels = constrain((int)customWheels + steps, 1, 4);
         if (b == input::Btn::SHORT) {
+          customEdit = constrain(customEdit, (float)TARGET_MIN, TARGET_MAX);   // pressed without turning: still within limits
           settings.custom = settings.target = customEdit; settings.wheels = customWheels; settings.save();
           wlog::ev("CUSTOM_SET", wlog::kv("custom", settings.custom, 2) + wlog::kv("wheels", String(settings.wheels)));
           screen = Screen::MAIN;
@@ -612,9 +662,12 @@ void loop() {
 
     case Screen::CAL:
       if (steps) cal.turn(steps);
-      if (b == input::Btn::SHORT) {
-        if (cal.state() == CState::PUMPING || cal.state() == CState::SETTLING) cal.abort();
-        else cal.press();
+      // while the compressor pumps a medium press (0.5-2 s) aborts too, like a stop during a run; elsewhere only SHORT confirms
+      if ((b == input::Btn::SHORT || b == input::Btn::MID) && (cal.state() == CState::PUMPING || cal.state() == CState::SETTLING)) cal.abort();
+      else if (b == input::Btn::SHORT) {
+        if (cal.state() == CState::ZERO_WAIT && engConfirm() && !calEngArm) {   // engine off / unknown: one more press
+          calEngArm = true; wlog::ev("ENGINE_CONFIRM", wlog::kv("in", String("CAL")) + wlog::kv("aux1", supply.volts(), 1));
+        } else { calEngArm = false; cal.press(); }
       }
       if (b == input::Btn::LONG) cal.abort();
       if (!cal.active()) screen = Screen::MAIN; else drawCal();
@@ -634,6 +687,7 @@ void loop() {
     case Screen::OUT_TEST:   // IO TEST: COMPRESSOR (K1) / VALVE (K4) / BACK: press = on (up to 30 s) / off, never both
       if (steps) outPos = constrain(outPos + steps, 0, OUT_N - 1);
       if (b == input::Btn::LONG) { pump.stop(); screen = Screen::MENU; }
+      if (b == input::Btn::MID && pump.pulsing()) pump.stop();          // a medium press switches an output off, never on
       if (b == input::Btn::SHORT) {
         if (outPos == OUT_N - 1) { pump.stop(); screen = Screen::MENU; }
         else {
