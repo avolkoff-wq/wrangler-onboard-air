@@ -69,6 +69,50 @@ inline size_t encode(uint8_t* b, size_t cap, uint8_t id) {
   b[cntAt] = cnt;
   return n;
 }
+// ---------- preset icon, vector (0.7.2): the icon's own strokes in 1/8 px relative to its box ----------
+// Sent once per connection and icon ('I' blob below), the frame refers to it by a 16-bit key (ICON item, colour field).
+// Kinds: 1 LINE a,b - c,d width e px; 2 TRI a,b c,d f,g; 3 CIRCLE centre a,b radius c; 4 RING centre a,b radius c, e px thick;
+//        5 RECT corners a,b - c,d (inclusive); 6 RRECT the same, radius f; 7 SUV ground under the rear wheel a,b,
+//        c = px per unit x 256, d = angle x 100 (degrees, negative = nose up), bitmap suv_bitmap.h in the app
+enum IKind : uint8_t { I_LINE = 1, I_TRI, I_CIRCLE, I_RING, I_RECT, I_RRECT, I_SUV };
+struct IItem { uint8_t k, e; int16_t a, b, c, d, f, g; uint16_t col; };
+constexpr int MAXIC = 200;
+inline IItem ic[MAXIC]; inline int nIc = 0; inline float icX = 0, icY = 0; inline bool icRec = false;
+inline uint16_t icKey = 0;
+inline int16_t q8(float v) { return (int16_t)constrain(lroundf(v * 8), -32768L, 32767L); }
+inline void icBegin(float ox, float oy) { nIc = 0; icX = ox; icY = oy; icRec = on; }
+inline void icAdd(IKind k, float a, float b, float c, float d, float f, float g, uint8_t e, uint16_t col, bool rel = true) {
+  if (!icRec || nIc >= MAXIC) return;
+  IItem& it = ic[nIc++];
+  const float dx = rel ? icX : 0, dy = rel ? icY : 0;
+  it.k = k; it.e = e; it.col = col;
+  it.a = q8(a - dx); it.b = q8(b - dy);
+  if (k == I_LINE || k == I_RECT || k == I_RRECT || k == I_TRI) { it.c = q8(c - dx); it.d = q8(d - dy); } else { it.c = q8(c); it.d = (int16_t)d; }
+  if (k == I_TRI) { it.f = q8(f - dx); it.g = q8(g - dy); } else { it.f = q8(f); it.g = 0; }
+}
+inline size_t icEncode(uint8_t* b, size_t cap) {
+  size_t n = 0; if (cap < 6) return 0;
+  b[n++] = 'I'; b[n++] = 1; b[n++] = icKey & 0xFF; b[n++] = icKey >> 8; const size_t cntAt = n++; uint8_t cnt = 0;
+  for (int i = 0; i < nIc && n + 16 <= cap && cnt < 255; i++, cnt++) {
+    const IItem& it = ic[i];
+    b[n++] = it.k; b[n++] = it.e;
+    for (int16_t v : {it.a, it.b, it.c, it.d, it.f, it.g}) { b[n++] = v & 0xFF; b[n++] = (v >> 8) & 0xFF; }
+    b[n++] = it.col & 0xFF; b[n++] = it.col >> 8;
+  }
+  b[cntAt] = cnt;
+  return n;
+}
+// end of the icon: its key (FNV-1a over the strokes), so the phone draws a cached copy
+inline uint16_t icEnd() {
+  if (!icRec) return 0;
+  icRec = false;
+  uint32_t h = 2166136261u;
+  const uint8_t* p = (const uint8_t*)ic;
+  for (size_t i = 0; i < sizeof(IItem) * nIc; i++) { h ^= p[i]; h *= 16777619u; }
+  icKey = (uint16_t)((h >> 16) ^ h); if (!icKey) icKey = 1;
+  return icKey;
+}
+
 inline uint16_t to565(uint32_t rgb888) { return ((rgb888 >> 8) & 0xF800) | ((rgb888 >> 5) & 0x07E0) | ((rgb888 >> 3) & 0x001F); }
 }  // namespace dl
 

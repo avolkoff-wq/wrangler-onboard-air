@@ -3,69 +3,98 @@ package air.wrangler
 import android.Manifest
 import android.app.Activity
 import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothManager
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
-import android.os.VibrationEffect
-import android.os.Vibrator
-import android.os.VibratorManager
 import android.view.Gravity
-import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
-import android.widget.Button
+import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
 
+/** The BLE link lives across rotations (the activity is rebuilt, the link is not). */
+object Link {
+    var ble: Ble? = null
+    var state: Ble.State? = null
+    var frame: Frame? = null
+    var status = "Starting ..."
+    val icons = HashMap<Int, List<Frame.IconItem>>()
+    var ui: Ble.Listener? = null
+}
+
 /**
- * One screen: the DinMeter screen (same as on the device) and the knob as buttons.
- *  <  >   one knob step (or swipe across the screen)
- *  PRESS  tap = press; held 0.5-2 s = medium press; held 2 s = hold (menu / back), like the knob button
- * Everything else (menus, confirmations, protections) is in the DinMeter.
+ * Main screen, home or DinMeter screen, and the knob.
+ *  - DinMeter on its main screen (idle, run, result, error): HomeView, drawn natively for the phone.
+ *  - any other DinMeter screen (menus, editors, calibration, LEARN, PIN): the DinMeter screen itself (ScreenView).
+ *  - the knob: KnobView (turn the ring, the centre is the button). Portrait: knob below; landscape: knob on the right.
  */
 class MainActivity : Activity(), Ble.Listener {
-    private lateinit var ble: Ble
-    private lateinit var screen: ScreenView
+    private lateinit var home: HomeView
+    private lateinit var mirror: ScreenView
+    private lateinit var knob: KnobView
     private lateinit var status: TextView
-    private lateinit var info: TextView
-    private lateinit var press: Button
-    private val main = Handler(Looper.getMainLooper())
-    private val vib by lazy { (getSystemService(VIBRATOR_MANAGER_SERVICE) as VibratorManager).defaultVibrator }
+    private lateinit var dot: View
 
     override fun onCreate(b: Bundle?) {
         super.onCreate(b)
         window.statusBarColor = Color.BLACK; window.navigationBarColor = Color.BLACK
         val dp = resources.displayMetrics.density
-        val root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(Color.BLACK); setPadding((12 * dp).toInt(), (12 * dp).toInt(), (12 * dp).toInt(), (16 * dp).toInt()) }
-        status = TextView(this).apply { setTextColor(Color.LTGRAY); textSize = 14f; text = "Starting ..." }
-        info = TextView(this).apply { setTextColor(Color.GRAY); textSize = 12f }
-        screen = ScreenView(this) { turn(it) }
-        root.addView(status, LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT))
-        root.addView(info, LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT))
-        root.addView(screen, LinearLayout.LayoutParams(MATCH_PARENT, 0, 1f).apply { topMargin = (8 * dp).toInt(); bottomMargin = (12 * dp).toInt() })
+        val land = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
-        val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER }
-        fun btn(t: String, color: Int) = Button(this).apply {
-            text = t; textSize = 22f; setTextColor(Color.WHITE); isAllCaps = false
-            background = GradientDrawable().apply { cornerRadius = 18 * dp; setColor(color) }
+        home = HomeView(this)
+        mirror = ScreenView(this) { send(if (it < 0) Ble.LEFT else Ble.RIGHT) }
+        knob = KnobView(this, { send(if (it < 0) Ble.LEFT else Ble.RIGHT) }, { send(it) })
+
+        // status pill: dot + text
+        dot = View(this).apply { background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(0xFF636366.toInt()) } }
+        status = TextView(this).apply { setTextColor(0xFFAEAEB2.toInt()); textSize = 13f; text = Link.status }
+        val pill = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL
+            setPadding((14 * dp).toInt(), (8 * dp).toInt(), (16 * dp).toInt(), (8 * dp).toInt())
+            background = GradientDrawable().apply { cornerRadius = 20 * dp; setColor(0xFF1C1C1E.toInt()) }
+            addView(dot, LinearLayout.LayoutParams((8 * dp).toInt(), (8 * dp).toInt()).apply { marginEnd = (8 * dp).toInt() })
+            addView(status)
         }
-        val left = btn("<", 0xFF2A2A2A.toInt()).apply { setOnClickListener { turn(-1) } }
-        val right = btn(">", 0xFF2A2A2A.toInt()).apply { setOnClickListener { turn(1) } }
-        press = btn("PRESS", 0xFF1F5E1F.toInt())
-        pressTouch()
-        val h = (96 * dp).toInt(); val m = (6 * dp).toInt()
-        row.addView(left, LinearLayout.LayoutParams(0, h, 1f).apply { marginEnd = m })
-        row.addView(press, LinearLayout.LayoutParams(0, h, 1.6f).apply { marginStart = m; marginEnd = m })
-        row.addView(right, LinearLayout.LayoutParams(0, h, 1f).apply { marginStart = m })
-        root.addView(row, LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT))
+        val stage = FrameLayout(this).apply {
+            addView(home, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
+            addView(mirror, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT).apply {
+                val m = (12 * dp).toInt(); setMargins(m, m, m, m)
+            })
+        }
+        val left = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            addView(pill, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT).apply { gravity = Gravity.CENTER_HORIZONTAL; topMargin = (8 * dp).toInt() })
+            addView(stage, LinearLayout.LayoutParams(MATCH_PARENT, 0, 1f))
+        }
+        val root = LinearLayout(this).apply {
+            orientation = if (land) LinearLayout.HORIZONTAL else LinearLayout.VERTICAL
+            setBackgroundColor(Color.BLACK)
+            if (land) {
+                addView(left, LinearLayout.LayoutParams(0, MATCH_PARENT, 1.4f))
+                addView(knob, LinearLayout.LayoutParams(0, MATCH_PARENT, 1f).apply { val m = (16 * dp).toInt(); setMargins(m, m, m, m) })
+            } else {
+                addView(left, LinearLayout.LayoutParams(MATCH_PARENT, 0, 1.55f))
+                addView(knob, LinearLayout.LayoutParams(MATCH_PARENT, 0, 1f).apply { val m = (18 * dp).toInt(); setMargins(m, 0, m, m) })
+            }
+        }
         setContentView(root)
-
-        ble = Ble(this, this)
+        Link.ui = this
+        if (Link.ble == null) Link.ble = Ble(applicationContext, object : Ble.Listener {
+            override fun onStatus(text: String) { Link.status = text; Link.ui?.onStatus(text) }
+            override fun onState(s: Ble.State) { Link.state = s; Link.ui?.onState(s) }
+            override fun onFrame(f: Frame) { Link.frame = f; Link.ui?.onFrame(f) }
+            override fun onNeedPairing() { Link.ui?.onNeedPairing() }
+            override fun onIcon(key: Int, strokes: List<Frame.IconItem>) { Link.icons[key] = strokes; Link.ui?.onIcon(key, strokes) }
+        })
+        Link.icons.forEach { (k, v) -> mirror.putIcon(k, v) }
+        Link.state?.let { onState(it) }; Link.frame?.let { onFrame(it) }
+        refresh()
     }
 
     override fun onResume() {
@@ -75,9 +104,12 @@ class MainActivity : Activity(), Ble.Listener {
         else startBle()
     }
 
-    // the link stays up while the app is open: the system PIN dialog and a dark screen pause the activity,
-    // and dropping the link there broke the pairing (bench 24.11). Closed only when the app is closed.
-    override fun onDestroy() { super.onDestroy(); ble.stop() }
+    // the link stays up while the app is open (the PIN dialog and a dark screen pause the activity); closed with the app
+    override fun onDestroy() {
+        super.onDestroy()
+        if (Link.ui === this) Link.ui = null
+        if (isFinishing) { Link.ble?.stop(); Link.ble = null }
+    }
 
     override fun onRequestPermissionsResult(code: Int, perms: Array<out String>, res: IntArray) {
         if (res.isNotEmpty() && res.all { it == PackageManager.PERMISSION_GRANTED }) startBle()
@@ -86,50 +118,65 @@ class MainActivity : Activity(), Ble.Listener {
 
     @Suppress("MissingPermission")
     private fun startBle() {
-        val a = (getSystemService(BLUETOOTH_SERVICE) as android.bluetooth.BluetoothManager).adapter
+        val a = (getSystemService(BLUETOOTH_SERVICE) as BluetoothManager).adapter
         if (!a.isEnabled) { startActivity(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)); return }
-        ble.start()
+        Link.ble?.start()
     }
 
-    // ---------- knob ----------
-    private fun buzz(ms: Long) = vib.vibrate(VibrationEffect.createOneShot(ms, VibrationEffect.DEFAULT_AMPLITUDE))
-    private fun turn(d: Int) { ble.send(if (d < 0) Ble.LEFT else Ble.RIGHT); buzz(10) }
+    private fun send(code: Int) { Link.ble?.send(code) }
 
-    private var downAt = 0L
-    private var holdSent = false
-    private val holdCheck = object : Runnable {
-        override fun run() {
-            if (downAt == 0L) return
-            val held = System.currentTimeMillis() - downAt
-            if (held >= 2000 && !holdSent) { holdSent = true; ble.send(Ble.HOLD); buzz(60); press.text = "PRESS" ; return }
-            if (held >= 300) press.text = "HOLD " + "|".repeat(((held - 300) / 170).toInt().coerceAtMost(10))
-            main.postDelayed(this, 50)
+    // which view, knob label and colour
+    private fun refresh() {
+        val s = Link.state
+        val online = Link.ble?.connected == true
+        val onMain = s == null || s.screen == 0
+        home.visibility = if (onMain) View.VISIBLE else View.GONE
+        mirror.visibility = if (onMain) View.GONE else View.VISIBLE
+        home.online = online; mirror.offline = !online
+        knob.enabledLink = online
+        val running = s != null && s.state in 1..6
+        knob.label = when {
+            s == null -> "PRESS"
+            !onMain -> "SELECT"
+            running -> "STOP"
+            s.state == 7 || s.state == 8 -> "OK"
+            s.armStage > 0 -> "START"
+            s.noAir -> "MENU"
+            else -> "START"
+        }
+        knob.accent = when {
+            s == null -> 0xFF636366.toInt()
+            running -> HomeView.RED
+            s.state == 8 -> HomeView.RED
+            s.armStage == 2 -> HomeView.RED
+            else -> HomeView.GREEN
+        }
+        (dot.background as GradientDrawable).setColor(if (online) HomeView.GREEN else 0xFF636366.toInt())
+        // the preset icon of the main screen: the ICON item of the newest frame
+        val key = Link.frame?.items?.firstOrNull { it.kind == Frame.ICON }?.raw
+        if (key != null) {
+            val ic = Link.icons[key]
+            if (ic != null) home.iconStrokes = ic
+            else if (online && System.currentTimeMillis() - iconAsked > 2500) { iconAsked = System.currentTimeMillis(); send(Ble.ICONS) }   // lost on the way: ask again
         }
     }
+    private var iconAsked = 0L
 
-    private fun pressTouch() = press.setOnTouchListener { v: View, e: MotionEvent ->
-        when (e.actionMasked) {
-            MotionEvent.ACTION_DOWN -> { downAt = System.currentTimeMillis(); holdSent = false; main.post(holdCheck); v.isPressed = true }
-            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                val held = System.currentTimeMillis() - downAt
-                downAt = 0; v.isPressed = false; press.text = "PRESS"
-                if (e.actionMasked == MotionEvent.ACTION_UP && !holdSent) {
-                    if (held < 500) { ble.send(Ble.PRESS); buzz(20) } else { ble.send(Ble.MID); buzz(30) }
-                }
-            }
-        }
-        true
+    // the phone back key: on a DinMeter menu or service screen one level up there; on the main screen to the background
+    // (the link stays, the app is not closed)
+    @Deprecated("system back")
+    override fun onBackPressed() {
+        val s = Link.state
+        if (s != null && s.screen != 0 && Link.ble?.connected == true) { send(Ble.BACK); knob.performHapticFeedback(android.view.HapticFeedbackConstants.CONFIRM) }
+        else moveTaskToBack(true)
     }
 
-    // ---------- Ble.Listener ----------
-    override fun onStatus(text: String) = runOnUiThread { status.text = text; screen.offline = !ble.connected }
-    override fun onState(s: Ble.State) = runOnUiThread {
-        screen.offline = false
-        val out = when { s.k1 -> "  COMPRESSOR ON"; s.valve -> "  VALVE OPEN"; else -> "" }
-        info.text = "line %.2f bar   target %.2f%s".format(s.bar, s.target, out)
-    }
-    override fun onFrame(f: Frame) = runOnUiThread { screen.offline = false; screen.frame = f }
+    // ---------- Ble.Listener (UI thread) ----------
+    override fun onStatus(text: String) = runOnUiThread { status.text = text; refresh() }
+    override fun onState(s: Ble.State) = runOnUiThread { home.state = s; refresh() }
+    override fun onFrame(f: Frame) = runOnUiThread { mirror.frame = f; refresh() }
+    override fun onIcon(key: Int, strokes: List<Frame.IconItem>) = runOnUiThread { mirror.putIcon(key, strokes); refresh() }
     override fun onNeedPairing() = runOnUiThread {
-        status.text = "Pair first: on the DinMeter open BLUETOOTH > PAIR A PHONE and type its PIN here"
+        status.text = "Pair first: DinMeter menu CONNECT > BLUETOOTH > PAIR A PHONE"
     }
 }

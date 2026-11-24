@@ -36,10 +36,13 @@ class Ble(private val ctx: Context, private val listener: Listener) {
         fun onState(s: State)
         fun onFrame(f: Frame)
         fun onNeedPairing()
+        fun onIcon(key: Int, strokes: List<Frame.IconItem>)
     }
 
-    data class State(val screen: Int, val preset: Int, val state: Int, val err: Int, val k1: Boolean, val valve: Boolean,
-                     val bar: Float, val target: Float, val seq: Long, val adcFails: Long)
+    data class State(val screen: Int, val menuPos: Int, val preset: Int, val state: Int, val err: Int, val armStage: Int,
+                     val k1: Boolean, val valve: Boolean, val noAir: Boolean, val inBand: Boolean, val offTarget: Boolean,
+                     val fake: Boolean, val demo: Boolean, val bar: Float, val est: Float, val target: Float, val staticBar: Float,
+                     val aux1: Float, val runMs: Long, val phaseMs: Long, val seq: Long, val adcFails: Long, val p0: Float)
 
     companion object {
         val SVC: UUID = UUID.fromString("7a1f0001-5c0e-4b6a-9d2f-57a1e5a1c0de")
@@ -47,7 +50,7 @@ class Ble(private val ctx: Context, private val listener: Listener) {
         val INPUT: UUID = UUID.fromString("7a1f0003-5c0e-4b6a-9d2f-57a1e5a1c0de")
         val SCREEN: UUID = UUID.fromString("7a1f0004-5c0e-4b6a-9d2f-57a1e5a1c0de")
         val CCCD: UUID = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb")
-        const val LEFT = 1; const val RIGHT = 2; const val PRESS = 3; const val MID = 4; const val HOLD = 5
+        const val LEFT = 1; const val RIGHT = 2; const val PRESS = 3; const val MID = 4; const val HOLD = 5; const val BACK = 6; const val ICONS = 9
     }
 
     private val main = Handler(Looper.getMainLooper())
@@ -220,7 +223,8 @@ class Ble(private val ctx: Context, private val listener: Listener) {
                     chunks.keys.filter { it != fid }.forEach { chunks.remove(it) }
                     chunks.remove(fid)
                     val all = arr.fold(ByteArray(0)) { a, b -> a + b!! }
-                    Frame.decode(all)?.let { listener.onFrame(it) }
+                    if (all.isNotEmpty() && all[0] == 'I'.code.toByte()) Frame.decodeIcon(all)?.let { listener.onIcon(it.first, it.second) }
+                    else Frame.decode(all)?.let { listener.onFrame(it) }
                 }
                 if (chunks.size > 4) chunks.clear()
             }
@@ -231,8 +235,11 @@ class Ble(private val ctx: Context, private val listener: Listener) {
         fun s16(i: Int) = ((b[i].toInt() and 0xFF) or (b[i + 1].toInt() shl 8)).toShort().toInt()
         fun u32(i: Int) = (0 until 4).fold(0L) { a, k -> a or ((b[i + k].toLong() and 0xFF) shl (8 * k)) }
         val fl = b[7].toInt()
-        return State(b[1].toInt() and 0xFF, b[3].toInt() and 0xFF, b[4].toInt() and 0xFF, b[5].toInt() and 0xFF,
-            fl and 1 != 0, fl and 2 != 0, s16(8) / 1000f, s16(12) / 1000f, u32(26), u32(30))
+        fun u8(i: Int) = b[i].toInt() and 0xFF
+        return State(u8(1), u8(2), u8(3), u8(4), u8(5), u8(6),
+            fl and 1 != 0, fl and 2 != 0, fl and 4 != 0, fl and 8 != 0, fl and 16 != 0, fl and 32 != 0, fl and 64 != 0,
+            s16(8) / 1000f, s16(10) / 1000f, s16(12) / 1000f, s16(14) / 1000f, s16(16) / 100f,
+            u32(18), u32(22), u32(26), u32(30), if (b.size >= 36) s16(34) / 1000f else 0f)
     }
 
     private fun status(t: String) = listener.onStatus(t)

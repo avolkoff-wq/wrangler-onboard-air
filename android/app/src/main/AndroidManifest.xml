@@ -6,8 +6,8 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <application android:label="Wrangler Air" android:icon="@mipmap/ic_launcher" android:allowBackup="false"
         android:theme="@android:style/Theme.DeviceDefault.NoActionBar">
-        <activity android:name=".MainActivity" android:exported="true" android:screenOrientation="portrait"
-            android:keepScreenOn="true" android:configChanges="orientation|screenSize|keyboardHidden">
+        <activity android:name=".MainActivity" android:exported="true" android:screenOrientation="fullUser"
+            android:keepScreenOn="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

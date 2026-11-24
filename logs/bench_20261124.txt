@@ -5570,3 +5570,10 @@
 21:22:31.826 < log
 21:22:37.076 > status
 21:22:37.181 < status
+21:37:34.063 > status
+21:37:34.167 < # fw 0.7.2  preset HIGHWAY  target 2.30 bar  sensor 0.013 bar (0.004 V)  state 0 err 0
+21:37:34.167 < # ADC2 failed samples since the last RUN: 0
+21:37:34.167 < # AUX1 0.00 V  no module  volt check 1  engine confirm 1  valve 1  demo 0
+21:37:34.167 < # tyre 285/70R17  rate 0.0702  kTop 0.0597  offset 0.357  c 0.00  offcap 0.80  tauD 118.0  learned 1/1  cal a 1.0000 b 0.000
+21:37:34.167 < # BT on  bonds 2  connected 1  pairing 0  phone inputs 0
+21:37:34.167 < # compressor 0.13 h  valve 0.08 h  since filter service 0.13 h  boot 21

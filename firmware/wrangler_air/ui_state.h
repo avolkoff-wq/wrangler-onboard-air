@@ -17,6 +17,7 @@ struct UiSnapshot {
   float    est = 0;        // tyre estimate while pumping
   float    target = 0;
   float    staticBar = 0;  // last static measurement
+  float    p0 = 0;         // start pressure of the run (phone progress ring)
   float    aux1 = 0;       // AUX1 volts (0 = no module)
   uint32_t runMs = 0, phaseMs = 0;
   uint32_t adcFails = 0;

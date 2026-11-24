@@ -143,11 +143,13 @@ uint16_t ic(uint8_t r, uint8_t g, uint8_t b) {
 
 // line w px thick
 void wline(float x0, float y0, float x1, float y1, int w, uint16_t c) {
+  dl::icAdd(dl::I_LINE, x0, y0, x1, y1, 0, 0, (uint8_t)max(1, w), c);
   if (w <= 1) canvas.drawLine(lroundf(x0), lroundf(y0), lroundf(x1), lroundf(y1), c);
   else canvas.drawWideLine(lroundf(x0), lroundf(y0), lroundf(x1), lroundf(y1), w / 2.0f, c);
 }
 // convex polygon, fan of triangles
 void fillConvex(const float (*p)[2], int n, uint16_t c) {
+  for (int i = 1; i + 1 < n; i++) dl::icAdd(dl::I_TRI, p[0][0], p[0][1], p[i][0], p[i][1], p[i + 1][0], p[i + 1][1], 0, c);
   for (int i = 1; i + 1 < n; i++)
     canvas.fillTriangle(lroundf(p[0][0]), lroundf(p[0][1]), lroundf(p[i][0]), lroundf(p[i][1]), lroundf(p[i + 1][0]), lroundf(p[i + 1][1]), c);
 }
@@ -167,6 +169,7 @@ void drawSuv(float x, float y, float s, float ang = 0, float sink = 0) {
     suvSpr.setPivot(SUV_PIVOT_X, SUV_PIVOT_Y);
   }
   const float z = SUV_LEN * s / SUV_BMP_W;
+  dl::icAdd(dl::I_SUV, x, y, s * 256 / 8, ang * 100, 0, 0, 0, iconDim ? C_GREY : (uint16_t)TFT_WHITE);
   suvSpr.pushRotateZoomWithAA(&canvas, x, y, ang, z, z, 0);           // palette index 0 transparent
 }
 
@@ -189,9 +192,11 @@ static const float PEBBLES[][3] = {
 #define C_FOAM  ic(170, 210, 240)
 // PIL-style rectangle with inclusive corners
 void rectI(float x0, float y0, float x1, float y1, uint16_t c) {
+  dl::icAdd(dl::I_RECT, x0, y0, x1, y1, 0, 0, 0, c);
   const int a = lroundf(x0), b = lroundf(y0); canvas.fillRect(a, b, lroundf(x1) - a + 1, lroundf(y1) - b + 1, c);
 }
 void rrectI(float x0, float y0, float x1, float y1, float r, uint16_t c) {
+  dl::icAdd(dl::I_RRECT, x0, y0, x1, y1, r, 0, 0, c);
   const int a = lroundf(x0), b = lroundf(y0); canvas.fillRoundRect(a, b, lroundf(x1) - a + 1, lroundf(y1) - b + 1, lroundf(r), c);
 }
 void drawScenery(const char* n, float ox, float g, float s) {
@@ -218,7 +223,7 @@ void drawScenery(const char* n, float ox, float g, float s) {
       const float a = k * PI / 4;
       wline(cx + cosf(a) * r * 1.4f * s, cy + sinf(a) * r * 1.4f * s, cx + cosf(a) * r * 2 * s, cy + sinf(a) * r * 2 * s, max(1, (int)s), C_SUN);
     }
-    canvas.fillCircle(lroundf(cx), lroundf(cy), lroundf(r * s), C_SUN);
+    dl::icAdd(dl::I_CIRCLE, cx, cy, r * s, 0, 0, 0, 0, C_SUN); canvas.fillCircle(lroundf(cx), lroundf(cy), lroundf(r * s), C_SUN);
   };
   auto peak = [&](float u0, float u1, float top) {
     const float um = (u0 + u1) / 2, f = 0.28f;
@@ -264,14 +269,17 @@ void drawScenery(const char* n, float ox, float g, float s) {
 
 // preset icon, box w x 0.62 w, (ox, oy) = top left
 void drawPresetIcon(int preset, float ox, float oy, float w) {
-  dl::add(dl::ICON, lroundf(ox), lroundf(oy), lroundf(w), lroundf(w * 0.62f), iconDim ? C_GREY : (uint16_t)TFT_WHITE, (uint8_t)preset);
-  struct Mute { Mute() { dl::mute++; } ~Mute() { dl::mute--; } } muteIcon;   // the icon's own strokes stay on the DinMeter
+  // the phone gets the icon as vector strokes once (dlist.h icAdd / icEnd) and the frame refers to it by key
+  dl::Item* ref = dl::add(dl::ICON, lroundf(ox), lroundf(oy), lroundf(w), lroundf(w * 0.62f), 0, (uint8_t)preset);
+  dl::icBegin(ox, oy);
+  struct Done { dl::Item* r; ~Done() { const uint16_t k = dl::icEnd(); if (r) r->col = k; } } done{ref};
+  struct Mute { Mute() { dl::mute++; } ~Mute() { dl::mute--; } } muteIcon;   // nothing inside lands in the frame list itself
   const float s = w / 52.0f, h = w * 0.62f, g = oy + h - 6 * s;
   const int lw = max(2, (int)(s * 1.4f));
   auto X = [&](float u) { return ox + u * s; };
   auto ground = [&]() { wline(ox, g, ox + w, g, lw, C_GREY); };
   auto fillUnder = [&](float (*top)(float), uint16_t c) {        // area between a curve (units) and g + 6 units
-    for (int px = 0; px <= (int)w; px++) { const float y = g + top(px / s) * s; canvas.drawFastVLine(lroundf(ox + px), lroundf(y), lroundf(g + 6 * s - y) + 1, c); }
+    for (int px = 0; px <= (int)w; px++) { const float y = g + top(px / s) * s; dl::icAdd(dl::I_RECT, ox + px, y, ox + px, g + 6 * s, 0, 0, 0, c); canvas.drawFastVLine(lroundf(ox + px), lroundf(y), lroundf(g + 6 * s - y) + 1, c); }
   };
   const char* n = PRESETS[preset].name;
   drawScenery(n, ox, g, s);
@@ -291,6 +299,7 @@ void drawPresetIcon(int preset, float ox, float oy, float w) {
     drawSuv(X(9), g, s, -3);
   } else if (!strcmp(n, "GRAVEL")) {
     ground();
+    for (auto& q : PEBBLES) dl::icAdd(dl::I_CIRCLE, X(q[0]), g + q[1] * s, max(1.0f, q[2] * s), 0, 0, 0, 0, C_LGREY);
     for (auto& q : PEBBLES) canvas.fillCircle(lroundf(X(q[0])), lroundf(g + q[1] * s), max(1L, lroundf(q[2] * s)), C_LGREY);
     drawSuv(X(9), g, s);
   } else if (!strcmp(n, "TRAIL")) {
@@ -312,11 +321,13 @@ void drawPresetIcon(int preset, float ox, float oy, float w) {
     fillUnder([](float u) { return -1 + 1.8f * sinf(u / 6.0f); }, C_SAND);        // wheels half in the sand
     const float ax = X(47);
     wline(ax, g - 20 * s, ax, g - 9 * s, lw + 1, ic(255, 165, 0));
+    dl::icAdd(dl::I_TRI, ax - 4 * s, g - 10 * s, ax + 4 * s, g - 10 * s, ax, g - 4 * s, 0, ic(255, 165, 0));
     canvas.fillTriangle(lroundf(ax - 4 * s), lroundf(g - 10 * s), lroundf(ax + 4 * s), lroundf(g - 10 * s), lroundf(ax), lroundf(g - 4 * s), ic(255, 165, 0));
   } else {                                                      // CUSTOM
     ground();
     drawSuv(X(6), g, s);
     const float cx = X(46), cy = g - 17 * s, r = 5.5f * s;
+    dl::icAdd(dl::I_RING, cx, cy, r, 0, 0, 0, (uint8_t)lw, ic(0, 255, 255));
     for (int k = 0; k < lw; k++) canvas.drawCircle(lroundf(cx), lroundf(cy), lroundf(r) - k, ic(0, 255, 255));
     wline(cx - r * 0.55f, cy, cx + r * 0.55f, cy, lw, ic(0, 255, 255));
     wline(cx, cy - r * 0.55f, cx, cy + r * 0.55f, lw, ic(0, 255, 255));

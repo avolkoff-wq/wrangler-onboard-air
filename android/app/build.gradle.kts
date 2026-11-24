@@ -9,8 +9,8 @@ android {
         applicationId = "air.wrangler"
         minSdk = 31
         targetSdk = 34
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 2
+        versionName = "0.2.0"
     }
     buildTypes {
         // installed as a file, not from a store: the debug key signs it

@@ -33,7 +33,7 @@ int takeSteps() {
   return (int)d;
 }
 
-enum class Btn { NONE, SHORT, MID, LONG };   // MID: released between 0.5 and 2.0 s
+enum class Btn { NONE, SHORT, MID, LONG, BACK };   // MID: released between 0.5 and 2.0 s; BACK: the phone back key (0.7.2)
 
 // SHORT: released after 30..500 ms. MID: released between 0.5 and 2.0 s, an aborted hold; screens ignore it,
 // only a running pump treats it as stop.

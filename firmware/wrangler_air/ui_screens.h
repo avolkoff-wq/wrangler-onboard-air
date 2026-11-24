@@ -41,6 +41,7 @@ extern int btPos;
 extern uint32_t btForgetArm;
 extern const char* const MENU[];
 extern const int MENU_N;
+// menu groups: menuGroup, menuLen(), menuEntry(), GROUPS are defined in the .ino before this header
 extern const int OFF_N;
 extern const int OMX_N;
 extern const int SET_N;
@@ -299,31 +300,42 @@ void drawMain() {
 
 void drawMenu() {
   dlClear(TFT_BLACK);
-  const int ht = drawHint("press: select  hold: back  turn: scroll");
-  const Font f = portrait() ? F_SMALL : F_TEXT;
-  canvas.setFont(f);
+  const int ht = drawHint("press: select  hold: exit  turn: scroll");
   canvas.setTextDatum(middle_left);
-  const int rowH = 26, vis = max(1, (ht - 4) / rowH);
-  const int first = constrain(menuPos - vis / 2, 0, max(0, MENU_N - vis));
-  for (int k = 0; k < vis && first + k < MENU_N; k++) {
-    const int i = first + k;
-    const int y = 2 + rowH / 2 + k * rowH;
-    if (i == menuPos) dlFillRRect(3, y - 11, W() - 6, 22, 4, TFT_DARKGREEN);
-    canvas.setTextColor(TFT_WHITE);
-    String t = MENU[i];
-    if (i == M_UNITS)  t += String(": ") + unitName();
-    if (i == M_TYRE)   t += String(": ") + TYRES[settings.tyre].name;
-    if (i == M_OFFSET) t += String(": ") + offText(offIdx());
-    if (i == M_OFFMAX) t += String(": ") + (settings.omAuto ? "AUTO " : "") + String(settings.offCap(), 2);
-    if (i == M_SETTLE) t += String(": ") + setText(setIdx());
-    if (i == M_SCREEN) t += String(": ") + rotName(settings.rot);
-    if (i == M_DEMO || i == M_VALVE || i == M_VCHECK || i == M_ECONF || i == M_WDOG || i == M_VSTUCK || i == M_PSTUCK) {
-      const bool on = i == M_DEMO ? g_demo : i == M_VALVE ? settings.valve : i == M_VCHECK ? settings.vcheck : i == M_WDOG ? settings.wdog : i == M_VSTUCK ? settings.vchk2 : i == M_PSTUCK ? settings.pchk : settings.econfirm;
-      t = String(on ? "[x] " : "[ ] ") + t;
-      if (i == M_ECONF && portrait()) t = String(on ? "[x] " : "[ ] ") + "ENG CONFIRM";
+  int top = 2;
+  if (menuGroup >= 0) {   // group title in grey over the list
+    textAt(String(GROUPS[menuGroup].name), 8, 2, &fonts::Font2, C_LGREY, top_left);
+    top = 19;
+  }
+  const int n = menuLen(), rowH = 26, vis = max(1, (ht - top - 2) / rowH);
+  const int first = constrain(menuPos - vis / 2, 0, max(0, n - vis));
+  for (int k = 0; k < vis && first + k < n; k++) {
+    const int pos = first + k, i = menuEntry(pos);
+    const int y = top + rowH / 2 + k * rowH;
+    if (pos == menuPos) dlFillRRect(3, y - 11, W() - 6, 22, 4, TFT_DARKGREEN);
+    String t; uint16_t col = TFT_WHITE;
+    if (i == -1) { t = "< BACK"; col = C_LGREY; }
+    else if (i <= -2) t = String(GROUPS[-2 - i].name) + " >";
+    else {
+      t = MENU[i];
+      if (i == M_UNITS)  t += String(": ") + unitName();
+      if (i == M_TYRE)   t += String(": ") + TYRES[settings.tyre].name;
+      if (i == M_OFFSET) t += String(": ") + offText(offIdx());
+      if (i == M_OFFMAX) t += String(": ") + (settings.omAuto ? "AUTO " : "") + String(settings.offCap(), 2);
+      if (i == M_SETTLE) t += String(": ") + setText(setIdx());
+      if (i == M_SCREEN) t += String(": ") + rotName(settings.rot);
+      if (i == M_DEMO || i == M_VALVE || i == M_VCHECK || i == M_ECONF || i == M_WDOG || i == M_VSTUCK || i == M_PSTUCK) {
+        const bool on = i == M_DEMO ? g_demo : i == M_VALVE ? settings.valve : i == M_VCHECK ? settings.vcheck : i == M_WDOG ? settings.wdog : i == M_VSTUCK ? settings.vchk2 : i == M_PSTUCK ? settings.pchk : settings.econfirm;
+        t = String(on ? "[x] " : "[ ] ") + t;
+      }
+      if (i == M_RESET && resetArm && millis() - resetArm < 3000) t = "PRESS AGAIN";
+      if (i == M_EXIT) col = C_LGREY;
     }
-    if (i == M_RESET && resetArm && millis() - resetArm < 3000) t = "PRESS AGAIN";
-    else if (i == M_RESET && portrait()) t = "RESET LEARN";
+    // the bold font if it fits, else the regular one, else the 16 px one (portrait is 135 px wide)
+    Font f = F_TEXT; canvas.setFont(f);
+    if (canvas.textWidth(t) > W() - 14) { f = F_SMALL; canvas.setFont(f); }
+    if (canvas.textWidth(t) > W() - 14) { f = &fonts::Font2; canvas.setFont(f); }
+    canvas.setTextColor(col); canvas.setTextDatum(middle_left);
     dlString(t, 8, y);
   }
   push();
@@ -404,7 +416,8 @@ void drawEdit() {
 // menu AUX1 TRIM: the AUX1 volts as shown after the trim; set them to what a multimeter reads on AUX1
 void drawTrim(float shown, float trim) {
   dlClear(TFT_BLACK);
-  drawLines({ {"AUX1 = MULTIMETER", F_TEXT, TFT_CYAN},
+  drawLines({ {"MATCH THE MULTIMETER", F_TEXT, TFT_CYAN, F_SMALL},
+              {"AUX1 power", F_SMALL, C_LGREY},
               {String(shown, 2) + " V", F_LARGE, TFT_GREENYELLOW, F_MID},
               {"trim x" + String(trim, 3), F_SMALL, TFT_LIGHTGREY} }, 0, H() - 18);
   drawHint("press: save  hold: back  turn: 0.05 V");
@@ -486,15 +499,16 @@ void drawOutTest() {
     if (i == outPos) dlFillRRect(3, y - 11, W() - 6, 22, 4, TFT_DARKGREEN);
     canvas.setTextColor(TFT_WHITE);
     const bool on = i < OUT_N - 1 && pump.pulsing() && pump.pulseIsValve() == (i == 1);
-    dlString(i == OUT_N - 1 ? "BACK" : i == 0 ? "COMPRESSOR (K1)" : "VALVE (K4)", 8, y);
+    dlString(i == OUT_N - 1 ? "BACK" : i == 0 ? "COMPRESSOR" : "DEFLATE VALVE", 8, y);
     if (on) { canvas.setTextDatum(middle_right); canvas.setTextColor(i == 1 ? TFT_SKYBLUE : TFT_ORANGE);
               dlString(String("ON ") + String((pump.pulseLeft() + 999) / 1000) + "s", W() - 8, y); canvas.setTextDatum(middle_left); }
   }
   const int y0 = 8 + OUT_N * 24;
   const float vg = sensor.vG1();
-  textAt(sensor.fault() ? String("SENSOR FAULT") : String(fmt(sensor.bar(settings.calA, settings.calB))) + " " + unitName() + "  " + String(vg * DIVIDER, 2) + " V",
+  (void)vg;   // 0.7.2, owner: words, no pin names
+  textAt(sensor.fault() ? String("SENSOR FAULT") : String("pressure ") + fmt(sensor.bar(settings.calA, settings.calB)) + " " + unitName(),
          W() / 2, y0, F_TEXT, sensor.fault() ? TFT_RED : TFT_GREENYELLOW, top_center, F_SMALL, W() - 4);
-  textAt(supply.fitted() ? String("AUX1 ") + String(supply.volts(), 1) + " V" : String("AUX1 --"), W() / 2, y0 + 18, F_TEXT, C_LGREY, top_center, F_SMALL, W() - 4);
+  textAt(supply.fitted() ? String("AUX1 power ") + String(supply.volts(), 1) + " V" : String("AUX1 power: no reading"), W() / 2, y0 + 18, F_TEXT, C_LGREY, top_center, F_SMALL, W() - 4);
   push();
 }
 void drawHours(bool confirm) {
@@ -517,11 +531,13 @@ void drawHours(bool confirm) {
 void drawSensor() {
   dlClear(TFT_BLACK);
   const float vg = sensor.vG1(), vs = vg * DIVIDER;
-  drawLines({ {"SENSOR CHECK", F_TEXT, TFT_CYAN},
-              {"sensor " + String(vs, 2) + " V", F_MID, TFT_WHITE},
-              {SENSOR_PIN_NAME " " + String(vg, 2) + " V", F_MID, TFT_GREENYELLOW},
-              {supply.fitted() ? "AUX1 " + String(supply.volts(), 1) + " V" + (supply.engineOn() ? "  ENGINE ON" : "  ENGINE OFF") : String(""), F_TEXT, C_LGREY},
-              {sensor.fault() ? "OUT OF RANGE" : String(fmt(sensor.bar(settings.calA, settings.calB))) + " " + unitName() + "  (raw " + String(sensor.rawBar(), 2) + ")", F_TEXT, sensor.fault() ? TFT_RED : TFT_WHITE},
+  // 0.7.2, owner: in words, no pin names. Pressure first, then the sensor's output voltage, then the AUX1 supply
+  (void)vg;
+  drawLines({ {"PRESSURE SENSOR", F_TEXT, TFT_CYAN},
+              {sensor.fault() ? String("OUT OF RANGE") : String(fmt(sensor.bar(settings.calA, settings.calB))) + " " + unitName(), F_MID, sensor.fault() ? TFT_RED : TFT_GREENYELLOW},
+              {"sensor output " + String(vs, 2) + " V", F_TEXT, TFT_WHITE, F_SMALL},
+              {"before calibration " + String(sensor.rawBar(), 2) + " bar", F_SMALL, C_LGREY},
+              {supply.fitted() ? "AUX1 power " + String(supply.volts(), 1) + " V" + (supply.engineOn() ? ", engine on" : ", engine off") : String("AUX1 power: no reading"), F_SMALL, C_LGREY},
               }, 0, H() - 18);
   drawHint("press: back");
   push();

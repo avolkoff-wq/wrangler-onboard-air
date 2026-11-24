@@ -74,8 +74,28 @@ int btPos = 0; uint32_t btForgetArm = 0;   // menu BLUETOOTH
 Screen screen = Screen::MAIN;
 int menuPos = 0;
 enum MenuItem { M_CAL, M_LEARN, M_SENSOR, M_OUTPUT, M_DEMO, M_UNITS, M_TYRE, M_OFFSET, M_OFFMAX, M_SETTLE, M_VALVE, M_VSTUCK, M_PSTUCK, M_VCHECK, M_VTRIM, M_ECONF, M_WDOG, M_SCREEN, M_RESET, M_UPDATE, M_WIFIPASS, M_BT, M_VERSION, M_HOURS, M_EXIT };
-const char* const MENU[] = {"CALIBRATE", "LEARN", "SENSOR", "IO TEST", "DEMO", "UNITS", "TYRE", "OFFSET", "OFFSET MAX", "SETTLE", "VALVE", "VALVE CHECK", "PUMP CHECK", "VOLT CHECK", "AUX1 TRIM", "ENGINE CONFIRM", "WATCHDOG", "SCREEN", "RESET LEARNING", "WIFI: UPDATE + LOG", "WIFI PASSWORD", "BLUETOOTH", "VERSION", "HOURS", "EXIT"};
+// 0.7.2, owner: names that explain themselves (labels only, NVS keys unchanged); same order as MenuItem
+const char* const MENU[] = {"CALIBRATE GAUGE", "LEARN TEST", "SENSOR LIVE", "OUTPUT TEST", "DEMO MODE", "UNITS", "TYRE",
+  "FLOW OFFSET", "OFFSET LIMIT", "SETTLE TIME", "VALVE FITTED", "STUCK VALVE ALARM", "STUCK PUMP ALARM", "READ AUX1 VOLTS",
+  "AUX1 VOLT TRIM", "ASK IF ENGINE OFF", "HANG RESTART", "SCREEN", "FORGET LEARNING", "WIFI UPDATE + LOG", "WIFI PASSWORD",
+  "BLUETOOTH", "VERSION + VALUES", "COMPRESSOR HOURS", "EXIT"};
 const int MENU_N = sizeof(MENU) / sizeof(MENU[0]);
+// 0.7.2, owner: the menu in groups. Top level: TYRE (changed often), five groups, EXIT. In a group the last entry is BACK.
+// Entry codes: >= 0 a MenuItem, -1 BACK, <= -2 group (-2 - index). Hold leaves the menu from any level.
+struct MenuGroup { const char* name; const int8_t* items; int n; };
+const int8_t G_SETUP[]   = {M_CAL, M_LEARN, M_UNITS, M_SCREEN, M_DEMO};
+const int8_t G_SERVICE[] = {M_SENSOR, M_OUTPUT, M_HOURS, M_RESET, M_VERSION};
+const int8_t G_CONNECT[] = {M_BT, M_UPDATE, M_WIFIPASS};
+const int8_t G_ALARMS[]  = {M_VALVE, M_VSTUCK, M_PSTUCK, M_VCHECK, M_ECONF, M_WDOG, M_VTRIM};
+const int8_t G_TUNING[]  = {M_OFFSET, M_OFFMAX, M_SETTLE};
+#define MG(n, a) {n, a, (int)(sizeof(a) / sizeof(a[0]))}
+const MenuGroup GROUPS[] = {MG("SETUP", G_SETUP), MG("SERVICE", G_SERVICE), MG("CONNECT", G_CONNECT), MG("SAFETY", G_ALARMS), MG("PUMP TUNING", G_TUNING)};
+#undef MG
+const int8_t MENU_TOP[] = {M_TYRE, -2, -3, -4, -5, -6, M_EXIT};
+constexpr int MENU_TOP_N = sizeof(MENU_TOP);
+int menuGroup = -1;   // -1 = top level
+int menuLen() { return menuGroup < 0 ? MENU_TOP_N : GROUPS[menuGroup].n + 1; }
+int menuEntry(int i) { return menuGroup < 0 ? MENU_TOP[i] : i < GROUPS[menuGroup].n ? GROUPS[menuGroup].items[i] : -1; }
 
 // ---------- OFFSET / SETTLE editor: index 0 = AUTO ----------
 const int OFF_N = 30;                     // 0.05 .. 1.50 bar
@@ -403,7 +423,7 @@ void publishUi(int scr) {
   u.state = (uint8_t)pump.state(); u.err = (uint8_t)pump.error(); u.armStage = armed ? armStage : 0;
   u.k1 = pump.compressorOn(); u.valve = pump.valveOpen(); u.noAir = noAir; u.inBand = pump.inBand(); u.offTarget = pump.offTarget();
   u.fake = g_fakeV >= 0; u.demo = g_demo;
-  u.bar = sensor.bar(settings.calA, settings.calB); u.est = pump.estimate(); u.target = settings.target; u.staticBar = pump.staticBar();
+  u.bar = sensor.bar(settings.calA, settings.calB); u.est = pump.estimate(); u.target = settings.target; u.staticBar = pump.staticBar(); u.p0 = pump.p0();
   u.aux1 = supply.volts(); u.runMs = pump.runMs(); u.phaseMs = pump.phaseMs(); u.adcFails = adc2::fails;
   uiPublish(u);
   ble::update(u);   // notify the phone (ble.h), nothing when BT is off
@@ -521,6 +541,13 @@ void loop() {
   }
   int steps; input::Btn b;           // b not const: MAIN swallows the press that stopped a run
   input::take(steps, b);              // knob and (later) phone through one queue (input.h)
+  // the phone back key (0.7.2): in a menu group one level up, on the main screen nothing (the app handles it),
+  // anywhere else the same as a hold (each screen's own way back)
+  if (b == input::Btn::BACK) {
+    if (screen == Screen::MENU && menuGroup >= 0) { menuPos = 1 + menuGroup; menuGroup = -1; b = input::Btn::NONE; }
+    else if (screen == Screen::MAIN) b = input::Btn::NONE;
+    else b = input::Btn::LONG;
+  }
   // input feedback (0.6.2): tick on a turn, click on a press, a lower tone on a hold, a three-note call when the hold opens
   // the menu. Skipped while a result / error sound plays; a turn is silent during a run (it does nothing there).
   if (!sound::busy()) {
@@ -580,15 +607,18 @@ void loop() {
         else if (settings.preset == P_CUSTOM) { customEdit = settings.custom; customWheels = settings.wheels; customStep = 0; screen = Screen::CUSTOM; }   // check the value first
         else arm();
       }
-      if (b == input::Btn::LONG && !pump.busy()) { disarm("LONG"); screen = Screen::MENU; menuPos = 0; }
+      if (b == input::Btn::LONG && !pump.busy()) { disarm("LONG"); screen = Screen::MENU; menuPos = 0; menuGroup = -1; }
       drawMain();
     } break;
 
     case Screen::MENU:
-      if (steps) menuPos = ((menuPos + steps) % MENU_N + MENU_N) % MENU_N;   // 0.6.2, owner: the menu goes round, EXIT is one step back from CALIBRATE
-      if (b == input::Btn::LONG) screen = Screen::MAIN;
+      if (steps) { const int n = menuLen(); menuPos = ((menuPos + steps) % n + n) % n; }   // round, at every level
+      if (b == input::Btn::LONG) { screen = Screen::MAIN; menuGroup = -1; }          // hold leaves the menu from any level
       if (b == input::Btn::SHORT) {
-        switch (menuPos) {
+        const int e = menuEntry(menuPos);
+        if (e == -1) { menuPos = 1 + menuGroup; menuGroup = -1; }                     // BACK: up, on the group just left
+        else if (e <= -2) { menuGroup = -2 - e; menuPos = 0; }                      // into a group
+        else switch (e) {
           case M_CAL:     pump.stop(); cal.start(); calEngArm = false; screen = Screen::CAL; break;   // no IO TEST pulse left on (review item 5)
           case M_LEARN:   learnPos = 0; screen = Screen::LEARN_PICK; break;
           case M_SENSOR:  screen = Screen::SENSOR; break;

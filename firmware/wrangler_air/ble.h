@@ -2,9 +2,10 @@
 // (UiSnapshot, ui_state.h) and takes the same inputs as the knob through input::send(). All UI state, menus and
 // protections stay in the firmware; a lost link changes nothing in a run.
 //   service 7a1f0001-5c0e-4b6a-9d2f-57a1e5a1c0de
-//   STATE   7a1f0002-...  read + notify, open: any phone may watch. 36 bytes, little endian (pack() below)
+//   STATE   7a1f0002-...  read + notify, open: any phone may watch. 36 bytes, little endian (pack() below); bytes 34-35 p0 (0.7.2)
 //   INPUT   7a1f0003-...  write, needs an authenticated encrypted link (a bonded phone): 1 byte,
-//                         1 = left, 2 = right, 3 = press, 4 = medium press, 5 = hold
+//                         1 = left, 2 = right, 3 = press, 4 = medium press, 5 = hold, 6 = back (one level up),
+//                         9 = send the preset icon again
 //   SCREEN  7a1f0004-...  notify, open: the display list of the current screen (dlist.h), sent in chunks
 //                         [frame id, chunk index, chunk count] + up to MTU - 6 bytes; the phone joins them by frame id
 // Pairing: passkey entry, the DinMeter is display-only. Menu BLUETOOTH > PAIR shows a random 6-digit PIN for 60 s.
@@ -33,6 +34,7 @@ inline NimBLEServer* server = nullptr;
 inline NimBLECharacteristic* stateCh = nullptr;
 inline NimBLECharacteristic* screenCh = nullptr;
 inline volatile bool screenNow = false;   // a phone connected: send the screen at once
+inline volatile bool iconReset = false;   // the phone asked for the icons again (INPUT 9), or a new phone
 inline uint32_t pin = 0, pairUntil = 0;
 // set in the host task, logged in loop()
 inline volatile bool evConn = false, evDisc = false, evPaired = false, evDenied = false;
@@ -53,12 +55,12 @@ inline size_t pack(const UiSnapshot& u, uint8_t* b) {
   p16(8, lroundf(u.bar * 1000)); p16(10, lroundf(u.est * 1000)); p16(12, lroundf(u.target * 1000));
   p16(14, lroundf(u.staticBar * 1000)); p16(16, lroundf(u.aux1 * 100));
   p32(18, u.runMs); p32(22, u.phaseMs); p32(26, u.seq); p32(30, u.adcFails);
-  b[34] = 0; b[35] = 0;   // reserved
+  p16(34, lroundf(u.p0 * 1000));   // start pressure of the run, mbar (0.7.2)
   return 36;
 }
 
 class ServerCb : public NimBLEServerCallbacks {
-  void onConnect(NimBLEServer*, NimBLEConnInfo&) override { evConn = true; screenNow = true; }
+  void onConnect(NimBLEServer*, NimBLEConnInfo&) override { evConn = true; screenNow = true; iconReset = true; }
   void onDisconnect(NimBLEServer*, NimBLEConnInfo&, int reason) override { discReason = reason; evDisc = true; }
   uint32_t onPassKeyDisplay() override { return pairing() ? pin : (esp_random() % 1000000); }   // no window: nobody knows it
   void onAuthenticationComplete(NimBLEConnInfo& ci) override {
@@ -79,6 +81,8 @@ class InputCb : public NimBLECharacteristicCallbacks {
       case 3: ok = input::send(0, input::Btn::SHORT, input::Src::PHONE); break;
       case 4: ok = input::send(0, input::Btn::MID, input::Src::PHONE); break;
       case 5: ok = input::send(0, input::Btn::LONG, input::Src::PHONE); break;
+      case 6: ok = input::send(0, input::Btn::BACK, input::Src::PHONE); break;   // the phone back key: one level up
+      case 9: iconReset = true; ok = true; break;                                  // the phone lost an icon: send again
     }
     if (ok) inputs = inputs + 1;
   }
@@ -126,10 +130,45 @@ inline void forgetAll() {
   wlog::ev("BT_FORGET", "all=1;");
 }
 // every loop pass: log what the host task flagged, notify the screen (on a change at most every NOTIFY_MS, else 1 / s)
-// the newest display-list frame to every connected phone, in chunks that fit the smallest MTU
+// outgoing blob (frame 'D' or icon 'I') in chunks [id, index, count] + data that fit the smallest MTU. Sent a few
+// chunks per loop pass; a chunk the stack can not take (no buffers) is tried again on the next pass, so nothing is lost.
+inline uint8_t out[3400]; inline size_t outN = 0, outPos = 0; inline uint8_t outId = 0, outIdx = 0, outCount = 0; inline size_t outRoom = 0;
+inline bool outBusy() { return outN && outIdx < outCount; }
+inline void queueBlob(const uint8_t* buf, size_t n) {
+  if (!n || n > sizeof out) return;
+  memcpy(out, buf, n); outN = n; outId++; if (out[0] == 'D' && n > 2) out[2] = outId;
+  uint16_t mtu = 517;
+  for (auto h : server->getPeerDevices()) mtu = min(mtu, server->getPeerMTU(h));
+  outRoom = mtu > 30 ? mtu - 3 - 3 : 17;
+  outCount = (n + outRoom - 1) / outRoom; outIdx = 0;
+}
+inline void pumpOut() {
+  static uint8_t chunk[520];
+  for (int k = 0; k < 4 && outBusy(); k++) {
+    const size_t off = outIdx * outRoom, len = min(outRoom, outN - off);
+    chunk[0] = outId; chunk[1] = outIdx; chunk[2] = outCount; memcpy(chunk + 3, out + off, len);
+    if (!screenCh->notify(chunk, len + 3)) return;   // try this chunk again next pass
+    outIdx++;
+  }
+}
+// the newest display-list frame; before it the preset icon once per connection and icon (the phone caches it by key)
 inline void sendScreen() {
-  static uint32_t last = 0, lastFrame = 0; static uint8_t id = 0; static uint8_t prev[1200]; static size_t prevN = 0;
-  if (!screenCh || !connected() || dl::frames == lastFrame) return;
+  static uint32_t last = 0, lastFrame = 0; static uint8_t prev[1200]; static size_t prevN = 0;
+  static uint16_t sentKeys[8] = {0}; static uint8_t sentAt = 0;
+  if (!screenCh || !connected()) { outN = 0; return; }
+  pumpOut();
+  if (outBusy() || dl::frames == lastFrame) return;
+  if (iconReset) { memset(sentKeys, 0, sizeof sentKeys); iconReset = false; }   // once, not while screenNow waits
+  const uint16_t key = dl::icKey;
+  bool known = !key;
+  for (uint16_t k : sentKeys) if (k == key) known = true;
+  if (!known) {   // the icon first, the frame on a later pass
+    static uint8_t ib[3300];
+    queueBlob(ib, dl::icEncode(ib, sizeof ib));
+    sentKeys[sentAt++ % 8] = key;
+    pumpOut();
+    return;
+  }
   const uint32_t now = millis();
   static uint8_t buf[1200];
   const size_t n = dl::encode(buf, sizeof buf, 0);
@@ -137,17 +176,7 @@ inline void sendScreen() {
   if (!screenNow && now - last < (changed ? SCREEN_MS : SCREEN_IDLE_MS)) return;
   screenNow = false; last = now; lastFrame = dl::frames;
   memcpy(prev, buf, n); prevN = n;
-  buf[2] = ++id;
-  uint16_t mtu = 517;
-  for (auto h : server->getPeerDevices()) mtu = min(mtu, server->getPeerMTU(h));
-  const size_t room = mtu > 30 ? mtu - 3 - 3 : 17;
-  const uint8_t count = (n + room - 1) / room;
-  uint8_t chunk[520];
-  for (uint8_t i = 0; i < count; i++) {
-    const size_t off = i * room, len = min(room, n - off);
-    chunk[0] = id; chunk[1] = i; chunk[2] = count; memcpy(chunk + 3, buf + off, len);
-    screenCh->setValue(chunk, len + 3); screenCh->notify();
-  }
+  queueBlob(buf, n); pumpOut();
 }
 inline void update(const UiSnapshot& u) {
   dl::on = on && connected() > 0;
