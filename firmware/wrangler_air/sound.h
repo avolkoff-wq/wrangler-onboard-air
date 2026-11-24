@@ -44,6 +44,9 @@ inline uint32_t workEveryMs(bool valve, float f) {
   return valve ? (uint32_t)(1000 - 750 * f) : (uint32_t)(300 - 230 * f);
 }
 inline void work(bool valve) { if (valve) repeat({1000, 60, 0}, 1); else repeat({2800, 15, 0}, 1); }
+// refused (0.7.5, owner): a start pressed while CONNECT SYSTEM is shown, or with nothing to do: two short low beeps,
+// clearly not the single high "accepted" click. Errors stay three low beeps.
+inline void refuse()         { repeat({LOW_HZ, 110, 90}, 2); }
 inline void done()           { repeat({HIGH_HZ, 1500, 0}, 1); }          // target reached
 inline void inBand()         { beep(2); }                                 // nothing to do, already there
 inline void offTarget()      { repeat({LOW_HZ, 120, 100}, 3); }           // run over, result outside DONE_TOL

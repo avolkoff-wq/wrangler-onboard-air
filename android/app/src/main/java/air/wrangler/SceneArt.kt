@@ -212,25 +212,33 @@ object SceneArt {
             }
             p.color = 0xFF18191B.toInt(); c.drawCircle(wx, cy, tr * 0.81f, p)                 // sidewall
             p.style = Paint.Style.STROKE; p.strokeWidth = tr * 0.018f; p.color = 0xFF26272A.toInt(); c.drawCircle(wx, cy, tr * 0.72f, p); p.style = Paint.Style.FILL
-            // Rubicon 17 in wheel in a 33 in tyre (0.55 of the radius): black, machined spokes, a polished lip
-            p.color = 0xFF0B0B0D.toInt(); c.drawCircle(wx, cy, tr * 0.58f, p)
-            p.style = Paint.Style.STROKE; p.strokeWidth = tr * 0.02f; p.color = 0xFF9DA1A8.toInt(); c.drawCircle(wx, cy, tr * 0.545f, p); p.style = Paint.Style.FILL
-            for (k in 0 until 5) {   // five spokes that split towards the rim, machined face, dark pockets between
+            // Rubicon wheel (owner's car): black, five wide spokes, each a machined silver frame round a black pocket,
+            // a polished ring inside a black lip, five lug nuts round the cap. 17 in wheel in a 33 in tyre.
+            p.color = 0xFF060607.toInt(); c.drawCircle(wx, cy, tr * 0.60f, p)
+            p.style = Paint.Style.STROKE; p.strokeWidth = tr * 0.022f; p.color = 0xFF8F949B.toInt(); c.drawCircle(wx, cy, tr * 0.565f, p); p.style = Paint.Style.FILL
+            p.color = 0xFF0B0B0D.toInt(); c.drawCircle(wx, cy, tr * 0.545f, p)
+            for (k in 0 until 5) {
                 c.save(); c.rotate(Math.toDegrees((wheelTurn + k * 1.2566f).toDouble()).toFloat(), wx, cy)
                 path.reset()
-                path.moveTo(wx + tr * 0.10f, cy - tr * 0.085f); path.lineTo(wx + tr * 0.50f, cy - tr * 0.14f)
-                path.lineTo(wx + tr * 0.52f, cy - tr * 0.06f); path.lineTo(wx + tr * 0.30f, cy)
-                path.lineTo(wx + tr * 0.52f, cy + tr * 0.06f); path.lineTo(wx + tr * 0.50f, cy + tr * 0.14f)
-                path.lineTo(wx + tr * 0.10f, cy + tr * 0.085f); path.close()
+                path.moveTo(wx + tr * 0.13f, cy - tr * 0.085f); path.lineTo(wx + tr * 0.535f, cy - tr * 0.20f); path.lineTo(wx + tr * 0.545f, cy)
+                path.lineTo(wx + tr * 0.535f, cy + tr * 0.20f); path.lineTo(wx + tr * 0.13f, cy + tr * 0.085f); path.close()
                 p.color = Color.BLACK
-                p.shader = LinearGradient(wx + tr * 0.10f, cy, wx + tr * 0.52f, cy, 0xFFB4B8BE.toInt(), 0xFF7E8288.toInt(), Shader.TileMode.CLAMP)
+                p.shader = LinearGradient(wx + tr * 0.13f, cy, wx + tr * 0.54f, cy, 0xFFC0C5CB.toInt(), 0xFF8E9399.toInt(), Shader.TileMode.CLAMP)
                 if (fast) p.alpha = 90
                 c.drawPath(path, p); p.shader = null; p.alpha = 255
+                path.reset()
+                path.moveTo(wx + tr * 0.22f, cy - tr * 0.045f); path.lineTo(wx + tr * 0.49f, cy - tr * 0.135f)
+                path.lineTo(wx + tr * 0.49f, cy + tr * 0.135f); path.lineTo(wx + tr * 0.22f, cy + tr * 0.045f); path.close()
+                p.color = 0xFF0B0B0D.toInt(); if (fast) p.alpha = 120
+                c.drawPath(path, p); p.alpha = 255
                 c.restore()
             }
-            if (fast) { p.color = 0x6E5A5E64; c.drawCircle(wx, cy, tr * 0.5f, p) }
-            p.color = 0xFF111214.toInt(); c.drawCircle(wx, cy, tr * 0.12f, p)                 // hub cap
-            p.color = 0xFF5A5E64.toInt(); c.drawCircle(wx, cy, tr * 0.035f, p)
+            if (fast) { p.color = 0x6E3A3D42; c.drawCircle(wx, cy, tr * 0.53f, p) }
+            p.color = 0xFF16171A.toInt(); c.drawCircle(wx, cy, tr * 0.17f, p)
+            p.color = 0xFF7D8188.toInt()
+            for (k in 0 until 5) { val a = wheelTurn + k * 1.2566f + 0.628f; c.drawCircle(wx + tr * 0.115f * cos(a), cy + tr * 0.115f * sin(a), tr * 0.022f, p) }
+            p.color = 0xFF0A0A0B.toInt(); c.drawCircle(wx, cy, tr * 0.07f, p)
+            p.style = Paint.Style.STROKE; p.strokeWidth = tr * 0.012f; p.color = 0xFF6E7278.toInt(); c.drawCircle(wx, cy, tr * 0.07f, p); p.style = Paint.Style.FILL
         }
         if (ghost) c.restore()
         c.restore()

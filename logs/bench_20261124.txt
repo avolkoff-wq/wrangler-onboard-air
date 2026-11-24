@@ -5907,3 +5907,13 @@
 23:02:14.946 > hold
 23:02:17.031 > ui
 23:02:17.137 < UI,21640,0,0,3,0,2,0,0.013,0.013,1.20,1.000,0.00,0,0,1,0,0,9269,22625
+23:05:25.579 > ui
+23:05:25.684 < UI,25786,0,0,1,0,2,0,0.012,0.012,1.80,1.000,0.00,0,0,1,0,0,9269,211185
+23:06:24.658 > status
+23:06:24.762 < # fw 0.7.5  preset ROUGH ROAD  target 1.80 bar  sensor 0.014 bar (0.004 V)  state 0 err 0
+23:06:24.763 < # ADC2 failed samples since the last RUN: 0
+23:06:24.763 < # AUX1 0.00 V  no module  volt check 1  engine confirm 1  valve 1  demo 0
+23:06:24.763 < # tyre 285/70R17  rate 0.0702  kTop 0.0597  offset 0.357  c 0.00  offcap 0.80  tauD 118.0  learned 1/1  cal a 1.0000 b 0.000
+23:06:24.763 < # BT on  bonds 2  connected 1  pairing 0  phone inputs 0
+23:06:24.763 < # compressor 0.14 h  valve 0.08 h  since filter service 0.14 h  boot 30
+23:06:25.282 > press

@@ -135,7 +135,8 @@ fill(rounded([(1326, 480), (1338, 484), (1340, 518), (1328, 522)], 4), 0xFF1A1B1
 fill(rounded([(1331, 486), (1339, 489), (1340, 514), (1332, 517)], 3), 0xFFF2F5F7, 0xFFB9C2C9)
 
 # ---------------- places the app needs ----------------
-REAR_C, FRONT_C, TYRE = 340, 1238, 125          # wheel centres (photo x) and the 33 in tyre radius (photo px)
+REAR_C, FRONT_C, TYRE = 340, 1210, 125          # wheel centres (photo x) and the 33 in tyre radius (photo px).
+# The front wheel sits under the middle of its flare, as on the stock grey Rubicon; the photo car's lift pushes it 28 px forward.
 WR = TYRE * K
 consts = {
     'W': 512.0, 'H': GROUND,
@@ -187,11 +188,27 @@ if len(sys.argv) > 2:      # preview with the same layers
     out.append('<rect x="-10" y="-4" width="532" height="250" fill="#b9a27a"/><rect x="-10" y="226" width="532" height="24" fill="#7d6a4c"/>')
     out += body_svg
     c = consts
+    def poly(pts, fill): return '<polygon points="' + ' '.join(f'{x:.2f},{y:.2f}' for x, y in pts) + f'" fill="{fill}"/>'
     for cx in (c['REAR_X'], c['FRONT_X']):
-        out.append(f'<circle cx="{cx:.1f}" cy="{c["WHEEL_Y"]:.1f}" r="{WR:.1f}" fill="#141517"/><circle cx="{cx:.1f}" cy="{c["WHEEL_Y"]:.1f}" r="{WR * 0.5:.1f}" fill="#0d0d0f" stroke="#8a8e95" stroke-width="1.5"/>')
+        cy = c['WHEEL_Y']; R = WR
+        out.append(f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="{R * 0.975:.1f}" fill="#141517"/>')
+        for k in range(22):
+            a = math.radians(k * 360 / 22)
+            out.append(f'<rect x="{R * 0.93:.2f}" y="{-R * 0.07:.2f}" width="{R * 0.07:.2f}" height="{R * 0.14:.2f}" fill="#141517" transform="translate({cx:.1f},{cy:.1f}) rotate({math.degrees(a):.1f})"/>')
+        out.append(f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="{R * 0.81:.1f}" fill="#18191b"/>')
+        out.append(f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="{R * 0.60:.1f}" fill="#060607"/>')                      # black lip
+        out.append(f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="{R * 0.565:.1f}" fill="none" stroke="#8f949b" stroke-width="{R * 0.022:.2f}"/>')   # polished ring
+        out.append(f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="{R * 0.545:.1f}" fill="#0b0b0d"/>')
+        for k in range(5):      # five wide spokes: a machined frame round a black pocket
+            a = math.radians(k * 72 - 90); ca, sa = math.cos(a), math.sin(a)
+            def pt(r, t): return (cx + R * (r * ca - t * sa), cy + R * (r * sa + t * ca))
+            out.append(poly([pt(0.13, -0.085), pt(0.535, -0.20), pt(0.545, 0.0), pt(0.535, 0.20), pt(0.13, 0.085)], '#b3b8be'))
+            out.append(poly([pt(0.22, -0.045), pt(0.49, -0.135), pt(0.49, 0.135), pt(0.22, 0.045)], '#0b0b0d'))
+        out.append(f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="{R * 0.17:.1f}" fill="#16171a"/>')
         for k in range(5):
-            a = math.radians(k * 72 - 90)
-            out.append(f'<line x1="{cx + WR * 0.12 * math.cos(a):.1f}" y1="{c["WHEEL_Y"] + WR * 0.12 * math.sin(a):.1f}" x2="{cx + WR * 0.45 * math.cos(a):.1f}" y2="{c["WHEEL_Y"] + WR * 0.45 * math.sin(a):.1f}" stroke="#a9adb3" stroke-width="{WR * 0.17:.1f}"/>')
+            a = math.radians(k * 72 - 54)
+            out.append(f'<circle cx="{cx + R * 0.115 * math.cos(a):.1f}" cy="{cy + R * 0.115 * math.sin(a):.1f}" r="{R * 0.022:.2f}" fill="#7d8188"/>')
+        out.append(f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="{R * 0.07:.1f}" fill="#0a0a0b" stroke="#6e7278" stroke-width="{R * 0.012:.2f}"/>')
     dw = c['DECAL_X1'] - c['DECAL_X0']
     out.append(f'<text x="{c["DECAL_X0"]:.1f}" y="{c["DECAL_Y"]:.1f}" font-family="Arial Black, Arial" font-weight="900" font-size="{c["DECAL_H"] * 1.25:.1f}" textLength="{dw:.1f}" lengthAdjust="spacingAndGlyphs" fill="#b4232a" stroke="#3a0a0d" stroke-width="0.3">RUBICON</text>')
     out.append(f'<text x="{c["BADGE_X"]:.1f}" y="{c["BADGE_Y"]:.1f}" font-family="Arial" font-weight="700" font-style="italic" font-size="{c["BADGE_H"] * 1.2:.1f}" fill="#8e1f2a">Jeep</text>')

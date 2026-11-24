@@ -184,7 +184,7 @@ bool engConfirm() { return settings.econfirm && engine() != Eng::RUN; }   // a t
 bool armed = false; uint8_t armStage = 0; uint32_t armT = 0;
 void arm() {   // only when a start would inflate or deflate
   const IdleDir d = idleDir(settings.target);
-  if (d == D_UP || d == D_DOWN) { armed = true; armStage = 1; armT = millis(); } else beep();
+  if (d == D_UP || d == D_DOWN) { armed = true; armStage = 1; armT = millis(); } else sound::refuse();   // nothing to start: say so
 }
 void disarm(const char* why) { if (!armed) return; armed = false; armStage = 0; wlog::ev("ARM_CANCEL", wlog::kv("reason", String(why))); }
 
@@ -602,7 +602,7 @@ void loop() {
       if (stopNow) { pump.stop(); b = input::Btn::NONE; }   // the same hold must not open the menu right after the stop
       else if (b == input::Btn::SHORT) {
         if (pump.state() == PState::DONE || pump.state() == PState::ERROR) pump.clearResult();
-        else if (startBlocked()) { disarm("NO_AIR"); beep(); }                  // CONNECT SYSTEM: nothing to start
+        else if (startBlocked()) { disarm("NO_AIR"); sound::refuse(); }                  // CONNECT SYSTEM: nothing to start
         else if (armed && armStage == 1 && idleDir(settings.target) == D_UP && engConfirm()) {   // engine off / unknown: confirm first
           armStage = 2; armT = millis(); wlog::ev("ENGINE_CONFIRM", wlog::kv("eng", String(engText(engine()))) + wlog::kv("aux1", supply.volts(), 1));
         }

@@ -12,7 +12,7 @@ object JeepShape {
     const val PIVOT_X = 106.51f
     const val PIVOT_Y = 226.00f
     const val REAR_X = 106.51f
-    const val FRONT_X = 442.11f
+    const val FRONT_X = 431.65f
     const val WHEEL_R = 46.72f
     const val WHEEL_Y = 179.28f
     const val HEAD_X = 479.49f
