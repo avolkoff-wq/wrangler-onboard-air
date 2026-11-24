@@ -56,4 +56,29 @@ Btn button() {
 // how long the button has been held so far, 0 when it is up or the LONG has already fired
 uint32_t heldMs() { return (btnDown && !btnLongSent) ? millis() - btnT : 0; }
 
+// ---------- one input path for the knob and, later, the phone (review item 4) ----------
+// Every source puts {steps, button} events into one FreeRTOS queue: the knob from loop() (poll), a BLE task from its
+// own thread (send). loop() takes them with take(): steps are summed, at most one button per pass, the rest waits.
+// So the BLE code never touches UI state from another thread, and a phone STOP is the same event as a knob press.
+enum class Src : uint8_t { KNOB, PHONE, USB };
+struct Ev { int16_t steps; Btn btn; Src src; };
+inline QueueHandle_t queue = nullptr;
+inline void queueBegin() { if (!queue) queue = xQueueCreate(32, sizeof(Ev)); }
+// thread-safe: may be called from any task (BLE, USB); false = queue full or not started
+inline bool send(int steps, Btn b, Src src) {
+  if (!queue || (!steps && b == Btn::NONE)) return false;
+  const Ev e = {(int16_t)steps, b, src};
+  return xQueueSend(queue, &e, 0) == pdTRUE;
+}
+// knob -> queue, then everything queued -> one pass worth of input
+inline void take(int& steps, Btn& b, Src* src = nullptr) {
+  send(takeSteps(), button(), Src::KNOB);
+  steps = 0; b = Btn::NONE;
+  Ev e;
+  while (queue && xQueueReceive(queue, &e, 0) == pdTRUE) {
+    steps += e.steps;
+    if (e.btn != Btn::NONE) { b = e.btn; if (src) *src = e.src; break; }   // the next button waits for the next pass
+  }
+}
+
 }  // namespace input

@@ -7,7 +7,7 @@
 //   VALVE (deflate valve fitted, schematic C), DEMO (virtual tyres for the desk, never saved, off at every power-up).
 // The USB serial log, LIVE stream and commands are always on.
 #define BENCH_USB 1
-#define FW_VERSION "0.5.4"
+#define FW_VERSION "0.6.0"
 inline bool g_valve = true;     // menu VALVE, saved (Settings::valve)
 inline bool g_demo  = false;    // menu DEMO, RAM only
 inline float g_fakeV = -1;      // USB "fake <bar>": pin voltage the sensor pretends to read (< 0 = off), RAM only
@@ -33,6 +33,11 @@ constexpr int PIN_HOLD     = 46;  // power hold, HIGH = stay on
 // ---------- supply voltage (AUX1) ----------
 constexpr float VBAT_DIV     = 5.0f;   // module 0-25 V: 7.5k / 30k
 constexpr float VBAT_MIN_V   = 6.0f;   // below: no module fitted, engine state unknown -> plain "ENGINE ON?" reminder
+constexpr float VTRIM_MIN = 0.85f, VTRIM_MAX = 1.15f;   // menu AUX1 TRIM range (module + ADC tolerance is a few %)
+constexpr float ENGINE_HYST  = 0.2f;   // engine counts as off again only below ENGINE_ON_V - this (no flicker at 13.2 V)
+constexpr float SENSOR_TAU_MS = 90.0f;  // sensor filter time constant (was 0.2 per 20 ms pass), from the measured pass time
+constexpr float VBAT_TAU_MS   = 390.0f; // AUX1 filter (was 0.05 per 20 ms pass): ignores cranking dips and relay clicks
+inline uint32_t g_loopMaxMs = 0;        // longest main-loop pass since the last RUN start, logged in END
 constexpr float ENGINE_ON_V  = 13.2f;  // at or above: alternator charging, engine runs -> no question before inflating
 constexpr float LOW_V        = 11.5f;  // while the compressor runs (VOLT CHECK, module fitted): below this for LOW_V_MS = stop, ERR LOW VOLTAGE
 constexpr uint32_t LOW_V_MS  = 2000;
@@ -130,6 +135,8 @@ constexpr uint32_t RUN_TIMEOUT_MS= 8UL*60UL*1000UL;
 constexpr int      MAX_TOPUPS    = 3;
 constexpr float    TOPUP_MIN_S   = 0.6f;
 constexpr float    TOPUP_MAX_S   = 20.0f;
+constexpr uint32_t TOPUP_EST_MIN_MS = 1500;  // top-up may stop on the estimate only after this (spin-up skews the offset)
+constexpr float    CAP_GUARD     = 0.02f;   // MAIN / TOPUP always stop by TARGET_MAX - this (est above the cap = ERR OVER)
 constexpr float    LEARN_ALPHA   = 0.3f;   // new = 0.7*old + 0.3*measured
 
 // ---------- air model: start values from the tyre size, then the learning takes over ----------

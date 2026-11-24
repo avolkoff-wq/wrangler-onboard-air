@@ -53,8 +53,8 @@ class Pump {
     if (pulseT_) endPulse(s_->bar(st_->calA, st_->calB), "RUN_START");
     relay(false); valve(false);
     test_ = Mode::NONE; testOk_ = false; testRes_ = 0;
-    err_ = PErr::NONE; topups_ = 0; starts_ = 0; vents_ = 0; inBand_ = false; mode_ = Mode::NONE; runStart_ = millis();
-    adc2::fails = 0;                                   // failed ADC2 samples are counted per run, logged in END
+    err_ = PErr::NONE; topups_ = 0; starts_ = 0; vents_ = 0; inBand_ = false; offTarget_ = false; mode_ = Mode::NONE; runStart_ = millis();
+    adc2::fails = 0; g_loopMaxMs = 0;                  // failed ADC2 samples and the longest loop pass, per run, in END
     wlog::ev("RUN", wlog::kv("target", st_->target, 2) + wlog::kv("fw", FW_VERSION));
     goSettle(Phase::START);
   }
@@ -106,6 +106,7 @@ class Pump {
   PErr   error() const { return err_; }
   Mode   mode() const { return mode_; }
   bool   inBand() const { return inBand_; }        // last run: nothing to do, already within +/-START_BAND
+  bool   offTarget() const { return offTarget_; }  // last run ended DONE but outside DONE_TOL (see done())
   bool   compressorOn() const { return on_; }
   bool   valveOpen() const { return vOn_; }
   float  staticBar() const { return pStatic_; }
@@ -205,17 +206,25 @@ class Pump {
       case PState::MAIN:
         if (est_ > leakRef_ + LEAK_MIN_RISE) { leakRef_ = est_; leakT_ = now; }
         if (now - leakT_ > LEAK_WINDOW_MS) return fail(PErr::LEAK);
-        // aim: real ~ est + bias; stop early by the margin
-        if (est_ + (st_->learned ? st_->bias : 0) >= st_->target - margin()) { markStop(now, sb, "MAIN"); goSettle(Phase::AFTER_MAIN); }
-        break;
-
-      case PState::TOPUP:
-        if (now - t0_ >= topupMs_) {
-          relay(false); pumpTime_ = topupMs_ / 1000.0f;
-          wlog::ev("STOP", wlog::kv("phase", String("TOPUP")) + wlog::kv("t_s", pumpTime_, 2) + wlog::kv("line_bar", sb));
-          goSettle(Phase::AFTER_TOPUP);
+        // aim: real ~ est + bias; stop early by the margin. Never later than just under the cap: a strongly negative
+        // learned bias put the stop point above TARGET_MAX, and est > TARGET_MAX is ERR OVER (review item 10)
+        if (est_ + (st_->learned ? st_->bias : 0) >= st_->target - margin() || est_ >= TARGET_MAX - CAP_GUARD) {
+          markStop(now, sb, "MAIN"); goSettle(Phase::AFTER_MAIN);
         }
         break;
+
+      case PState::TOPUP: {
+        // timed, but not blind: the estimate stops it early, like MAIN (fewer tyres on the line than set, a chuck off:
+        // the timed top-up used to run on to 1.85 bar on a 1.2 target). Not in the first TOPUP_EST_MIN_MS: spin-up.
+        const bool byEst = now - t0_ >= TOPUP_EST_MIN_MS &&
+                           (est_ + (st_->learned ? st_->bias : 0) >= st_->target || est_ >= TARGET_MAX - CAP_GUARD);
+        if (byEst || now - t0_ >= topupMs_) {
+          relay(false); pumpTime_ = (now - t0_) / 1000.0f;
+          wlog::ev("STOP", wlog::kv("phase", String("TOPUP")) + wlog::kv("t_s", pumpTime_, 2) + wlog::kv("line_bar", sb) +
+                           wlog::kv("est_bar", est_) + wlog::kv("by", String(byEst ? "EST" : "TIME")));
+          goSettle(Phase::AFTER_TOPUP);
+        }
+      } break;
 
       case PState::VENT:
         if (now - t0_ >= ventMs_) {
@@ -257,13 +266,19 @@ class Pump {
   bool deadSensor(float sb) const { return sb < DEAD_BAR || s_->rawBar() < DEAD_BAR; }
   // highest legal line reading while / after pumping: the cap + the largest offset the estimate may subtract + 0.1 bar
   float lineMax() const { return TARGET_MAX + (st_->offAuto ? st_->offCap() : st_->offManual) + 0.1f; }
-  void done() { state_ = PState::DONE; endT_ = millis(); logEnd(inBand_ ? "IN_BAND" : "DONE"); }
+  // DONE only when the last static is within DONE_TOL of the target; otherwise OFF_TARGET (out of top-ups / vents,
+  // or over the target without a valve): low beeps and "OFF TARGET" instead of the long success beep (review item 2)
+  void done() {
+    state_ = PState::DONE; endT_ = millis();
+    offTarget_ = !inBand_ && test_ == Mode::NONE && fabsf(st_->target - pStatic_) > DONE_TOL;
+    logEnd(inBand_ ? "IN_BAND" : offTarget_ ? "OFF_TARGET" : "DONE");
+  }
   void logEnd(const String& res) {
     wlog::ev("END", wlog::kv("result", res) + wlog::kv("mode", modeName()) + wlog::kv("target", st_->target, 2) +
                     wlog::kv("p0", p0_, 3) + wlog::kv("p", pStatic_, 3) + wlog::kv("starts", (float)starts_, 0) +
                     wlog::kv("vents", (float)vents_, 0) + wlog::kv("run_s", runMs() / 1000.0f, 1) +
                     wlog::kv("cmp_h", st_->cmpSec / 3600.0f, 2) + wlog::kv("vent_h", st_->ventSec / 3600.0f, 2) +
-                    wlog::kv("adc_fail", (float)adc2::fails, 0));
+                    wlog::kv("adc_fail", (float)adc2::fails, 0) + wlog::kv("loop_max_ms", (float)g_loopMaxMs, 0));
   }
   String modeName() const { return mode_ == Mode::INF ? "INF" : mode_ == Mode::DEF ? "DEF" : "-"; }
   void goSettle(Phase ph) { phase_ = ph; state_ = PState::SETTLE; t0_ = millis(); tS_ = t0_; slope_ = 99; hits_ = 0; rN_ = 0; }
@@ -383,7 +398,9 @@ class Pump {
     const float deficit = st_->target - p;
     if (fabsf(deficit) <= DONE_TOL) return done();
     if (deficit < 0) {                                         // above the target
-      if (mode_ != Mode::DEF || vents_ >= MAX_VENTS) return done();   // inflate build: never vents
+      // with the valve fitted an inflate overshoot is vented back too (it used to end DONE above the target);
+      // without the valve it ends OFF_TARGET
+      if (!DEFLATE || vents_ >= MAX_VENTS) return done();
       return vent(p);
     }
     // below the target: pump (in DEF mode this is the hybrid fix of an overshoot, top-ups only)
@@ -457,7 +474,7 @@ class Pump {
   PState state_ = PState::IDLE; PErr err_ = PErr::NONE; Phase phase_ = Phase::START; Mode mode_ = Mode::NONE;
   Mode test_ = Mode::NONE; bool testOk_ = false; float testRes_ = 0;
   uint32_t pulseT_ = 0, pulseLen_ = OUTPUT_PULSE_MS; bool pulseValve_ = false; float pulseBefore_ = 0;
-  bool on_ = false, vOn_ = false, inBand_ = false;
+  bool on_ = false, vOn_ = false, inBand_ = false, offTarget_ = false;
   int hits_ = 0;
   uint32_t t0_ = 0, runStart_ = 0, endT_ = 0, topupMs_ = 0, ventMs_ = 0, leakT_ = 0, onT_ = 0, tS_ = 0, settleEl_ = 0;
   float pStatic_ = 0, p0_ = 0, est_ = 0, pumpTime_ = 0, leakRef_ = 0, aim_ = 0;

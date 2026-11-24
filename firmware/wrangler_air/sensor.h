@@ -5,6 +5,15 @@
 #include <driver/gpio.h>
 #include "adc2.h"
 
+// EMA factor for the time since the last call (review item 8): the old fixed factors were per loop pass, so a slower
+// loop (portrait redraw, BLE) made every filter slower. First call or a gap over 1 s: 20 ms assumed / clamped.
+inline float emaK(uint32_t& last, float tauMs) {
+  const uint32_t now = millis();
+  uint32_t dt = last ? now - last : 20; last = now;
+  if (dt > 1000) dt = 1000;
+  return 1.0f - expf(-(float)dt / tauMs);
+}
+
 class Sensor {
  public:
   void begin() {
@@ -12,7 +21,7 @@ class Sensor {
     gpio_pulldown_en((gpio_num_t)PIN_SENSOR);           // ...then pull it down: a broken signal wire reads 0 V, not noise
     gpio_pullup_dis((gpio_num_t)PIN_SENSOR);
   }
-  // call every loop: keeps a short running average (~50 ms)
+  // call every loop: running average with a time constant of SENSOR_TAU_MS, whatever the loop pass time
   void update() {
     if (g_fakeV >= 0) { vG1_ = g_fakeV; badSince_ = 0; }   // USB bench: a typed pressure instead of the pin
     else if (BENCH_SIM) { vG1_ = simTyre(); badSince_ = 0; }
@@ -25,7 +34,7 @@ class Sensor {
       if (ok >= ADC_MIN_OK) badSince_ = 0;
       else if (!badSince_) badSince_ = now ? now : 1;
     }
-    filt_ = (filt_ < 0) ? vG1_ : filt_ + 0.2f * (vG1_ - filt_);
+    filt_ = (filt_ < 0) ? vG1_ : filt_ + emaK(lastT_, SENSOR_TAU_MS) * (vG1_ - filt_);
   }
   float vG1() const { return filt_; }
   void  resetFilter() { filt_ = -1; }                   // after DEMO on / off
@@ -43,6 +52,7 @@ class Sensor {
   static inline float simP = SIM_START_BAR;  // real tyre pressure, bar (harness may set it)
   static inline float simFlow = 0;           // 0..1 compressor flow
   static inline uint32_t simLast = 0;
+  static inline float simK = 1.0f;           // desk test: 4 = a quarter of the air volume (one wheel on the line)
  private:
   float simTyre() {
     const uint32_t now = millis();
@@ -50,11 +60,11 @@ class Sensor {
     const float dt = (now - simLast) / 1000.0f; simLast = now;
     const bool on = digitalRead(PIN_K1) == HIGH;
     simFlow += ((on ? 1.0f : 0.0f) - simFlow) * min(1.0f, dt / SIM_SPINUP_S);
-    const float rise = SIM_RATE * simFlow * max(0.0f, 1.0f - simP / SIM_PMAX);
+    const float rise = SIM_RATE * simK * simFlow * max(0.0f, 1.0f - simP / SIM_PMAX);
     simP += rise * dt;
     // deflate valve (K4): choked outflow, absolute pressure falls exponentially; the line reads low while it flows
     const bool vent = PIN_K4 >= 0 && digitalRead(PIN_K4) == HIGH;
-    const float fall = vent ? (simP + P_ATM) / SIM_TAU_D : 0;
+    const float fall = vent ? (simP + P_ATM) / SIM_TAU_D * simK : 0;
     simP = max(0.0f, simP - fall * dt);
     const float noise = SIM_NOISE * ((float)random(-1000, 1000) / 1000.0f);
     const float reading = max(0.0f, simP + SIM_C * rise - SIM_C_D * fall) + noise;
@@ -62,7 +72,7 @@ class Sensor {
   }
  private:
   float vG1_ = 0, filt_ = -1;
-  uint32_t badSince_ = 0;
+  uint32_t badSince_ = 0, lastT_ = 0;
 };
 
 // Averages bar readings over a window (static measurement with the compressor off)
@@ -85,19 +95,26 @@ class Supply {
     for (int i = 0; i < 4; i++) { int m; if (adc2::readMv(PIN_VBAT, m)) { mv += m; ok++; } }
     if (!ok) return;                                    // radio holds ADC2: keep the last value (stale after 1 s, see fitted)
     lastOk_ = millis(); if (!lastOk_) lastOk_ = 1;
-    const float v = mv / ok / 1000.0f * VBAT_DIV;
-    filt_ = (filt_ < 0) ? v : filt_ + 0.05f * (v - filt_);    // slow: ~0.5 s, ignores cranking dips and relay clicks
+    const float v = mv / ok / 1000.0f * VBAT_DIV * trim_;
+    filt_ = (filt_ < 0) ? v : filt_ + emaK(lastT_, VBAT_TAU_MS) * (v - filt_);   // slow: ignores cranking dips and relay clicks
+    // hysteresis: on at ENGINE_ON_V, off only below ENGINE_ON_V - ENGINE_HYST (resting battery near 13.2 V used to flicker)
+    if (filt_ >= ENGINE_ON_V) engOn_ = true; else if (filt_ < ENGINE_ON_V - ENGINE_HYST) engOn_ = false;
   }
+  // menu AUX1 TRIM: volts x trim; rawVolts() is the untrimmed value the trim editor starts from
+  void  setTrim(float t) { if (t > 0) { if (filt_ > 0) filt_ *= t / trim_; trim_ = t; } }
+  float trim() const { return trim_; }
+  float rawVolts() const { return fitted() ? filt_ / trim_ : 0; }
   // no confirmed reading for 1 s counts as "no module": the start asks for the extra press, the guard does not fire
   bool  fitted() const { return PIN_VBAT >= 0 && filt_ >= VBAT_MIN_V && lastOk_ && millis() - lastOk_ < 1000; }
   float volts() const { return fitted() ? filt_ : 0; }
-  bool  engineOn() const { return fitted() && filt_ >= ENGINE_ON_V; }
+  bool  engineOn() const { return fitted() && engOn_; }
   // line shown before inflating: "" engine runs, "ENGINE OFF" measured off, "ENGINE ON?" no module
   const char* engineText() const { return !fitted() ? "ENGINE ON?" : engineOn() ? "" : "ENGINE OFF"; }
 
  private:
-  float filt_ = -1;
-  uint32_t lastOk_ = 0;
+  float filt_ = -1, trim_ = 1.0f;
+  uint32_t lastOk_ = 0, lastT_ = 0;
+  bool engOn_ = false;
 };
 
 enum class Eng { RUN, OFF, NOMOD, NOCHECK };   // engine state before inflating (wrangler_air.ino engine())

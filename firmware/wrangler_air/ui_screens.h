@@ -212,6 +212,7 @@ void drawMain() {
     case PState::TOPUP:     line = String("TOP-UP ") + tm; col = TFT_ORANGE; break;
     case PState::VENT:      line = String(test ? "LEARN " : "VENT ") + tm; col = TFT_SKYBLUE; break;
     case PState::DONE:
+      if (pump.offTarget()) { line = String("OFF TARGET ") + fmt(pump.staticBar()); col = TFT_ORANGE; break; }
       line = pump.inBand() ? "OK, WITHIN 0.1" : String("DONE ") + fmt(pump.staticBar()) + String("  ") + mmss(pump.runMs()); col = TFT_GREEN; break;
     case PState::ERROR:
       col = TFT_RED;
@@ -351,6 +352,16 @@ void drawEdit() {
               {val, F_LARGE, TFT_GREENYELLOW, F_MID},
               {hint, F_SMALL, TFT_LIGHTGREY} }, 0, H() - 18);
   drawHint("turn: change  press: save  hold: back");
+  push();
+}
+
+// menu AUX1 TRIM: the AUX1 volts as shown after the trim; set them to what a multimeter reads on AUX1
+void drawTrim(float shown, float trim) {
+  canvas.fillSprite(TFT_BLACK);
+  drawLines({ {"AUX1 = MULTIMETER", F_TEXT, TFT_CYAN},
+              {String(shown, 2) + " V", F_LARGE, TFT_GREENYELLOW, F_MID},
+              {"trim x" + String(trim, 3), F_SMALL, TFT_LIGHTGREY} }, 0, H() - 18);
+  drawHint("turn: 0.05 V  press: save  hold: back");
   push();
 }
 

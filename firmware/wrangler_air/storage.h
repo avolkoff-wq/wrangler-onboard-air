@@ -17,6 +17,7 @@ struct Settings {
   bool  vchk2   = true;
   bool  pchk    = true;           // menu PUMP CHECK: watch for the compressor running with its output off           // menu VALVE CHECK: watch for a valve stuck open while idle           // menu WATCHDOG: 5 s main-loop watchdog
   bool  econfirm = true;          // menu ENGINE CONFIRM: third press before inflating when the engine is off or unknown
+  float vtrim   = 1.0f;           // menu AUX1 TRIM: AUX1 volts x this, set once against a multimeter (module + ADC tolerance)
 
   // flow offset: dynamic sensor reading minus real tyre pressure
   bool  offAuto   = true;         // true: learned; false: offManual
@@ -96,6 +97,7 @@ struct Settings {
     c            = p.getFloat("c", c);
     omAuto       = p.getBool ("omAuto", omAuto);
     omMan        = p.getFloat("omMan", omMan);
+    vtrim        = p.getFloat("vtrim", vtrim);
     settleAuto   = p.getBool ("setAuto", settleAuto);
     settleManual = p.getFloat("setMan", settleManual);
     settleLearn  = p.getFloat("setLrn", settleLearn);
@@ -137,7 +139,8 @@ struct Settings {
     offManual    = fin(offManual, 0.05f, 1.5f, DEFAULT_OFFSET);           // menu range
     offset       = fin(offset, 0.0f, 2.0f, DEFAULT_OFFSET);               // learnMain accepts < 2.0
     c            = fin(c, 0.0f, 240.0f, 0.0f);
-    omMan        = fin(omMan, OFFMAX_LO, OFFMAX_HI, OFFMAX_DEFAULT);       // menu range                            // learned 0.5..60, x4 room for tyre / wheel scaling
+    vtrim        = fin(vtrim, VTRIM_MIN, VTRIM_MAX, 1.0f);
+        omMan        = fin(omMan, OFFMAX_LO, OFFMAX_HI, OFFMAX_DEFAULT);       // menu range                            // learned 0.5..60, x4 room for tyre / wheel scaling
     settleManual = fin(settleManual, 0.5f, 10.0f, SETTLE_MS / 1000.0f);  // menu range
     settleLearn  = fin(settleLearn, 0.0f, 10.0f, SETTLE_MS / 1000.0f);
     rate         = fin(rate, 0.0001f, 2.0f, DEFAULT_RATE);
@@ -169,6 +172,7 @@ struct Settings {
     p.putFloat("c", w.c);
     p.putBool ("omAuto", omAuto);
     p.putFloat("omMan", omMan);
+    p.putFloat("vtrim", vtrim);
     p.putBool ("setAuto", settleAuto);
     p.putFloat("setMan", settleManual);
     p.putFloat("setLrn", settleLearn);

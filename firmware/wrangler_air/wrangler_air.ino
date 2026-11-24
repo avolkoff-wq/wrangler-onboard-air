@@ -53,6 +53,9 @@
 #include "log.h"
 #include "trace.h"
 #include "input.h"
+#include "guards.h"
+#include "sound.h"
+#include "ui_state.h"
 #include <algorithm>
 
 Settings settings;
@@ -62,14 +65,15 @@ Pump pump;
 Calibration cal;
 Ota ota;
 Trace trace;   // pressure trace of the current run, written to /runs at its end
+Guards guards; // idle safety checks: VALVE CHECK, PUMP CHECK, battery guard (guards.h)
 M5Canvas canvas(&M5.Display);
 
 enum IdleDir { D_UP, D_DOWN, D_OK, D_ABOVE, D_DEAD };   // what a start would do from the idle screen
 enum class Screen { MAIN, MENU, EDIT, CAL, OTA, VERSION, SENSOR, CUSTOM, LEARN_PICK, LEARN_CONF, LEARN_MSG, HOURS, HOURS_CONF, OUT_TEST, WIFI_PASS };
 Screen screen = Screen::MAIN;
 int menuPos = 0;
-enum MenuItem { M_CAL, M_LEARN, M_SENSOR, M_OUTPUT, M_DEMO, M_UNITS, M_TYRE, M_OFFSET, M_OFFMAX, M_SETTLE, M_VALVE, M_VSTUCK, M_PSTUCK, M_VCHECK, M_ECONF, M_WDOG, M_SCREEN, M_RESET, M_UPDATE, M_WIFIPASS, M_VERSION, M_HOURS, M_EXIT };
-const char* const MENU[] = {"CALIBRATE", "LEARN", "SENSOR", "IO TEST", "DEMO", "UNITS", "TYRE", "OFFSET", "OFFSET MAX", "SETTLE", "VALVE", "VALVE CHECK", "PUMP CHECK", "VOLT CHECK", "ENGINE CONFIRM", "WATCHDOG", "SCREEN", "RESET LEARNING", "WIFI: UPDATE + LOG", "WIFI PASSWORD", "VERSION", "HOURS", "EXIT"};
+enum MenuItem { M_CAL, M_LEARN, M_SENSOR, M_OUTPUT, M_DEMO, M_UNITS, M_TYRE, M_OFFSET, M_OFFMAX, M_SETTLE, M_VALVE, M_VSTUCK, M_PSTUCK, M_VCHECK, M_VTRIM, M_ECONF, M_WDOG, M_SCREEN, M_RESET, M_UPDATE, M_WIFIPASS, M_VERSION, M_HOURS, M_EXIT };
+const char* const MENU[] = {"CALIBRATE", "LEARN", "SENSOR", "IO TEST", "DEMO", "UNITS", "TYRE", "OFFSET", "OFFSET MAX", "SETTLE", "VALVE", "VALVE CHECK", "PUMP CHECK", "VOLT CHECK", "AUX1 TRIM", "ENGINE CONFIRM", "WATCHDOG", "SCREEN", "RESET LEARNING", "WIFI: UPDATE + LOG", "WIFI PASSWORD", "VERSION", "HOURS", "EXIT"};
 const int MENU_N = sizeof(MENU) / sizeof(MENU[0]);
 
 // ---------- OFFSET / SETTLE editor: index 0 = AUTO ----------
@@ -81,6 +85,7 @@ const int OMX_N = 25;                     // OFFSET MAX: index 0 = AUTO, 1..25 =
 float omxVal(int i) { return OFFMAX_LO - 0.05f + i * 0.05f; }
 int editItem = M_OFFSET, editIdx = 0;
 float customEdit = 2.0f;   // value being set on the CUSTOM screen
+float trimEdit = 1.0f;     // AUX1 TRIM being set
 int customStep = 0;        // CUSTOM screen: 0 = pressure, 1 = number of wheels
 uint8_t customWheels = 4;
 uint32_t resetArm = 0;   // RESET LEARNING waits for a second press
@@ -88,20 +93,10 @@ int offIdx() { return settings.offAuto ? 0 : constrain((int)roundf(settings.offM
 int omxIdx() { return settings.omAuto ? 0 : constrain((int)roundf((settings.omMan - OFFMAX_LO) / 0.05f) + 1, 1, OMX_N); }
 int setIdx() { return settings.settleAuto ? 0 : constrain((int)roundf((settings.settleManual - 0.5f) / 0.5f), 1, SET_N); }
 
-constexpr uint32_t DONE_BEEP_MS = 1500;   // long beep when a run reaches its target
 // ARM_MS / HOLD_SHOW_MS live in ui_screens.h (UI_ARM_MS) so idle drawing sees them
-
-void beep(int n = 1) {
-  for (int i = 0; i < n; i++) { M5.Speaker.tone(3500, 120); delay(180); }
-}
-// patterned error beeps (non-blocking tones after short gaps)
-// Sounds: high = good (one long: target reached, two short: already within the band), low = look at the screen.
-// Every error: three short low beeps. OVER (pressure above the safe limit) is the only one to come at once: a fast low series ~2 s.
-constexpr int TONE_LOW = 1800;
-void beepErr(PErr e) {
-  if (e == PErr::OVER || e == PErr::PUMP_ON) { for (int i = 0; i < 10; i++) { M5.Speaker.tone(TONE_LOW, 90); delay(200); } return; }
-  for (int i = 0; i < 3; i++) { M5.Speaker.tone(TONE_LOW, 120); delay(220); }
-}
+// Sounds (sound.h, non-blocking): high = good (one long: target reached, two short: already within the band),
+// low = look at the screen (three short: any error or OFF TARGET; a fast series ~2 s: OVER, PUMP_ON).
+void beep(int n = 1) { sound::beep(n); }
 
 // drawing / screens (need enums and globals above)
 #include "ui_draw.h"
@@ -241,7 +236,7 @@ void benchCommand(String c) {
   c.trim(); c.toLowerCase();
   if (!c.length()) return;
   if (c == "help") {
-    Serial.println("# commands: status | log | runs | run <id> | clear | pulse k1 | pulse valve | k1 on|off | valve on|off | fake <bar>|off | io | help");
+    Serial.println("# commands: status | log | runs | run <id> | clear | pulse k1 | pulse valve | k1 on|off | valve on|off | fake <bar>|off | io | ui | press | hold | left | right | help");
     Serial.println("# k1 / valve on: held up to 30 s, never both; fake: the sensor reads the typed pressure (FAKE tag), off at power-up");
   } else if (c == "status") {
     Serial.printf("# fw %s  preset %s  target %.2f bar  sensor %.3f bar (%.3f V)%s  state %d err %d\n", FW_VERSION,
@@ -273,18 +268,26 @@ void benchCommand(String c) {
     benchDump(("/runs/" + id).c_str());
   } else if (c == "clear") {
     wlog::clear(); wlog::ev("LOG", "cleared=1;"); Serial.println("# log cleared (runs kept)");
-  } else if (ota.running() && !c.endsWith("off") && (c.startsWith("pulse") || c.startsWith("k1") || c.startsWith("valve"))) {
-    // Wi-Fi is on: the sensor (ADC2) can not be read, so the pressure cut-offs of a pulse would be blind
-    Serial.println("# blocked: Wi-Fi UPDATE is on, outputs stay off");
+  } else if ((ota.running() || cal.active()) && !c.endsWith("off") && (c.startsWith("pulse") || c.startsWith("k1") || c.startsWith("valve"))) {
+    // Wi-Fi is on: the sensor (ADC2) can not be read, so the pressure cut-offs of a pulse would be blind.
+    // Calibration: K1 is the calibration's, an extra pulse would spoil the point (review item 5)
+    Serial.println(ota.running() ? "# blocked: Wi-Fi UPDATE is on, outputs stay off" : "# blocked: calibration is running");
   } else if (c == "pulse k1" || c == "pulse valve") {
     const bool v = c.endsWith("valve");
     if (v && !DEFLATE) Serial.println("# no valve in this build");
     else if (!pump.pulse(v)) Serial.println("# blocked: a run or a pulse is active");
     else Serial.printf("# %s pulse %lu ms\n", v ? "VALVE" : "K1", (unsigned long)OUTPUT_PULSE_MS);
-  } else if (c == "io") {   // one line for the Mac bench app: IO,t,bar,pinV,aux1V,k1,valve,fake,state,err
-    Serial.printf("IO,%.1f,%.3f,%.3f,%.2f,%d,%d,%d,%d,%d,%lu\n", millis() / 1000.0f, sensor.bar(settings.calA, settings.calB), sensor.vG1(),
-                  supply.volts(), pump.compressorOn() ? 1 : 0, pump.valveOpen() ? 1 : 0, g_fakeV >= 0 ? 1 : 0, (int)pump.state(), (int)pump.error(),
-                  (unsigned long)adc2::fails);   // last field: failed ADC2 samples since the last RUN
+  } else if (c == "io") {   // one line for the Mac bench app: IO,t,bar,pinV,aux1V,k1,valve,fake,state,err,adcfail
+    const UiSnapshot u = uiRead();
+    Serial.printf("IO,%.1f,%.3f,%.3f,%.2f,%d,%d,%d,%d,%d,%lu\n", millis() / 1000.0f, u.bar, sensor.vG1(),
+                  u.aux1, u.k1, u.valve, u.fake, u.state, u.err, (unsigned long)u.adcFails);   // last field: failed ADC2 samples since the last RUN
+  } else if (c == "ui") {   // the screen as data (ui_state.h): what the BLE notify will send
+    const UiSnapshot u = uiRead();
+    Serial.printf("UI,%lu,%d,%d,%d,%d,%d,%d,%.3f,%.3f,%.2f,%.3f,%.2f,%d,%d,%d,%d,%d,%lu,%lu\n", (unsigned long)u.seq, u.screen, u.menuPos,
+                  u.preset, u.state, u.err, u.armStage, u.bar, u.est, u.target, u.staticBar, u.aux1, u.k1, u.valve, u.noAir,
+                  u.inBand, u.offTarget, (unsigned long)u.runMs, (unsigned long)u.phaseMs);
+  } else if (c == "press" || c == "hold" || c == "left" || c == "right") {   // the phone path, typed: same queue as the knob
+    input::send(c == "left" ? -1 : c == "right" ? 1 : 0, c == "press" ? input::Btn::SHORT : c == "hold" ? input::Btn::LONG : input::Btn::NONE, input::Src::USB);
   } else if (c == "k1 on" || c == "valve on") {
     const bool v = c.startsWith("valve");
     if (v && !DEFLATE) Serial.println("# no valve (menu VALVE off)");
@@ -363,6 +366,28 @@ void markAppValid() {
   }
 }
 
+// reset reason for the BOOT line (review item 7)
+const char* resetName(esp_reset_reason_t r) {
+  switch (r) {
+    case ESP_RST_POWERON: return "POWERON";   case ESP_RST_SW: return "SW";           case ESP_RST_PANIC: return "PANIC";
+    case ESP_RST_INT_WDT: return "INT_WDT";   case ESP_RST_TASK_WDT: return "TASK_WDT"; case ESP_RST_WDT: return "WDT";
+    case ESP_RST_BROWNOUT: return "BROWNOUT"; case ESP_RST_DEEPSLEEP: return "DEEPSLEEP"; case ESP_RST_EXT: return "EXT";
+    case ESP_RST_USB: return "USB";           default: return "OTHER";
+  }
+}
+
+// the screen as data, once per pass (ui_state.h)
+void publishUi(int scr) {
+  UiSnapshot u = uiRead();
+  u.seq++; u.screen = (uint8_t)scr; u.menuPos = (uint8_t)menuPos; u.preset = settings.preset;
+  u.state = (uint8_t)pump.state(); u.err = (uint8_t)pump.error(); u.armStage = armed ? armStage : 0;
+  u.k1 = pump.compressorOn(); u.valve = pump.valveOpen(); u.noAir = noAir; u.inBand = pump.inBand(); u.offTarget = pump.offTarget();
+  u.fake = g_fakeV >= 0; u.demo = g_demo;
+  u.bar = sensor.bar(settings.calA, settings.calB); u.est = pump.estimate(); u.target = settings.target; u.staticBar = pump.staticBar();
+  u.aux1 = supply.volts(); u.runMs = pump.runMs(); u.phaseMs = pump.phaseMs(); u.adcFails = adc2::fails;
+  uiPublish(u);
+}
+
 // ---------- setup / loop ----------
 void setup() {
   // outputs first: compressor and K4 must never twitch at boot
@@ -380,7 +405,8 @@ void setup() {
   settings.load();
   settings.bootN++; settings.save();
   wlog::begin(settings.bootN);
-  wlog::ev("BOOT", wlog::kv("fw", FW_VERSION) + wlog::kv("tyre", String(TYRES[settings.tyre].name)) + wlog::kv("air_L", settings.airL(), 0) + wlog::kv("target", settings.target, 2) +
+  const esp_reset_reason_t rr = esp_reset_reason();
+  wlog::ev("BOOT", wlog::kv("fw", FW_VERSION) + wlog::kv("reset", String(resetName(rr))) + wlog::kv("tyre", String(TYRES[settings.tyre].name)) + wlog::kv("air_L", settings.airL(), 0) + wlog::kv("target", settings.target, 2) +
                    wlog::kv("offset", settings.offset) + wlog::kv("c", settings.c, 2) + wlog::kv("offcap", settings.offCap()) + wlog::kv("rate", settings.rate, 4) +
                    wlog::kv("kTop", settings.kTop, 4) + wlog::kv("bias", settings.bias) + wlog::kv("dev", settings.dev) +
                    wlog::kv("learned", settings.learned ? "1" : "0") + wlog::kv("tauD", settings.tauD, 1) +
@@ -393,10 +419,13 @@ void setup() {
   pump.begin(&sensor, &settings);
   cal.begin(&sensor, &settings);
   input::begin();
+  input::queueBegin();
+  supply.setTrim(settings.vtrim);
   splash();          // outputs are already off; sensor and pump wait
 
+  // supply dip (engine crank, loose -X7 contact): the restart cut the outputs; logged so it is not mistaken for AUX1 off
+  if (rr == ESP_RST_BROWNOUT) wlog::ev("BROWNOUT_RESET", "");
   // the last start was a watchdog reset or a crash: outputs were cut by the restart, say so
-  const esp_reset_reason_t rr = esp_reset_reason();
   if (rr == ESP_RST_TASK_WDT || rr == ESP_RST_INT_WDT || rr == ESP_RST_WDT || rr == ESP_RST_PANIC) {
     const bool wdt = rr != ESP_RST_PANIC;
     wlog::ev(wdt ? "WATCHDOG_RESET" : "CRASH_RESET", wlog::kv("reason", String((int)rr)));
@@ -414,7 +443,13 @@ void setup() {
 }
 
 void loop() {
+  {   // longest pass since the last RUN start (logged in END): the filters run on time, this shows how slow it got
+    static uint32_t lastPass = 0; const uint32_t t = millis();
+    if (lastPass && t - lastPass > g_loopMaxMs) g_loopMaxMs = t - lastPass;
+    lastPass = t;
+  }
   if (settings.wdog) esp_task_wdt_reset();
+  sound::update();
   markAppValid();
   M5.update();
   // ADC2 (G13 sensor, G15 AUX1) can not be read while Wi-Fi is on: keep the last values instead of reading junk
@@ -422,73 +457,27 @@ void loop() {
   if (!ota.running()) { sensor.update(); supply.update(); }
   // idle for the stuck-output checks: nothing of ours drives K1 / K4. Calibration pumps K1 directly (calibration.h),
   // so it must count as busy, or PUMP CHECK sees its rise as "no signal, pressure rising" and stops it.
-  const bool chkIdle = !pump.busy() && !pump.pulsing() && !cal.active() && !ota.running() && !g_demo;
-  {   // valve stuck open: idle, both outputs off, the line falls steadily (menu VALVE CHECK, only with VALVE)
-    // One alarm per episode, like PUMP CHECK: re-armed after the line stopped falling for PCHK_REARM_S or after a run.
-    // Before, ERROR counted as idle and the alarm came again every ~26 s while the line kept falling.
-    static float hist[VCHK_WINDOW_S + 1]; static int n = 0; static uint32_t lastS = 0, quietT = 0, steadyS = 0; static bool fired = false;
-    if (!chkIdle || !settings.vchk2 || !g_valve || sensor.fault()) { n = 0; quietT = millis(); if (pump.busy()) fired = false; }
-    else if (millis() - quietT > VCHK_QUIET_MS && millis() - lastS >= 1000) {
-      lastS = millis();
-      const float p = sensor.bar(settings.calA, settings.calB);
-      if (n <= VCHK_WINDOW_S) hist[n++] = p; else { memmove(hist, hist + 1, VCHK_WINDOW_S * sizeof(float)); hist[VCHK_WINDOW_S] = p; }
-      if (n > VCHK_WINDOW_S) {
-        int down = 0; float maxStep = 0;
-        for (int i = 1; i <= VCHK_WINDOW_S; i++) { const float d = hist[i - 1] - hist[i]; if (d > 0) down++; maxStep = max(maxStep, d); }
-        const float rate = (hist[0] - hist[VCHK_WINDOW_S]) / VCHK_WINDOW_S;
-        if (fired) {   // wait until it stops falling
-          steadyS = (fabsf(hist[VCHK_WINDOW_S] - hist[VCHK_WINDOW_S - 1]) < 0.01f) ? steadyS + 1 : 0;
-          if (steadyS >= PCHK_REARM_S) { fired = false; steadyS = 0; }
-        }
-        if (!fired && hist[0] > VCHK_MIN_BAR && rate > VCHK_MIN && rate < VCHK_MAX && maxStep < 0.15f && down >= VCHK_WINDOW_S * 2 / 3) {
-          wlog::ev("VALVE_STUCK", wlog::kv("p", p) + wlog::kv("rate", rate, 4));
-          pump.valveStuck(p); fired = true; steadyS = 0;
-        }
-      }
-    }
-  }
-  {   // compressor stuck on: idle, both outputs off, yet the line keeps rising (menu PUMP CHECK)
-    // the air comes from another source: AUX2 bypass (on purpose or forgotten), a welded Unit 2Relay contact, or the ARB relay.
-    // One alarm per episode: re-armed only after the line has been steady again for PCHK_REARM_S (AUX2 used on purpose = one alarm).
-    static float hist[PCHK_WINDOW_S + 1]; static int n = 0; static uint32_t lastS = 0, quietT = 0, steadyS = 0; static bool fired = false;
-    if (!chkIdle || !settings.pchk || sensor.fault()) { n = 0; quietT = millis(); if (pump.busy() || cal.active()) fired = false; }
-    else if (millis() - quietT > VCHK_QUIET_MS && millis() - lastS >= 1000) {
-      lastS = millis();
-      const float p = sensor.bar(settings.calA, settings.calB);
-      if (n <= PCHK_WINDOW_S) hist[n++] = p; else { memmove(hist, hist + 1, PCHK_WINDOW_S * sizeof(float)); hist[PCHK_WINDOW_S] = p; }
-      const int last = n - 1;   // newest sample
-      // "above PCHK_HIGH for 3 s" = the last 4 one-second samples. Checked as soon as there are 4, not only once the
-      // 20 s rise window is full (it used to fire ~21 s after the quiet time instead of 3 s)
-      bool high = n >= 4;
-      for (int i = last - 3; high && i <= last; i++) high = hist[i] > PCHK_HIGH;
-      if (fired && n >= 2) {   // wait until it stops rising
-        steadyS = (fabsf(hist[last] - hist[last - 1]) < 0.01f) ? steadyS + 1 : 0;
-        if (steadyS >= PCHK_REARM_S) { fired = false; steadyS = 0; }
-      }
-      bool rising = false; float rise = 0;
-      if (n > PCHK_WINDOW_S) {
-        int up = 0; float maxStep = 0;
-        for (int i = 1; i <= PCHK_WINDOW_S; i++) { const float d = hist[i] - hist[i - 1]; if (d > 0.005f) up++; maxStep = max(maxStep, d); }
-        rise = hist[PCHK_WINDOW_S] - hist[0];
-        rising = rise > PCHK_RISE && up >= PCHK_UP && maxStep < 0.8f * rise;
-      }
-      if (!fired && (high || rising)) {
-        wlog::ev("PUMP_STUCK", wlog::kv("p", p) + wlog::kv("rise", rise) + wlog::kv("high", String(high ? 1 : 0)));
-        pump.pumpStuck(p); fired = true; steadyS = 0;
-      }
-    }
-  }
-  {   // battery guard: compressor running, AUX1 below LOW_V for LOW_V_MS -> stop (VOLT CHECK on, module fitted)
-    // covers a run (ERR LOW VOLTAGE), IO TEST / USB "k1 on" (output off) and calibration pumping (CAL FAILED)
-    static uint32_t lowT = 0;
+  {
     const bool calPump = cal.state() == CState::PUMPING;
-    const bool low = settings.vcheck && supply.fitted() && (pump.compressorOn() || calPump) && supply.volts() < LOW_V;
-    if (!low) lowT = 0;
-    else if (!lowT) lowT = millis();
-    else if (millis() - lowT >= LOW_V_MS) {
-      wlog::ev("LOW_VOLTAGE", wlog::kv("aux1", supply.volts(), 1) + wlog::kv("in", String(calPump ? "CAL" : pump.busy() ? "RUN" : "PULSE")));
-      if (calPump) cal.fail("low_voltage"); else pump.lowVoltage();
-      lowT = 0;
+    GuardIn gi;
+    gi.now = millis();
+    gi.idle = !pump.busy() && !pump.pulsing() && !cal.active() && !ota.running() && !g_demo;
+    gi.fault = sensor.fault(); gi.p = sensor.bar(settings.calA, settings.calB);
+    gi.vchkOn = settings.vchk2 && g_valve; gi.pchkOn = settings.pchk;
+    gi.pumpBusy = pump.busy(); gi.calActive = cal.active();
+    gi.compressorOn = pump.compressorOn() || calPump;
+    gi.voltOk = settings.vcheck && supply.fitted(); gi.volts = supply.volts();
+    switch (guards.update(gi)) {
+      case GuardEv::VALVE_STUCK:
+        wlog::ev("VALVE_STUCK", wlog::kv("p", gi.p) + wlog::kv("rate", guards.rate(), 4)); pump.valveStuck(gi.p); break;
+      case GuardEv::PUMP_STUCK:
+        wlog::ev("PUMP_STUCK", wlog::kv("p", gi.p) + wlog::kv("rise", guards.rise()) + wlog::kv("high", String(guards.high() ? 1 : 0)));
+        pump.pumpStuck(gi.p); break;
+      case GuardEv::LOW_V:   // run: ERR LOW VOLTAGE; IO TEST / USB "k1 on": output off; calibration: CAL FAILED
+        wlog::ev("LOW_VOLTAGE", wlog::kv("aux1", gi.volts, 1) + wlog::kv("in", String(calPump ? "CAL" : pump.busy() ? "RUN" : "PULSE")));
+        if (calPump) cal.fail("low_voltage"); else pump.lowVoltage();
+        break;
+      default: break;
     }
   }
   pump.update();
@@ -501,8 +490,25 @@ void loop() {
 #endif
   ota.update();
 
-  int steps = input::takeSteps();
-  input::Btn b = input::button();   // not const: MAIN swallows the press that stopped a run
+  int steps; input::Btn b;           // b not const: MAIN swallows the press that stopped a run
+  input::take(steps, b);              // knob and (later) phone through one queue (input.h)
+
+  // a run result or an error is announced on every screen (review item 6): VALVE / PUMP CHECK or a failing run used to
+  // stay silent while the menu (or SENSOR, HOURS ...) was open. Errors bring the main screen up, except in CAL and OTA.
+  {
+    static PState prev = PState::IDLE;
+    const PState ps = pump.state();
+    if (ps != prev) {
+      if (ps == PState::ERROR) {
+        sound::error(pump.error());
+        if (screen != Screen::MAIN && screen != Screen::CAL && screen != Screen::OTA) { screen = Screen::MAIN; b = input::Btn::NONE; steps = 0; }
+        disarm("ERROR");
+      } else if (ps == PState::DONE) {
+        if (pump.inBand()) sound::inBand(); else if (pump.offTarget()) sound::offTarget(); else sound::done();
+      }
+      prev = ps;
+    }
+  }
 
   switch (screen) {
     case Screen::MAIN: {
@@ -539,15 +545,6 @@ void loop() {
         else arm();
       }
       if (b == input::Btn::LONG && !pump.busy()) { disarm("LONG"); screen = Screen::MENU; menuPos = 0; }
-      static PState prev = PState::IDLE;
-      if (pump.state() != prev) {
-        if (pump.state() == PState::DONE) {
-          if (pump.inBand()) beep(2);                                  // nothing to do, already there
-          else M5.Speaker.tone(3500, DONE_BEEP_MS);                    // target reached: one long beep, non-blocking
-        }
-        if (pump.state() == PState::ERROR) beepErr(pump.error());
-        prev = pump.state();
-      }
       drawMain();
     } break;
 
@@ -556,7 +553,7 @@ void loop() {
       if (b == input::Btn::LONG) screen = Screen::MAIN;
       if (b == input::Btn::SHORT) {
         switch (menuPos) {
-          case M_CAL:     cal.start(); calEngArm = false; screen = Screen::CAL; break;
+          case M_CAL:     pump.stop(); cal.start(); calEngArm = false; screen = Screen::CAL; break;   // no IO TEST pulse left on (review item 5)
           case M_LEARN:   learnPos = 0; screen = Screen::LEARN_PICK; break;
           case M_SENSOR:  screen = Screen::SENSOR; break;
           case M_OUTPUT:  outPos = 0; screen = Screen::OUT_TEST; break;
@@ -580,6 +577,10 @@ void loop() {
             if (settings.custom < TARGET_MIN) settings.custom = TARGET_MIN;
             settings.save(); wlog::ev("VALVE", wlog::kv("on", String(g_valve ? 1 : 0))); break;
           case M_VCHECK:  settings.vcheck = !settings.vcheck; settings.save(); break;
+          case M_VTRIM:   // set the shown AUX1 volts to the multimeter reading (needs the module and a voltage)
+            if (supply.rawVolts() < VBAT_MIN_V) beep(3);
+            else { trimEdit = settings.vtrim; editItem = M_VTRIM; screen = Screen::EDIT; }
+            break;
           case M_ECONF:   settings.econfirm = !settings.econfirm; settings.save(); break;
           case M_PSTUCK:  settings.pchk = !settings.pchk; settings.save(); break;
           case M_VSTUCK:  settings.vchk2 = !settings.vchk2; settings.save(); break;
@@ -592,7 +593,7 @@ void loop() {
             if (resetArm && millis() - resetArm < 3000) { settings.resetLearning(); wlog::ev("RESET_LEARNING", ""); beep(); resetArm = 0; }
             else resetArm = millis();
             break;
-          case M_UPDATE:  ota.start(&settings.psi, settings.wifiPass); screen = Screen::OTA; break;
+          case M_UPDATE:  pump.stop(); ota.start(&settings.psi, settings.wifiPass); screen = Screen::OTA; break;
           case M_WIFIPASS:
             strncpy(wifiPassEdit, settings.wifiPass, sizeof wifiPassEdit);
             wifiPassEdit[sizeof wifiPassEdit - 1] = 0;
@@ -607,6 +608,17 @@ void loop() {
       break;
 
     case Screen::EDIT:
+      if (editItem == M_VTRIM) {   // turn: shown volts +/-0.05 V, press: save, hold: back
+        const float raw = supply.rawVolts();
+        if (steps && raw > 1) trimEdit = constrain((raw * trimEdit + steps * 0.05f) / raw, VTRIM_MIN, VTRIM_MAX);
+        if (b == input::Btn::SHORT) {
+          wlog::ev("AUX1_TRIM", wlog::mv("trim", settings.vtrim, trimEdit, 4) + wlog::kv("aux1", raw * trimEdit, 2));
+          settings.vtrim = trimEdit; settings.save(); supply.setTrim(trimEdit); beep(); screen = Screen::MENU;
+        }
+        if (b == input::Btn::LONG) screen = Screen::MENU;
+        if (screen == Screen::EDIT) drawTrim(raw * trimEdit, trimEdit);
+        break;
+      }
       if (steps) editIdx = constrain(editIdx + steps, 0, editItem == M_OFFSET ? OFF_N : editItem == M_OFFMAX ? OMX_N : SET_N);
       if (b == input::Btn::SHORT) {
         if (editItem == M_OFFSET) { settings.offAuto = editIdx == 0; if (editIdx) settings.offManual = offVal(editIdx); }
@@ -769,5 +781,6 @@ void loop() {
       else drawSensor();
       break;
   }
+  publishUi((int)screen);
   delay(20);
 }

@@ -7,6 +7,7 @@ inline uint32_t analogReadMilliVolts(int){ return 0; }   // DEMO reads the virtu
 #include "storage.h"
 #include "pump.h"
 #include "trace.h"
+#include "guards.h"
 // run with a trace like the firmware does (traceStep): one row per 0.5 s, a marker after each static measurement
 static String runTraced(Pump& p, Sensor& s, Settings& st, const char* preset) {
   Trace tr; tr.begin(g_ms); PState prev = p.state(); uint32_t t0 = g_ms;
@@ -147,6 +148,64 @@ static int regressions() {
     adc2::stubFailOf8 = 0; adc2::fails = 0;
     for (int i = 0; i < 2; i++) { g_ms += 20; s.update(); }
     check(!s.fault(), "fault clears once the ADC confirms again");
+  }
+  printf("==== regressions (0.6.0)\n");
+  {   // 18-19 (item 2): fewer tyres on the line than learned: the top-up stops on the estimate, never a false DONE
+    for (int valve = 0; valve <= 1; valve++) {
+      g_demo = true; g_fakeV = -1; g_valve = valve;
+      Settings st; Sensor s; Pump p; p.begin(&s, &st);
+      Sensor::simK = 1; Sensor::simP = 1.2f; st.target = 2.4f; s.update(); p.start(); runToEnd(p, s); p.clearResult(); g_ms += 5000;   // learn on 4
+      Sensor::simK = 4; Sensor::simP = 1.0f; st.target = 1.2f; s.update(); p.start(); runToEnd(p, s);
+      const bool ok = p.state() == PState::DONE && (p.offTarget() ? fabsf(p.staticBar() - st.target) > DONE_TOL : fabsf(p.staticBar() - st.target) <= DONE_TOL);
+      char m[160]; snprintf(m, sizeof m, "1 wheel, learned on 4, 1.0 -> 1.2, VALVE %d: %s at %.2f bar (was DONE at 1.85), honest result",
+                            valve, p.offTarget() ? "OFF TARGET" : "DONE", p.staticBar());
+      check(ok && (valve ? !p.offTarget() || p.vents() >= MAX_VENTS : true) && Sensor::simP < 1.85f, m);
+      Sensor::simK = 1; p.clearResult(); g_ms += 5000;
+    }
+  }
+  {   // 20 (item 10): target 3.0 with a strongly negative learned bias: no false ERR OVER
+    g_demo = true; g_fakeV = -1; g_valve = true;
+    Settings st; Sensor s; Pump p; p.begin(&s, &st);
+    Sensor::simP = 1.2f; st.target = 2.4f; s.update(); p.start(); runToEnd(p, s); p.clearResult(); g_ms += 5000;
+    st.bias = -0.15f;
+    Sensor::simP = 2.0f; st.target = 3.0f; s.update(); p.start(); runToEnd(p, s);
+    char m[120]; snprintf(m, sizeof m, "bias -0.15, 2.0 -> 3.0: %s, tyres %.2f (was ERR OVER at 2.97)", p.state() == PState::DONE ? "DONE" : errName(p.error()), Sensor::simP);
+    check(p.state() == PState::DONE && Sensor::simP < 3.06f, m);
+  }
+  {   // 21-24 (item 3): idle guards replayed (bench U8 / U9), one alarm per episode
+    auto in = [](float p) { GuardIn g = {}; g.now = g_ms; g.idle = true; g.p = p; g.vchkOn = true; g.pchkOn = true; return g; };
+    Guards gd; int fired = 0; float p = 1.5f;
+    for (int t = 0; t < 12; t++) { g_ms += 1000; gd.update(in(p)); }                       // quiet time
+    for (int t = 0; t < 25; t++) { g_ms += 1000; p -= 0.02f; if (gd.update(in(p)) == GuardEv::VALVE_STUCK) fired++; }
+    for (int t = 0; t < 25; t++) { g_ms += 1000; p -= 0.02f; if (gd.update(in(p)) == GuardEv::VALVE_STUCK) fired++; }
+    check(fired == 1, "VALVE CHECK: 0.02 bar/s fall fires once, no repeat while it keeps falling");
+    Guards g2; fired = 0; p = 1.0f; int firedAt = -1;
+    { GuardIn busy = in(p); busy.idle = false; g2.update(busy); }                          // a run just ended: quiet time starts
+    for (int t = 0; t < 12; t++) { g_ms += 1000; g2.update(in(p)); }
+    for (int t = 0; t < 25; t++) { g_ms += 1000; p += 0.04f; if (g2.update(in(p)) == GuardEv::PUMP_STUCK) { fired++; if (firedAt < 0) firedAt = t; } }
+    char m[96]; snprintf(m, sizeof m, "PUMP CHECK: 0.04 bar/s rise fires once at ~20 s (at %d s)", firedAt);
+    check(fired == 1 && firedAt >= 18 && firedAt <= 22, m);
+    for (int t = 0; t < 31; t++) { g_ms += 1000; g2.update(in(p)); }                        // steady 30 s: re-armed
+    int highAt = -1;
+    for (int t = 0; t < 8; t++) { g_ms += 1000; if (g2.update(in(5.5f)) == GuardEv::PUMP_STUCK && highAt < 0) highAt = t; }
+    snprintf(m, sizeof m, "PUMP CHECK: re-armed after 30 s steady, 5.5 bar fires in ~4 s (at %d s, high %d)", highAt, g2.high());
+    check(highAt >= 2 && highAt <= 4 && g2.high(), m);
+    Guards g3; GuardIn lv = {}; lv.compressorOn = true; lv.voltOk = true; lv.volts = 11.0f; int lowAt = -1;
+    for (int t = 0; t < 150; t++) { g_ms += 20; lv.now = g_ms; if (g3.update(lv) == GuardEv::LOW_V && lowAt < 0) lowAt = t * 20; }
+    snprintf(m, sizeof m, "battery guard: 11.0 V with the compressor on stops after 2 s (%d ms)", lowAt);
+    check(lowAt >= 1980 && lowAt <= 2100, m);
+  }
+  {   // 25 (item 9): AUX1 hysteresis and trim
+    Supply sp; sp.begin();
+    adc2::stubFailOf8 = 0;
+    auto at = [&](float v) { adc2::stubMv[PIN_VBAT] = (int)lroundf(v / VBAT_DIV * 1000.0f); for (int i = 0; i < 200; i++) { g_ms += 20; sp.update(); } };
+    at(13.4f); const bool on1 = sp.engineOn();
+    at(13.1f); const bool on2 = sp.engineOn();     // inside the 0.2 V band: still on
+    at(12.9f); const bool on3 = sp.engineOn();     // below 13.0: off
+    at(13.1f); const bool on4 = sp.engineOn();     // coming up inside the band: still off
+    sp.setTrim(1.02f); at(13.0f); const float tv = sp.volts();
+    char m[120]; snprintf(m, sizeof m, "AUX1: on 13.4, stays on 13.1, off 12.9, stays off 13.1; trim 1.02 x 13.0 = %.2f V", tv);
+    check(on1 && on2 && !on3 && !on4 && fabsf(tv - 13.26f) < 0.03f, m);
   }
   printf("==== regressions: %s (%d failed)\n", g_fail ? "FAILED" : "all ok", g_fail);
   return g_fail ? 1 : 0;
