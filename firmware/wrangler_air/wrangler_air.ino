@@ -131,10 +131,14 @@ void updateNoAir() {
   }
 }
 
+// 0.6.2, owner: CUSTOM starts from an empty line too (a flat tyre, anything at 0 bar), so "no air" blocks only the
+// fixed presets. A sensor fault still blocks. An open signal wire is still caught 3 s after the compressor starts
+// (DEAD_AFTER_MS / DEAD_BAR, ERR SENSOR): a connected tyre lifts the line above 0.1 bar by the flow alone.
+bool startBlocked() { return noAir && (settings.preset != P_CUSTOM || sensor.fault()); }
 // what a start would do from the idle screen (IdleDir is declared at the top)
 IdleDir idleDir(float bar) {
   const float now = sensor.bar(settings.calA, settings.calB);
-  if (noAir) return D_DEAD;                                            // hoses not connected / no air
+  if (startBlocked()) return D_DEAD;                                   // hoses not connected / no air
   if (fabsf(now - bar) <= START_BAND) return D_OK;
   if (now < bar) return D_UP;
   return DEFLATE ? D_DOWN : D_ABOVE;                                   // inflate-only builds do nothing above the target
@@ -546,7 +550,7 @@ void loop() {
       if (stopNow) { pump.stop(); b = input::Btn::NONE; }   // the same hold must not open the menu right after the stop
       else if (b == input::Btn::SHORT) {
         if (pump.state() == PState::DONE || pump.state() == PState::ERROR) pump.clearResult();
-        else if (noAir) { disarm("NO_AIR"); beep(); }                  // CONNECT SYSTEM: nothing to start
+        else if (startBlocked()) { disarm("NO_AIR"); beep(); }                  // CONNECT SYSTEM: nothing to start
         else if (armed && armStage == 1 && idleDir(settings.target) == D_UP && engConfirm()) {   // engine off / unknown: confirm first
           armStage = 2; armT = millis(); wlog::ev("ENGINE_CONFIRM", wlog::kv("eng", String(engText(engine()))) + wlog::kv("aux1", supply.volts(), 1));
         }

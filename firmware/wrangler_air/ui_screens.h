@@ -213,7 +213,7 @@ void drawMain() {
     case PState::VENT:      line = String(test ? "LEARN " : "VENT ") + tm; col = TFT_SKYBLUE; break;
     case PState::DONE:
       if (pump.offTarget()) { line = String("OFF TARGET ") + fmt(pump.staticBar()); col = TFT_ORANGE; break; }
-      line = pump.inBand() ? "OK, WITHIN 0.1" : String("DONE ") + fmt(pump.staticBar()) + String("  ") + mmss(pump.runMs()); col = TFT_GREEN; break;
+      line = pump.inBand() ? "OK, WITHIN 0.1" : String("DONE ") + fmt(pump.staticBar()) + (portrait() ? String("") : String("  ") + mmss(pump.runMs()))   /* portrait: the run time is in the top row */; col = TFT_GREEN; break;
     case PState::ERROR:
       col = TFT_RED;
       switch (pump.error()) {
@@ -267,8 +267,25 @@ void drawMain() {
   // status line: 6 px free at each side (0.6.2, bench: the green DONE line touched the screen edges), else the small font
   if (!portrait()) textAt(line, W() / 2, 101, F_TEXT, col, top_center, F_SMALL, W() - 12);
   else {
-    textAt(line, W() / 2, 178, F_TEXT, col, top_center, F_SMALL, W() - 12);
-    textAt(counts, W() / 2, 198, F_SMALL, C_GREY, top_center);
+    // portrait is 135 px wide (0.6.2, bench: DONE 2.29  0:47 ran off both edges even in the small font): one line in
+    // the bold or the small font if it fits, else two small lines split at the space nearest the middle, and the
+    // starts / vents line gives its row away
+    const int maxW = W() - 12;
+    canvas.setFont(F_TEXT); const bool fitB = canvas.textWidth(line) <= maxW;
+    canvas.setFont(F_SMALL); const bool fitS = canvas.textWidth(line) <= maxW;
+    int cut = -1;
+    if (!fitB && !fitS) {
+      const int mid = line.length() / 2;
+      for (int k = 0; k < (int)line.length(); k++) if (line[k] == ' ' && (cut < 0 || abs(k - mid) < abs(cut - mid))) cut = k;
+    }
+    if (cut > 0) {
+      String l1 = line.substring(0, cut), l2 = line.substring(cut + 1); l1.trim(); l2.trim();
+      textAt(l1, W() / 2, 176, F_SMALL, col, top_center);
+      textAt(l2, W() / 2, 194, F_SMALL, col, top_center);
+    } else {
+      textAt(line, W() / 2, 178, fitB ? F_TEXT : F_SMALL, col, top_center);
+      textAt(counts, W() / 2, 198, F_SMALL, C_GREY, top_center);
+    }
   }
   if (pump.state() == PState::ERROR && pump.error() == PErr::PUMP_ON) drawHint("AUX2 ON? ELSE A RELAY IS STUCK  press: back", TFT_RED);
   else drawHint(pump.busy() ? "press: STOP" : "press: back");

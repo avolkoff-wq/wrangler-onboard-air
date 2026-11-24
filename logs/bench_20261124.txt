@@ -2708,3 +2708,11 @@
 20:40:35.078 < # AUX1 0.00 V  no module  volt check 1  engine confirm 1  valve 1  demo 0
 20:40:35.078 < # tyre 285/70R17  rate 0.0097  kTop 0.0058  offset 0.400  c 0.00  offcap 0.60 AUTO  tauD 211.8  learned 0/0  cal a 1.0000 b 0.000
 20:40:35.078 < # compressor 0.12 h  valve 0.06 h  since filter service 0.12 h  boot 9
+20:44:59.790 > status
+20:45:00.417 > ui
+20:45:00.625 < # fw 0.6.2  preset CUSTOM  target 2.00 bar  sensor 0.057 bar (0.016 V)  state 0 err 0
+20:45:00.625 < # ADC2 failed samples since the last RUN: 0
+20:45:00.625 < # AUX1 0.00 V  no module  volt check 1  engine confirm 1  valve 1  demo 0
+20:45:00.625 < # tyre 285/70R17  rate 0.0097  kTop 0.0058  offset 0.400  c 0.00  offcap 0.80  tauD 211.8  learned 0/0  cal a 1.0000 b 0.000
+20:45:00.625 < # compressor 0.12 h  valve 0.06 h  since filter service 0.12 h  boot 11
+20:45:00.626 < UI,0,0,0,0,0,0,0,0.000,0.000,0.00,0.000,0.00,0,0,0,0,0,0,0
