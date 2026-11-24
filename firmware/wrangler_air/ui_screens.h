@@ -76,15 +76,15 @@ void drawHoldBar() {
   if (h < HOLD_SHOW_MS) return;
   const float f = constrain((float)(h - HOLD_SHOW_MS) / (input::BTN_LONG_MS - HOLD_SHOW_MS), 0.0f, 1.0f);
   const int top = min(hintTop, H() - 20);
-  canvas.fillRect(0, top, W(), H() - top, TFT_BLACK);
+  dlFillRect(0, top, W(), H() - top, TFT_BLACK);
   textAt("HOLD FOR MENU", W() / 2, H() - 19, &fonts::Font2, TFT_WHITE, top_center);
-  canvas.fillRect(0, H() - 3, (int)(W() * f), 3, TFT_WHITE);
+  dlFillRect(0, H() - 3, (int)(W() * f), 3, TFT_WHITE);
 }
 
 // idle screen and the CUSTOM value screen (edit = true): icon, big target value, unit, preset name and, below a
 // coloured rule, the live pressure and what a start would do (spec: docs/screen/screen_mockup_idle_direction.py)
 void drawIdle(bool edit) {
-  canvas.fillSprite(TFT_BLACK);
+  dlClear(TFT_BLACK);
   const int p = settings.preset;
   const float bar = edit ? customEdit : settings.target;
   const bool low = bar < TARGET_LOW_WARN;
@@ -94,9 +94,10 @@ void drawIdle(bool edit) {
   const char* word = dir == D_UP ? "INFLATE" : dir == D_DOWN ? "DEFLATE" : dir == D_OK ? "= OK" : "ABOVE";
   const uint16_t dc = dir == D_UP ? TFT_ORANGE : dir == D_DOWN ? TFT_SKYBLUE : dir == D_OK ? rgb(0, 220, 0) : C_GREY;
   const uint16_t dim = rgb(55, 55, 55);
-  const uint16_t numc = edit ? TFT_CYAN : dead ? dim : TFT_GREENYELLOW;
-  const uint16_t namec = edit ? TFT_CYAN : dead ? dim : low ? TFT_ORANGE : TFT_WHITE;
-  const uint16_t unitc = dead ? dim : C_LGREY;
+  // 0.7.1, owner: with no pressure (CONNECT SYSTEM) the icon, the target and the name keep their colours, only the reading is grey
+  const uint16_t numc = edit ? TFT_CYAN : TFT_GREENYELLOW;
+  const uint16_t namec = edit ? TFT_CYAN : low ? TFT_ORANGE : TFT_WHITE;
+  const uint16_t unitc = C_LGREY;
   const bool wsel = edit && customStep == 1;                              // CUSTOM, second step: wheel count
   const uint8_t nw = edit ? customWheels : settings.wheels;
   const String name = String(PRESETS[p].name) + (p == P_CUSTOM && (nw < 4 || wsel) ? (portrait() ? " x" + String(nw) : "  " + String(nw) + (nw == 1 ? " WHEEL" : " WHEELS")) : ""),
@@ -111,8 +112,7 @@ void drawIdle(bool edit) {
     auto part2 = [&](int x, int yy) {   // triangle + word from x
       if (tri) {
         const int cy = yy + canvas.fontHeight() / 2 - 1;
-        if (dir == D_UP) canvas.fillTriangle(x, cy + th / 2, x + tw, cy + th / 2, x + tw / 2, cy - th / 2, dc);
-        else             canvas.fillTriangle(x, cy - th / 2, x + tw, cy - th / 2, x + tw / 2, cy + th / 2, dc);
+        dlArrow(x, cy - th / 2, tw, 2 * (th / 2), dir == D_UP, dc);
         x += tw + 4;
       }
       textAt(word, x, yy, F_TEXT, dc, top_left);
@@ -130,14 +130,14 @@ void drawIdle(bool edit) {
     if (armed && !dead) {   // ARMED: white hint, a bar running out over ARM_MS under it
       drawHint(armStage == 2 ? "PRESS AGAIN: CONFIRM  turn: cancel" : "PRESS AGAIN: START  turn: cancel", armStage == 2 ? TFT_RED : TFT_WHITE, H() - 4);
       const float left = 1.0f - constrain((float)(millis() - armT) / ARM_MS, 0.0f, 1.0f);
-      canvas.fillRect(20, H() - 3, (int)((W() - 40) * left), 3, TFT_WHITE);
+      dlFillRect(20, H() - 3, (int)((W() - 40) * left), 3, TFT_WHITE);
       return;
     }
     // portrait has no free row: the filter note takes the hint line every other 1.5 s
     if (portrait() && filtersDue() && (millis() / 1500) % 2) { drawHint("CLEAN FILTERS", TFT_ORANGE); return; }
     drawHint(hint && !dead ? "press: start  hold: menu  turn: mode" : "hold: menu  turn: mode");
   };
-  iconDim = dead;
+  iconDim = false;
   if (!portrait()) {
     drawPresetIcon(p, 6, 6, 104);
     iconDim = false;
@@ -145,11 +145,11 @@ void drawIdle(bool edit) {
     textAt(unitS, W() - 8, 56, F_TEXT, unitc, top_right);
     if (!edit && filtersDue()) {   // small, not blocking: left of the unit, right of the icon
       canvas.setFont(F_TEXT); const int uw = canvas.textWidth(unitName());
-      textAt("CLEAN FILTERS", W() - 8 - uw - 6, 58, &fonts::Font2, dead ? dim : TFT_ORANGE, top_right);
+      textAt("CLEAN FILTERS", W() - 8 - uw - 6, 58, &fonts::Font2, TFT_ORANGE, top_right);
     }
     textAt(name + (low && !edit ? "  LOW" : ""), W() / 2, 72, F_MID, namec, top_center, F_TEXT, W() - 8);
     if (!edit) {
-      canvas.fillRect(10, 94, W() - 20, 2, dead ? dim : dc);
+      dlFillRect(10, 94, W() - 20, 2, dead ? dim : dc);
       if (dead) textAt("CONNECT SYSTEM", W() / 2, 99, F_TEXT, C_LGREY, top_center);
       else if (armed && dir == D_UP && *engText(engine()))                  // compressor ahead: engine off / unknown
         textAt(engText(engine()), W() / 2, 99, F_TEXT, engColor(engine()), top_center);
@@ -163,13 +163,13 @@ void drawIdle(bool edit) {
     bigValue(valS, false, W() / 2, 100, numc, 0);
     textAt(unitS + (low && !edit ? "  LOW" : ""), W() / 2, 150, F_TEXT, low && !edit && !dead ? TFT_ORANGE : unitc, top_center);
     if (!edit) {
-      canvas.fillRect(10, 169, W() - 20, 2, dead ? dim : dc);
+      dlFillRect(10, 169, W() - 20, 2, dead ? dim : dc);
       if (dead) {
         textAt("CONNECT", W() / 2, 173, F_TEXT, C_LGREY, top_center);
         textAt("SYSTEM", W() / 2, 190, F_TEXT, C_LGREY, top_center);
       } else if (armed && dir == D_UP && *engText(engine())) {   // compressor ahead: engine off / unknown
         dirLine(173, true);
-        canvas.fillRect(0, 189, W(), 17, TFT_BLACK);
+        dlFillRect(0, 189, W(), 17, TFT_BLACK);
         textAt(engText(engine()), W() / 2, 190, F_TEXT, engColor(engine()), top_center);
       } else dirLine(173, true);
     }
@@ -181,7 +181,7 @@ void drawIdle(bool edit) {
 
 // result of a menu LEARN test
 void drawLearnResult() {
-  canvas.fillSprite(TFT_BLACK);
+  dlClear(TFT_BLACK);
   const bool def = pump.testMode() == Mode::DEF;
   if (pump.testOk())
     drawLines({ {def ? "LEARN DEFLATE OK" : "LEARN INFLATE OK", F_TEXT, TFT_GREEN},
@@ -200,7 +200,7 @@ void drawMain() {
   const bool test = pump.testMode() != Mode::NONE;
   if (test && st == PState::DONE) { drawLearnResult(); return; }
   // background by phase: compressor pumping = dark amber, valve venting = dark blue, pauses and results = black
-  canvas.fillSprite(pump.compressorOn() ? rgb(90, 38, 0) : pump.valveOpen() ? rgb(0, 40, 90) : TFT_BLACK);
+  dlClear(pump.compressorOn() ? rgb(90, 38, 0) : pump.valveOpen() ? rgb(0, 40, 90) : TFT_BLACK);
   const bool est = pump.estimating();
   // after an error always the live line pressure: what the tyres hold right now (stuck valve, air from AUX2, leak)
   const float cur = est ? pump.estimate() : (pump.mode() == Mode::NONE || st == PState::ERROR ? sensor.bar(settings.calA, settings.calB) : pump.staticBar());
@@ -257,9 +257,9 @@ void drawMain() {
   if (test) f = pulse ? constrain((float)pump.phaseMs() / max(1UL, (unsigned long)pump.phaseLenMs()), 0.0f, 1.0f)
                      : (pump.starts() + pump.vents() > 0 ? 1.0f : 0.0f);            // before the pulse 0, after it full
   const uint16_t bc = pump.compressorOn() ? TFT_ORANGE : pump.valveOpen() ? TFT_SKYBLUE : (st == PState::DONE ? TFT_GREEN : TFT_CYAN);
-  canvas.fillRect(x0, y, x1 - x0 + 1, 13, TFT_BLACK);              // bar inside stays black so the fill reads
-  canvas.drawRect(x0, y, x1 - x0 + 1, 13, C_GREY);
-  if (known) canvas.fillRect(x0 + 2, y + 2, (int)((x1 - x0 - 4) * f) + 1, 9, bc);
+  dlFillRect(x0, y, x1 - x0 + 1, 13, TFT_BLACK);              // bar inside stays black so the fill reads
+  dlDrawRect(x0, y, x1 - x0 + 1, 13, C_GREY);
+  if (known) dlFillRect(x0 + 2, y + 2, (int)((x1 - x0 - 4) * f) + 1, 9, bc);
   if (test) {
     textAt("0 s", x0, y + 14, F_SMALL, C_GREY, top_left);
     textAt(String((pump.testMode() == Mode::DEF ? LEARN_DEF_MS : CAL_PULSE_MS) / 1000) + " s", x1, y + 14, F_SMALL, C_GREY, top_right);
@@ -292,13 +292,13 @@ void drawMain() {
   }
   if (pump.state() == PState::ERROR && pump.error() == PErr::PUMP_ON) drawHint("AUX2 ON? ELSE A RELAY IS STUCK  press: back", TFT_RED);
   else drawHint(pump.busy() ? "press: STOP" : "press: back");
-  if (pump.compressorOn()) canvas.fillCircle(W() - 10, 10, 6, TFT_ORANGE);
-  if (pump.valveOpen())    canvas.fillCircle(W() - 10, 10, 6, TFT_SKYBLUE);
+  if (pump.compressorOn()) dlFillCircle(W() - 10, 10, 6, TFT_ORANGE);
+  if (pump.valveOpen())    dlFillCircle(W() - 10, 10, 6, TFT_SKYBLUE);
   push();
 }
 
 void drawMenu() {
-  canvas.fillSprite(TFT_BLACK);
+  dlClear(TFT_BLACK);
   const int ht = drawHint("press: select  hold: back  turn: scroll");
   const Font f = portrait() ? F_SMALL : F_TEXT;
   canvas.setFont(f);
@@ -308,7 +308,7 @@ void drawMenu() {
   for (int k = 0; k < vis && first + k < MENU_N; k++) {
     const int i = first + k;
     const int y = 2 + rowH / 2 + k * rowH;
-    if (i == menuPos) canvas.fillRoundRect(3, y - 11, W() - 6, 22, 4, TFT_DARKGREEN);
+    if (i == menuPos) dlFillRRect(3, y - 11, W() - 6, 22, 4, TFT_DARKGREEN);
     canvas.setTextColor(TFT_WHITE);
     String t = MENU[i];
     if (i == M_UNITS)  t += String(": ") + unitName();
@@ -324,14 +324,14 @@ void drawMenu() {
     }
     if (i == M_RESET && resetArm && millis() - resetArm < 3000) t = "PRESS AGAIN";
     else if (i == M_RESET && portrait()) t = "RESET LEARN";
-    canvas.drawString(t, 8, y);
+    dlString(t, 8, y);
   }
   push();
 }
 
 // ---------- menu BLUETOOTH ----------
 void drawBt() {
-  canvas.fillSprite(TFT_BLACK);
+  dlClear(TFT_BLACK);
   if (ble::pairing()) {   // the PIN the phone asks for, with the seconds left
     drawHint("press: cancel");
     drawLines({ {"TYPE ON THE PHONE", F_TEXT, TFT_WHITE, F_SMALL}, {String(ble::pin), F_LARGE, TFT_YELLOW},
@@ -343,12 +343,12 @@ void drawBt() {
   const int rowH = portrait() ? 28 : 23;
   for (int i = 0; i < 4; i++) {
     const int y = 2 + rowH / 2 + i * rowH;
-    if (i == btPos) canvas.fillRoundRect(3, y - 10, W() - 6, 20, 4, TFT_DARKGREEN);
+    if (i == btPos) dlFillRRect(3, y - 10, W() - 6, 20, 4, TFT_DARKGREEN);
     canvas.setTextColor(i && i < 3 && !ble::on ? C_GREY : TFT_WHITE);
     String t = i == 0 ? String(settings.bt ? "[x] " : "[ ] ") + "BT ON" : i == 1 ? "PAIR A PHONE"
              : i == 2 ? (btForgetArm && millis() - btForgetArm < 3000 ? "PRESS AGAIN" : "FORGET ALL") : "BACK";
     if (i == 0 && ble::on) t += String("  ") + String(ble::bonds()) + (portrait() ? "/" : " PAIRED, ") + String(ble::connected()) + (portrait() ? "" : " ON LINE");
-    canvas.drawString(t, 8, y);
+    dlString(t, 8, y);
   }
   (void)ht;
   push();
@@ -356,20 +356,20 @@ void drawBt() {
 
 // ---------- menu LEARN ----------
 void drawLearnPick() {
-  canvas.fillSprite(TFT_BLACK);
+  dlClear(TFT_BLACK);
   drawHint("press: select  hold: back  turn: scroll");
   canvas.setFont(portrait() ? F_SMALL : F_TEXT); canvas.setTextDatum(middle_left);
   for (int i = 0; i < LEARN_N; i++) {
     const int y = 16 + i * 30;
-    if (i == learnPos) canvas.fillRoundRect(3, y - 11, W() - 6, 22, 4, TFT_DARKGREEN);
+    if (i == learnPos) dlFillRRect(3, y - 11, W() - 6, 22, 4, TFT_DARKGREEN);
     const Mode m = learnItem(i);
     canvas.setTextColor(TFT_WHITE);
-    canvas.drawString(m == Mode::INF ? "LEARN INFLATE" : m == Mode::DEF ? "LEARN DEFLATE" : "BACK", 8, y);
+    dlString(m == Mode::INF ? "LEARN INFLATE" : m == Mode::DEF ? "LEARN DEFLATE" : "BACK", 8, y);
   }
   push();
 }
 void drawLearnConf() {
-  canvas.fillSprite(TFT_BLACK);
+  dlClear(TFT_BLACK);
   const bool def = learnSel == Mode::DEF;
   drawLines({ {def ? "LEARN DEFLATE:" : "LEARN INFLATE:", F_TEXT, def ? TFT_SKYBLUE : TFT_ORANGE},
               {def ? "valve " + String(LEARN_DEF_MS / 1000) + " s." : "compressor " + String(CAL_PULSE_MS / 1000) + " s.", F_TEXT, TFT_WHITE},
@@ -380,7 +380,7 @@ void drawLearnConf() {
 }
 
 void drawEdit() {
-  canvas.fillSprite(TFT_BLACK);
+  dlClear(TFT_BLACK);
   const bool off = editItem == M_OFFSET, omx = editItem == M_OFFMAX;
   String hint, title, val;
   if (off) {
@@ -403,7 +403,7 @@ void drawEdit() {
 
 // menu AUX1 TRIM: the AUX1 volts as shown after the trim; set them to what a multimeter reads on AUX1
 void drawTrim(float shown, float trim) {
-  canvas.fillSprite(TFT_BLACK);
+  dlClear(TFT_BLACK);
   drawLines({ {"AUX1 = MULTIMETER", F_TEXT, TFT_CYAN},
               {String(shown, 2) + " V", F_LARGE, TFT_GREENYELLOW, F_MID},
               {"trim x" + String(trim, 3), F_SMALL, TFT_LIGHTGREY} }, 0, H() - 18);
@@ -414,7 +414,7 @@ void drawTrim(float shown, float trim) {
 void drawCustom() { drawIdle(true); }   // CUSTOM value: idle layout, value and name in cyan
 
 void drawCal() {
-  canvas.fillSprite(TFT_BLACK);
+  dlClear(TFT_BLACK);
   const int i = cal.index();
   int top = 0;
   if (cal.state() != CState::DONE && cal.state() != CState::FAILED) top = drawTopBar(mmss(cal.totalMs()));
@@ -455,7 +455,7 @@ void drawCal() {
 }
 
 void drawOta() {
-  canvas.fillSprite(TFT_BLACK);
+  dlClear(TFT_BLACK);
   drawLines({ {"UPDATE MODE", F_TEXT, TFT_CYAN}, {"WiFi " OTA_SSID, F_TEXT, TFT_WHITE},
               {String("pass ") + settings.wifiPass, F_TEXT, TFT_WHITE},
               {"192.168.4.1  (log: /log)", F_TEXT, TFT_WHITE, F_SMALL},
@@ -465,7 +465,7 @@ void drawOta() {
 }
 
 void drawVersion() {
-  canvas.fillSprite(TFT_BLACK);
+  dlClear(TFT_BLACK);
   drawLines({ {"Wrangler Air " FW_VERSION, F_TEXT, TFT_WHITE},
               {"off " + String(settings.offset, 2) + "  c " + String(settings.c, 1) + (settings.offAuto ? " AUTO" : " MAN") + "  max " + String(settings.offCap(), 2), F_SMALL, TFT_LIGHTGREY},
               {"rate " + String(settings.rate, 3) + "  top " + String(settings.kTop, 3), F_SMALL, TFT_LIGHTGREY},
@@ -478,17 +478,17 @@ void drawVersion() {
   push();
 }
 void drawOutTest() {
-  canvas.fillSprite(TFT_BLACK);
+  dlClear(TFT_BLACK);
   drawHint("press: on / off  hold: back  turn: choose");
   canvas.setFont(portrait() ? F_SMALL : F_TEXT); canvas.setTextDatum(middle_left);
   for (int i = 0; i < OUT_N; i++) {
     const int y = 12 + i * 24;
-    if (i == outPos) canvas.fillRoundRect(3, y - 11, W() - 6, 22, 4, TFT_DARKGREEN);
+    if (i == outPos) dlFillRRect(3, y - 11, W() - 6, 22, 4, TFT_DARKGREEN);
     canvas.setTextColor(TFT_WHITE);
     const bool on = i < OUT_N - 1 && pump.pulsing() && pump.pulseIsValve() == (i == 1);
-    canvas.drawString(i == OUT_N - 1 ? "BACK" : i == 0 ? "COMPRESSOR (K1)" : "VALVE (K4)", 8, y);
+    dlString(i == OUT_N - 1 ? "BACK" : i == 0 ? "COMPRESSOR (K1)" : "VALVE (K4)", 8, y);
     if (on) { canvas.setTextDatum(middle_right); canvas.setTextColor(i == 1 ? TFT_SKYBLUE : TFT_ORANGE);
-              canvas.drawString(String("ON ") + String((pump.pulseLeft() + 999) / 1000) + "s", W() - 8, y); canvas.setTextDatum(middle_left); }
+              dlString(String("ON ") + String((pump.pulseLeft() + 999) / 1000) + "s", W() - 8, y); canvas.setTextDatum(middle_left); }
   }
   const int y0 = 8 + OUT_N * 24;
   const float vg = sensor.vG1();
@@ -498,7 +498,7 @@ void drawOutTest() {
   push();
 }
 void drawHours(bool confirm) {
-  canvas.fillSprite(TFT_BLACK);
+  dlClear(TFT_BLACK);
   const uint32_t svc = settings.cmpSec - settings.svcSec;
   if (!confirm) {
     drawLines({ {"HOURS", F_TEXT, TFT_CYAN},
@@ -515,7 +515,7 @@ void drawHours(bool confirm) {
 }
 
 void drawSensor() {
-  canvas.fillSprite(TFT_BLACK);
+  dlClear(TFT_BLACK);
   const float vg = sensor.vG1(), vs = vg * DIVIDER;
   drawLines({ {"SENSOR CHECK", F_TEXT, TFT_CYAN},
               {"sensor " + String(vs, 2) + " V", F_MID, TFT_WHITE},
@@ -543,7 +543,7 @@ void splash() {
     const uint32_t t0 = millis();
     if (digitalRead(PIN_BTN) == LOW) break;
     const float t = i / float(N - 1), fade = min(1.0f, t * 2.2f);
-    canvas.fillSprite(TFT_BLACK);
+    dlClear(TFT_BLACK);
     for (int x = 0; x < w - 1; x++) canvas.drawLine(x, splashGround(x, g, w, q), x + 1, splashGround(x + 1, g, w, q), grey);
     for (int x = 4; x < w; x += 11) canvas.drawPixel(x, splashGround(x, g, w, q) + 4, grey);
     // SUV: both wheels on the track, the body pitched along the line through them

@@ -37,7 +37,12 @@ inline void menuIn()         { static const Note n[] = {{2400, 70, 25}, {3000, 7
 // working sound (0.6.2, owner): told apart by rhythm, not only by pitch (the first version, 2100 / 1500 Hz at the same
 // pace, sounded alike). Compressor: a fast high rattle, a tick every 150 ms. Valve: a slow low knock every 700 ms.
 // Never over another sound (the .ino checks busy()).
-inline uint32_t workEveryMs(bool valve) { return valve ? 700 : 150; }
+// 0.7.1, owner: the pace quickens as the pressure nears the target, like a parking sensor. f = share of the way
+// from the start pressure to the target, 0..1. Compressor 300 -> 70 ms, valve 1000 -> 250 ms.
+inline uint32_t workEveryMs(bool valve, float f) {
+  f = constrain(f, 0.0f, 1.0f);
+  return valve ? (uint32_t)(1000 - 750 * f) : (uint32_t)(300 - 230 * f);
+}
 inline void work(bool valve) { if (valve) repeat({1000, 60, 0}, 1); else repeat({2800, 15, 0}, 1); }
 inline void done()           { repeat({HIGH_HZ, 1500, 0}, 1); }          // target reached
 inline void inBand()         { beep(2); }                                 // nothing to do, already there

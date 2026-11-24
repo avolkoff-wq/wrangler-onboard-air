@@ -5,6 +5,8 @@
 //   STATE   7a1f0002-...  read + notify, open: any phone may watch. 36 bytes, little endian (pack() below)
 //   INPUT   7a1f0003-...  write, needs an authenticated encrypted link (a bonded phone): 1 byte,
 //                         1 = left, 2 = right, 3 = press, 4 = medium press, 5 = hold
+//   SCREEN  7a1f0004-...  notify, open: the display list of the current screen (dlist.h), sent in chunks
+//                         [frame id, chunk index, chunk count] + up to MTU - 6 bytes; the phone joins them by frame id
 // Pairing: passkey entry, the DinMeter is display-only. Menu BLUETOOTH > PAIR shows a random 6-digit PIN for 60 s.
 // Outside that window the passkey is random and never shown, so no new phone can bond. Up to 3 bonds (NimBLE default).
 // NimBLE callbacks run in the BLE host task: they only set flags, read the snapshot under its mutex and write the input
@@ -15,17 +17,22 @@
 #include "ui_state.h"
 #include "input.h"
 #include "log.h"
+#include "dlist.h"
 
 namespace ble {
 constexpr char SVC_UUID[]   = "7a1f0001-5c0e-4b6a-9d2f-57a1e5a1c0de";
 constexpr char STATE_UUID[] = "7a1f0002-5c0e-4b6a-9d2f-57a1e5a1c0de";
 constexpr char INPUT_UUID[] = "7a1f0003-5c0e-4b6a-9d2f-57a1e5a1c0de";
+constexpr char SCREEN_UUID[] = "7a1f0004-5c0e-4b6a-9d2f-57a1e5a1c0de";
+constexpr uint32_t SCREEN_MS = 150, SCREEN_IDLE_MS = 2000;   // a changed screen at most every 150 ms, an unchanged one every 2 s
 constexpr uint32_t PAIR_MS = 60000, NOTIFY_MS = 200, NOTIFY_IDLE_MS = 1000;
 constexpr uint8_t PROTO = 1;
 
 inline bool on = false;
 inline NimBLEServer* server = nullptr;
 inline NimBLECharacteristic* stateCh = nullptr;
+inline NimBLECharacteristic* screenCh = nullptr;
+inline volatile bool screenNow = false;   // a phone connected: send the screen at once
 inline uint32_t pin = 0, pairUntil = 0;
 // set in the host task, logged in loop()
 inline volatile bool evConn = false, evDisc = false, evPaired = false, evDenied = false;
@@ -51,7 +58,7 @@ inline size_t pack(const UiSnapshot& u, uint8_t* b) {
 }
 
 class ServerCb : public NimBLEServerCallbacks {
-  void onConnect(NimBLEServer*, NimBLEConnInfo&) override { evConn = true; }
+  void onConnect(NimBLEServer*, NimBLEConnInfo&) override { evConn = true; screenNow = true; }
   void onDisconnect(NimBLEServer*, NimBLEConnInfo&, int reason) override { discReason = reason; evDisc = true; }
   uint32_t onPassKeyDisplay() override { return pairing() ? pin : (esp_random() % 1000000); }   // no window: nobody knows it
   void onAuthenticationComplete(NimBLEConnInfo& ci) override {
@@ -90,6 +97,7 @@ inline void begin() {
   stateCh = svc->createCharacteristic(STATE_UUID, NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::NOTIFY);
   NimBLECharacteristic* in = svc->createCharacteristic(INPUT_UUID, NIMBLE_PROPERTY::WRITE | NIMBLE_PROPERTY::WRITE_ENC | NIMBLE_PROPERTY::WRITE_AUTHEN);
   in->setCallbacks(&inputCb);
+  screenCh = svc->createCharacteristic(SCREEN_UUID, NIMBLE_PROPERTY::NOTIFY);
   svc->start();
   NimBLEAdvertising* adv = NimBLEDevice::getAdvertising();
   adv->addServiceUUID(SVC_UUID); adv->setName("WranglerAir"); adv->enableScanResponse(true);
@@ -99,7 +107,7 @@ inline void begin() {
 }
 inline void end() {
   if (!on) return;
-  pairUntil = 0; on = false; stateCh = nullptr; server = nullptr;
+  pairUntil = 0; on = false; stateCh = nullptr; screenCh = nullptr; server = nullptr; dl::on = false;
   NimBLEDevice::deinit(true);
   wlog::ev("BT", wlog::kv("on", String(0)));
 }
@@ -118,8 +126,33 @@ inline void forgetAll() {
   wlog::ev("BT_FORGET", "all=1;");
 }
 // every loop pass: log what the host task flagged, notify the screen (on a change at most every NOTIFY_MS, else 1 / s)
+// the newest display-list frame to every connected phone, in chunks that fit the smallest MTU
+inline void sendScreen() {
+  static uint32_t last = 0, lastFrame = 0; static uint8_t id = 0; static uint8_t prev[1200]; static size_t prevN = 0;
+  if (!screenCh || !connected() || dl::frames == lastFrame) return;
+  const uint32_t now = millis();
+  static uint8_t buf[1200];
+  const size_t n = dl::encode(buf, sizeof buf, 0);
+  const bool changed = n != prevN || memcmp(buf + 3, prev + 3, n > 3 ? n - 3 : 0) != 0;   // byte 2 is the frame id
+  if (!screenNow && now - last < (changed ? SCREEN_MS : SCREEN_IDLE_MS)) return;
+  screenNow = false; last = now; lastFrame = dl::frames;
+  memcpy(prev, buf, n); prevN = n;
+  buf[2] = ++id;
+  uint16_t mtu = 517;
+  for (auto h : server->getPeerDevices()) mtu = min(mtu, server->getPeerMTU(h));
+  const size_t room = mtu > 30 ? mtu - 3 - 3 : 17;
+  const uint8_t count = (n + room - 1) / room;
+  uint8_t chunk[520];
+  for (uint8_t i = 0; i < count; i++) {
+    const size_t off = i * room, len = min(room, n - off);
+    chunk[0] = id; chunk[1] = i; chunk[2] = count; memcpy(chunk + 3, buf + off, len);
+    screenCh->setValue(chunk, len + 3); screenCh->notify();
+  }
+}
 inline void update(const UiSnapshot& u) {
+  dl::on = on && connected() > 0;
   if (!on) return;
+  sendScreen();
   if (evConn)   { evConn = false;   wlog::ev("BT_CONNECT", wlog::kv("n", String(connected()))); }
   if (evDisc)   { evDisc = false;   wlog::ev("BT_DISCONNECT", wlog::kv("n", String(connected())) + wlog::kv("reason", String((int)discReason, HEX))); }
   if (evPaired) { evPaired = false; wlog::ev("BT_PAIRED", wlog::kv("bonds", String(NimBLEDevice::getNumBonds())) + wlog::kv("auth", String((int)authInfo, HEX))); }

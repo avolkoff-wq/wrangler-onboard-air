@@ -6,6 +6,7 @@
 #include "config.h"
 #include "suv_bitmap.h"
 #include "storage.h"
+#include "dlist.h"
 
 extern M5Canvas canvas;
 extern Settings settings;
@@ -113,7 +114,7 @@ void drawLines(std::initializer_list<Ln> ls, int top = 0, int bottom = -1) {
   canvas.setTextDatum(top_center);
   for (int q = 0; q < n; q++) {
     canvas.setFont(rows[q].f); canvas.setTextColor(rows[q].c);
-    canvas.drawString(rows[q].t, W() / 2, (int)y);
+    dlString(rows[q].t, W() / 2, (int)y);
     y += rows[q].h + gap;
   }
 }
@@ -122,7 +123,7 @@ void drawLines(std::initializer_list<Ln> ls, int top = 0, int bottom = -1) {
 int drawTopBar(const String& t) {
   canvas.setFont(F_SMALL); canvas.setTextColor(TFT_LIGHTGREY); canvas.setTextDatum(top_left);
   String parts[2]; const int k = wrapText(t, W() - 22, parts, 2);
-  for (int q = 0; q < k; q++) canvas.drawString(parts[q], 4, 2 + q * canvas.fontHeight());
+  for (int q = 0; q < k; q++) dlString(parts[q], 4, 2 + q * canvas.fontHeight());
   return 4 + k * canvas.fontHeight();
 }
 
@@ -263,6 +264,8 @@ void drawScenery(const char* n, float ox, float g, float s) {
 
 // preset icon, box w x 0.62 w, (ox, oy) = top left
 void drawPresetIcon(int preset, float ox, float oy, float w) {
+  dl::add(dl::ICON, lroundf(ox), lroundf(oy), lroundf(w), lroundf(w * 0.62f), iconDim ? C_GREY : (uint16_t)TFT_WHITE, (uint8_t)preset);
+  struct Mute { Mute() { dl::mute++; } ~Mute() { dl::mute--; } } muteIcon;   // the icon's own strokes stay on the DinMeter
   const float s = w / 52.0f, h = w * 0.62f, g = oy + h - 6 * s;
   const int lw = max(2, (int)(s * 1.4f));
   auto X = [&](float u) { return ox + u * s; };
@@ -323,7 +326,7 @@ void drawPresetIcon(int preset, float ox, float oy, float w) {
 void textAt(const String& t, int x, int y, Font f, uint16_t c, textdatum_t d, Font alt = nullptr, int maxW = 0) {
   canvas.setFont(f);
   if (alt && maxW && canvas.textWidth(t) > maxW) canvas.setFont(alt);
-  canvas.setTextColor(c); canvas.setTextDatum(d); canvas.drawString(t, x, y);
+  canvas.setTextColor(c); canvas.setTextDatum(d); dlString(t, x, y);
 }
 // bottom hint: what the knob and the button do right now ("hold" = the 2 s long press). Font2, wraps to 2 lines
 // (portrait); if it still does not fit, the 8 px Font0. Returns the top of the hint; hintTop keeps it for the hold bar.

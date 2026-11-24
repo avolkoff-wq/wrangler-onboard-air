@@ -1,6 +1,21 @@
 import asyncio, sys, struct
 from bleak import BleakScanner, BleakClient
-SVC="7a1f0001-5c0e-4b6a-9d2f-57a1e5a1c0de"; ST="7a1f0002-5c0e-4b6a-9d2f-57a1e5a1c0de"; IN="7a1f0003-5c0e-4b6a-9d2f-57a1e5a1c0de"
+SVC="7a1f0001-5c0e-4b6a-9d2f-57a1e5a1c0de"; ST="7a1f0002-5c0e-4b6a-9d2f-57a1e5a1c0de"; IN="7a1f0003-5c0e-4b6a-9d2f-57a1e5a1c0de"; SC="7a1f0004-5c0e-4b6a-9d2f-57a1e5a1c0de"
+def screen(chunks):
+    # chunks: list of bytes [id, idx, count] + data; returns the texts of the newest complete frame
+    frames = {}
+    for c in chunks: frames.setdefault(c[0], {})[c[1]] = (c[2], c[3:])
+    for fid in reversed(list(frames)):
+        parts = frames[fid]; cnt = next(iter(parts.values()))[0]
+        if len(parts) != cnt: continue
+        b = b"".join(parts[i][1] for i in range(cnt))
+        W, H, n = b[3], b[4], b[7]; p = 8; out = []
+        for _ in range(n):
+            kind = b[p]; x, y = struct.unpack_from('<hh', b, p + 1); w, h = b[p + 5], b[p + 6]; p += 11
+            if kind == 1: L = b[p]; out.append(f"{b[p+1:p+1+L].decode()}@{x},{y}"); p += 1 + L
+            else: out.append(f"[{kind}]")
+        return f"{W}x{H} {n} items {len(b)} bytes: " + " | ".join(out)
+    return "no complete frame"
 def dec(b):
     ver,scr,mp,pre,st,err,arm,fl=b[:8]; bar,est,tgt,stat,aux=struct.unpack_from('<hhhhh',b,8); run,ph,seq,adc=struct.unpack_from('<IIII',b,18)
     return f"v{ver} screen={scr} menu={mp} preset={pre} state={st} err={err} arm={arm} flags={fl:07b} bar={bar/1000:.3f} target={tgt/1000:.2f} seq={seq} adc_fail={adc}"
@@ -15,7 +30,12 @@ async def main():
         v = await c.read_gatt_char(ST); print("read", len(v), dec(v))
         n = []
         await c.start_notify(ST, lambda h, data: n.append(bytes(data)))
+        sc = []
+        try: await c.start_notify(SC, lambda h, data: sc.append(bytes(data)))
+        except Exception as e: print("no SCREEN:", e)
         await asyncio.sleep(6)
+        print("screen chunks in 6 s:", len(sc), "mtu", c.mtu_size)
+        if sc: print("screen", screen(sc))
         print("notifies in 6 s:", len(n)); 
         if n: print("last", dec(n[-1]))
         codes = [int(x) for x in sys.argv[sys.argv.index("write")+1:]] if "write" in sys.argv else []

@@ -110,13 +110,14 @@ void push() {
     const char* tag = g_demo ? "DEMO" : "FAKE";
     canvas.setFont(&fonts::Font2); canvas.setTextDatum(top_right);
     const int w = canvas.textWidth(tag) + 6;
-    canvas.fillRect(canvas.width() - w - 1, 0, w + 1, 17, TFT_MAGENTA);
-    canvas.setTextColor(TFT_WHITE); canvas.drawString(tag, canvas.width() - 4, 1);
+    dlFillRect(canvas.width() - w - 1, 0, w + 1, 17, TFT_MAGENTA);
+    canvas.setTextColor(TFT_WHITE); dlString(tag, canvas.width() - 4, 1);
   }
   if (screen == Screen::MAIN && ble::connected()) {   // a phone is connected: small blue BT mark, top left
-    canvas.fillRoundRect(0, 0, 17, 11, 2, TFT_BLUE);
-    canvas.setFont(&fonts::Font0); canvas.setTextDatum(top_left); canvas.setTextColor(TFT_WHITE); canvas.drawString("BT", 3, 2);
+    dlFillRRect(0, 0, 17, 11, 2, TFT_BLUE);
+    canvas.setFont(&fonts::Font0); canvas.setTextDatum(top_left); canvas.setTextColor(TFT_WHITE); dlString("BT", 3, 2);
   }
+  dl::finish();   // the frame for the phone (dlist.h)
   canvas.pushSprite(0, 0);
 }
 
@@ -388,6 +389,14 @@ const char* resetName(esp_reset_reason_t r) {
 }
 
 // the screen as data, once per pass (ui_state.h)
+// share of the way from the start pressure to the target, 0..1, for the working sound (same as the run screen bar)
+float workProgress() {
+  const float cur = pump.estimating() ? pump.estimate() : sensor.bar(settings.calA, settings.calB);
+  const float span = settings.target - pump.p0();
+  if (fabsf(span) < 0.01f) return 1.0f;
+  return constrain((cur - pump.p0()) / span, 0.0f, 1.0f);
+}
+
 void publishUi(int scr) {
   UiSnapshot u = uiRead();
   u.seq++; u.screen = (uint8_t)scr; u.menuPos = (uint8_t)menuPos; u.preset = settings.preset;
@@ -443,7 +452,7 @@ void setup() {
   if (rr == ESP_RST_TASK_WDT || rr == ESP_RST_INT_WDT || rr == ESP_RST_WDT || rr == ESP_RST_PANIC) {
     const bool wdt = rr != ESP_RST_PANIC;
     wlog::ev(wdt ? "WATCHDOG_RESET" : "CRASH_RESET", wlog::kv("reason", String((int)rr)));
-    canvas.fillSprite(TFT_BLACK);
+    dlClear(TFT_BLACK);
     drawLines({ {wdt ? "WATCHDOG RESET" : "CRASH RESET", F_TEXT, TFT_ORANGE}, {"outputs were switched off", F_SMALL, TFT_WHITE},
                 {"check the tyres", F_SMALL, TFT_WHITE} }, 0, H() - 18);
     push();
@@ -506,7 +515,7 @@ void loop() {
 
   {   // working rattle while a run pumps or vents (sound.h)
     static uint32_t lastTick = 0;
-    if (pump.busy() && (pump.compressorOn() || pump.valveOpen()) && !sound::busy() && millis() - lastTick >= sound::workEveryMs(pump.valveOpen())) {
+    if (pump.busy() && (pump.compressorOn() || pump.valveOpen()) && !sound::busy() && millis() - lastTick >= sound::workEveryMs(pump.valveOpen(), workProgress())) {
       lastTick = millis(); sound::work(pump.valveOpen());
     }
   }
@@ -707,7 +716,7 @@ void loop() {
 
     case Screen::LEARN_MSG:
       if (b == input::Btn::SHORT || b == input::Btn::LONG) screen = Screen::LEARN_PICK;
-      else { canvas.fillSprite(TFT_BLACK); drawLines({ {learnMsg, F_TEXT, TFT_ORANGE} }, 0, H() - 18); drawHint("press: back"); push(); }
+      else { dlClear(TFT_BLACK); drawLines({ {learnMsg, F_TEXT, TFT_ORANGE} }, 0, H() - 18); drawHint("press: back"); push(); }
       break;
 
     case Screen::CAL:
@@ -808,7 +817,7 @@ void loop() {
       }
       if (b == input::Btn::LONG) screen = Screen::MENU;
       if (screen == Screen::WIFI_PASS) {
-        canvas.fillSprite(TFT_BLACK);
+        dlClear(TFT_BLACK);
         char posBuf[16];
         snprintf(posBuf, sizeof posBuf, "char %d/8", wifiPassPos + 1);
         drawLines({ {"WIFI PASSWORD", F_TEXT, TFT_CYAN},
@@ -818,7 +827,7 @@ void loop() {
         const int tw = canvas.textWidth(wifiPassEdit);
         const int cw = max(1, (int)canvas.textWidth("A"));
         const int x0 = (W() - tw) / 2;
-        canvas.fillRect(x0 + wifiPassPos * cw, 72, cw, 3, TFT_CYAN);
+        dlFillRect(x0 + wifiPassPos * cw, 72, cw, 3, TFT_CYAN);
         drawHint("press: next  hold: back  turn: char");
         push();
       }
