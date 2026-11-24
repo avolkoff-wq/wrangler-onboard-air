@@ -397,6 +397,7 @@ void setup() {
 
   auto cfg = M5.config();
   M5.begin(cfg);
+  M5.Speaker.setVolume(255);   // 0.6.2, owner: the buzzer at full volume
 #if BENCH_USB
   Serial.begin(115200);
   Serial.println("# Wrangler Air " FW_VERSION " bench: type help");
@@ -490,8 +491,21 @@ void loop() {
 #endif
   ota.update();
 
+  {   // working rattle while a run pumps or vents (sound.h)
+    static uint32_t lastTick = 0;
+    if (pump.busy() && (pump.compressorOn() || pump.valveOpen()) && !sound::busy() && millis() - lastTick >= sound::workEveryMs(pump.valveOpen())) {
+      lastTick = millis(); sound::work(pump.valveOpen());
+    }
+  }
   int steps; input::Btn b;           // b not const: MAIN swallows the press that stopped a run
   input::take(steps, b);              // knob and (later) phone through one queue (input.h)
+  // input feedback (0.6.2): tick on a turn, click on a press, a lower tone on a hold, a three-note call when the hold opens
+  // the menu. Skipped while a result / error sound plays; a turn is silent during a run (it does nothing there).
+  if (!sound::busy()) {
+    if (b == input::Btn::SHORT) sound::click();
+    else if (b == input::Btn::LONG) { if (screen == Screen::MAIN && !pump.busy()) sound::menuIn(); else sound::hold(); }
+    else if (steps && !pump.busy()) sound::tick();
+  }
 
   // a run result or an error is announced on every screen (review item 6): VALVE / PUMP CHECK or a failing run used to
   // stay silent while the menu (or SENSOR, HOURS ...) was open. Errors bring the main screen up, except in CAL and OTA.
@@ -549,7 +563,7 @@ void loop() {
     } break;
 
     case Screen::MENU:
-      if (steps) menuPos = constrain(menuPos + steps, 0, MENU_N - 1);
+      if (steps) menuPos = ((menuPos + steps) % MENU_N + MENU_N) % MENU_N;   // 0.6.2, owner: the menu goes round, EXIT is one step back from CALIBRATE
       if (b == input::Btn::LONG) screen = Screen::MAIN;
       if (b == input::Btn::SHORT) {
         switch (menuPos) {
@@ -771,7 +785,7 @@ void loop() {
         const int cw = max(1, (int)canvas.textWidth("A"));
         const int x0 = (W() - tw) / 2;
         canvas.fillRect(x0 + wifiPassPos * cw, 72, cw, 3, TFT_CYAN);
-        drawHint("turn: char  press: next/save  hold: back");
+        drawHint("press: next  hold: back  turn: char");
         push();
       }
     } break;

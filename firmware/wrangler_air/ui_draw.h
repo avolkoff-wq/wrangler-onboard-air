@@ -343,6 +343,36 @@ int drawHint(const String& t, uint16_t c = 0, int bottom = -1) {
     if (cur.length() && n < 3) out[n++] = cur;
     return n;
   };
+  // 0.6.2, owner: the Font2 hint was too small to read. One line of the bold 9 pt font in capitals: every group if they
+  // fit (bold, then the regular 9 pt), else as many leading groups as fit in bold, so each call lists the main action
+  // first. Only when even the first group is too wide (the PUMP CHECK advice) the old wrapped Font2 text is used.
+  {
+    String up = t; up.toUpperCase();
+    const int maxW = W() - 6;
+    Font bf = nullptr; String show;
+    canvas.setFont(F_TEXT);
+    if (canvas.textWidth(up) <= maxW) { bf = F_TEXT; show = up; }
+    else {
+      canvas.setFont(F_SMALL);
+      if (canvas.textWidth(up) <= maxW) { bf = F_SMALL; show = up; }
+      else {
+        canvas.setFont(F_TEXT);
+        int i = 0;
+        while (i < (int)up.length()) {
+          int j = up.indexOf("  ", i); if (j < 0) j = up.length();
+          const String cand = up.substring(0, j);
+          if (canvas.textWidth(cand) > maxW) break;
+          show = cand; bf = F_TEXT; i = j + 2;
+        }
+      }
+    }
+    if (bf) {
+      const int top = bottom - 18;
+      textAt(show, W() / 2, top, bf, c == C_GREY ? C_LGREY : c, top_center);
+      hintTop = top;
+      return top;
+    }
+  }
   String parts[3]; Font f = &fonts::Font2;
   canvas.setFont(f);
   int n = wrapGroups(parts);

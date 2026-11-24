@@ -28,6 +28,17 @@ inline void update() {
 inline bool busy() { return qi < qn; }
 
 inline void beep(int n = 1)  { repeat({HIGH_HZ, 120, 60}, n); }          // acknowledge / refused press
+// input feedback (0.6.2, owner): a turn ticks, a press clicks, a hold is one lower tone, opening the menu a rising three-note call.
+// They never cut a result or an error sound short: input feedback is skipped while one is playing (the .ino checks busy()).
+inline void tick()           { repeat({2600, 15, 0}, 1); }
+inline void click()          { repeat({HIGH_HZ, 45, 0}, 1); }
+inline void hold()           { repeat({2200, 160, 0}, 1); }
+inline void menuIn()         { static const Note n[] = {{2400, 70, 25}, {3000, 70, 25}, {3700, 130, 0}}; play(n, 3); }
+// working sound (0.6.2, owner): told apart by rhythm, not only by pitch (the first version, 2100 / 1500 Hz at the same
+// pace, sounded alike). Compressor: a fast high rattle, a tick every 150 ms. Valve: a slow low knock every 700 ms.
+// Never over another sound (the .ino checks busy()).
+inline uint32_t workEveryMs(bool valve) { return valve ? 700 : 150; }
+inline void work(bool valve) { if (valve) repeat({1000, 60, 0}, 1); else repeat({2800, 15, 0}, 1); }
 inline void done()           { repeat({HIGH_HZ, 1500, 0}, 1); }          // target reached
 inline void inBand()         { beep(2); }                                 // nothing to do, already there
 inline void offTarget()      { repeat({LOW_HZ, 120, 100}, 3); }           // run over, result outside DONE_TOL

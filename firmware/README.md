@@ -112,6 +112,7 @@
 - **Приложение для стенда на Mac:** `tools/bench_app.html`, открыть в Chrome → Connect → порт `usbmodem…`. Кнопки выходов, ползунок FAKE, живые давление / G13 / AUX1, график за 2 минуты с полосами компрессора и клапана, консоль, сохранение лога. Ничего не ставится.
 - Сторожевой таймер 5 с (меню `[x] WATCHDOG`, включён по умолчанию): если прошивка зависла, DinMeter перезапускается, компрессор и клапан выключаются; после этого на экране WATCHDOG RESET, в логе WATCHDOG_RESET.
 - На экране любой ошибки большое число - текущее давление в линии (живое), видно, падает оно или растёт.
+- Звуки ввода (0.6.2): поворот ручки тик, нажатие щелчок, удержание низкий тон, вход в меню три ноты вверх. Во время работы: накачка частая высокая трещотка, спуск редкий низкий стук. Писки результата и ошибок они не перебивают. Громкость максимальная.
 - Звуки: высокий тон = хорошо (один длинный: цель достигнута, два коротких: уже было в пределах). Низкий тон = смотри экран: любая ошибка три коротких низких, ERR OVER частая низкая серия ~2 с (подойти сразу).
 - `tools/serial_log.py <порт> out.csv --plot`: пишет `LIVE` в CSV, после Ctrl+C рисует давление, цель, полосы компрессора и клапана. `--plot-only out.csv` рисует сохранённый файл, `--cmd "pulse k1"` отправляет команду при старте.
 - В машине ноутбук на своей батарее, не от прикуривателя.
@@ -147,7 +148,8 @@
 - Долгое нажатие = удержание 2 с: меню. С 0,3 с удержания внизу заполняется полоска `HOLD FOR MENU`. Во время работы не действует. Те же 2 с для отмены CUSTOM, выхода из LEARN, Wi-Fi и калибровки.
 - Экран всегда на полной яркости.
 - Счётчик моточасов: считаются секунды работы компрессора (работа, LEARN INFLATE, калибровка) и открытого клапана, в NVS (`cmpSec`, `ventSec`) сохраняются в конце каждой работы. Меню `HOURS` (после VERSION): компрессор всего, с последней чистки фильтров, клапан, в формате ч:мм. Нажатие: назад. Удержание 2 с: экран подтверждения `FILTERS CLEANED?`, ещё раз удержание 2 с обнуляет счётчик с последней чистки (в логе `FILTER_RESET`). После 10 ч работы компрессора с последней чистки (`FILTER_SERVICE_H`) на главном экране мелкое оранжевое `CLEAN FILTERS`, старт не блокирует. В книжной ориентации надпись по очереди с подсказкой внизу. Часы пишутся в лог в BOOT и END.
-- Внизу каждого экрана серая подсказка, что сейчас делают ручка и кнопка (`turn: mode  press: start  hold: menu`, `press: STOP`, `press: back` и т. д.).
+- Внизу каждого экрана подсказка, что сейчас делают кнопка и ручка: одна строка жирным шрифтом заглавными, главное действие первым (`PRESS: START  HOLD: MENU`, `PRESS: STOP`, `PRESS: BACK`); что не влезло, отбрасывается (0.6.2).
+- Меню листается по кругу: с CALIBRATE шаг назад это EXIT (0.6.2).
 - Меню `IO TEST` (после SENSOR): `COMPRESSOR (K1)` / `VALVE (K4)` (только с галкой VALVE) / `BACK`. Нажатие на пункт: выход включён (не дольше 30 с, обратный отсчёт), ещё нажатие: выключен. Включён только один выход, второй принудительно выключен; во время работы не действует. На экране живое давление, вольты G13 и AUX1. Подсказка `press: on / off (30 s max)  turn: choose  hold: back`. В логе `OUTPUT_TEST`: выход, давление до и после. Среднее нажатие (0,5-2 с) только выключает. Время включения идёт в счётчик моточасов. Старт работы выключает выход IO TEST (в логе `OUTPUT_TEST ... cut=RUN_START`). По USB то же: `k1 on|off`, `valve on|off`, импульс 1 с: `pulse k1`, `pulse valve`.
 - Меню `LEARN` (после CALIBRATE): `LEARN INFLATE` (компрессор 15 с), `LEARN DEFLATE` (клапан 20 с, только в сборке с клапаном), `BACK`. Нужно давление больше 0,15 bar (иначе `CONNECT SYSTEM`), для спуска не меньше 1,5 bar (иначе `PUMP UP TO 1.5 FIRST`). Подтверждение нажатием, долгое: назад. Замер, один импульс фиксированной длины, замер. Подкачка учится как первый калибровочный импульс; спуск сразу ставит τ = 20 / ln(p_до_абс / p_после_абс) (проверка 5..3000 с), без усреднения. На экране итог (τ или rate), нажатие: назад. Нажатие во время теста: стоп. В логе `LEARN_INF_TEST` / `LEARN_DEF_TEST`.
 
@@ -196,7 +198,7 @@
 ## 0.2.0: fewer compressor starts
 
 - Flow offset while pumping: **AUTO** learns `offset = c × rise rate`; **MANUAL** uses a fixed value. Menu → OFFSET (AUTO or 0.05-1.50 bar).
-- Settle before a measurement: **AUTO** waits until the reading is steady: least-squares slope over the last 1 s below 0.005 bar/s on two checks in a row (every 0.25 s), 1-6 s; **MANUAL** uses a fixed time. Menu → SETTLE (AUTO or 1.0-10.0 s).
+- Settle before a measurement: **AUTO** waits until the reading is steady: least-squares slope over the last 1 s below 0.005 bar/s on two checks in a row (every 0.25 s), 1-6 s; since 0.6.2 the 1 s window counts as full by the age of its oldest sample (the old test never passed at 46-48 ms loop passes and every pause ran to 6 s); **MANUAL** uses a fixed time. Menu → SETTLE (AUTO or 1.0-10.0 s).
 - The stop margin adapts to how well earlier stops landed. Top-up time is learned separately.
 - Timers on screen (tenths of a second): the whole run time and the number of starts at the top, a countdown on pauses (settle, measure, learning pulse, top-up), a stopwatch while pumping. Calibration shows a countdown on the pause and a stopwatch while pumping.
 - Calibration result reads "Sensor reads 1.2% low / Zero: 0.02 bar high / Accuracy +/-0.02 bar" instead of a= b=.

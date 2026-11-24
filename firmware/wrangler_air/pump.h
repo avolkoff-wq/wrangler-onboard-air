@@ -179,7 +179,10 @@ class Pump {
           trackRate(now, sb, SETTLE_WIN_MS);
           if (now - tS_ >= 250) {
             tS_ = now;
-            const bool full = rN_ >= 5 && rT_[(rH_ + rN_ - 1) % RN] - rT_[rH_] >= SETTLE_WIN_MS - 150;
+            // the window is full when its oldest sample is about SETTLE_WIN_MS old. 0.6.2: it was "newest - oldest
+            // >= WIN - 150", and with 46-48 ms loop passes (samples every ~140 ms) that never held on two checks
+            // in a row, so every pause ran to SETTLE_MAX_MS (bench 24.11: settle_s=6.0 on a perfectly steady line)
+            const bool full = rN_ >= 5 && now - rT_[rH_] >= SETTLE_WIN_MS - 250;
             slope_ = full ? fabsf(rateNow()) : 99;
             hits_ = slope_ < SETTLE_SLOPE ? hits_ + 1 : 0;
           }

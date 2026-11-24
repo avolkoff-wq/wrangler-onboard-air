@@ -213,6 +213,20 @@ static int regressions() {
     char m[96]; snprintf(m, sizeof m, "HIGHWAY: 255/75 %.1f bar, 285/70 %.1f bar, back %.1f", h255, h285, st.target);
     check(fabsf(h255 - 2.5f) < 1e-4f && fabsf(h285 - 2.3f) < 1e-4f && fabsf(st.target - 2.5f) < 1e-4f, m);
   }
+  {   // 27: AUTO settle on a steady line ends in ~1.3 s at any loop pace (bench 24.11: 46-48 ms passes gave 6.0 s)
+    g_demo = false; g_valve = true; uint32_t worst = 0; int worstDt = 0;
+    for (int dt = 5; dt <= 70; dt++) {
+      Settings st; st.learned = true; Sensor s; Pump p; p.begin(&s, &st);
+      g_fakeV = fakeV(1.0f); for (int i = 0; i < 40; i++) { g_ms += 20; s.update(); }
+      st.target = 2.5f; p.start(); const uint32_t t0 = g_ms;
+      while (p.state() == PState::SETTLE && g_ms - t0 < 10000) { g_ms += dt; s.update(); p.update(); }
+      if (g_ms - t0 > worst) { worst = g_ms - t0; worstDt = dt; }
+      p.stop(); p.clearResult(); g_ms += 5000;
+    }
+    g_fakeV = -1;
+    char m[120]; snprintf(m, sizeof m, "AUTO settle, steady line, loop pass 5..70 ms: longest %.2f s (at %d ms)", worst / 1000.0, worstDt);
+    check(worst <= 2000, m);
+  }
   printf("==== regressions: %s (%d failed)\n", g_fail ? "FAILED" : "all ok", g_fail);
   return g_fail ? 1 : 0;
 }

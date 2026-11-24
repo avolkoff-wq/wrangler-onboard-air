@@ -123,7 +123,7 @@ void drawIdle(bool edit) {
   };
   const bool hint = dir == D_UP || dir == D_DOWN;                      // "press to start" only when a start would do something
   auto idleHint = [&]() {
-    if (edit) { drawHint(wsel ? "turn: wheels  press: OK  hold: back" : "turn: 0.1  press: next  hold: cancel"); return; }
+    if (edit) { drawHint(wsel ? "press: OK  hold: back  turn: wheels" : "press: next  hold: cancel  turn: 0.1"); return; }
     if (armed && !dead) {   // ARMED: white hint, a bar running out over ARM_MS under it
       drawHint(armStage == 2 ? "PRESS AGAIN: CONFIRM  turn: cancel" : "PRESS AGAIN: START  turn: cancel", armStage == 2 ? TFT_RED : TFT_WHITE, H() - 4);
       const float left = 1.0f - constrain((float)(millis() - armT) / ARM_MS, 0.0f, 1.0f);
@@ -132,7 +132,7 @@ void drawIdle(bool edit) {
     }
     // portrait has no free row: the filter note takes the hint line every other 1.5 s
     if (portrait() && filtersDue() && (millis() / 1500) % 2) { drawHint("CLEAN FILTERS", TFT_ORANGE); return; }
-    drawHint(hint && !dead ? "turn: mode  press: start  hold: menu" : "turn: mode  hold: menu");
+    drawHint(hint && !dead ? "press: start  hold: menu  turn: mode" : "hold: menu  turn: mode");
   };
   iconDim = dead;
   if (!portrait()) {
@@ -264,9 +264,10 @@ void drawMain() {
     if (known) textAt(fmt(p0), x0, y + 14, F_SMALL, C_GREY, top_left);
     textAt(fmt(settings.target), x1, y + 14, F_SMALL, C_GREY, top_right);
   }
-  if (!portrait()) textAt(line, W() / 2, 101, F_TEXT, col, top_center, F_SMALL, W() - 4);
+  // status line: 6 px free at each side (0.6.2, bench: the green DONE line touched the screen edges), else the small font
+  if (!portrait()) textAt(line, W() / 2, 101, F_TEXT, col, top_center, F_SMALL, W() - 12);
   else {
-    textAt(line, W() / 2, 178, F_TEXT, col, top_center, F_SMALL, W() - 4);
+    textAt(line, W() / 2, 178, F_TEXT, col, top_center, F_SMALL, W() - 12);
     textAt(counts, W() / 2, 198, F_SMALL, C_GREY, top_center);
   }
   if (pump.state() == PState::ERROR && pump.error() == PErr::PUMP_ON) drawHint("AUX2 ON? ELSE A RELAY IS STUCK  press: back", TFT_RED);
@@ -278,7 +279,7 @@ void drawMain() {
 
 void drawMenu() {
   canvas.fillSprite(TFT_BLACK);
-  const int ht = drawHint("turn: scroll  press: select  hold: back");
+  const int ht = drawHint("press: select  hold: back  turn: scroll");
   const Font f = portrait() ? F_SMALL : F_TEXT;
   canvas.setFont(f);
   canvas.setTextDatum(middle_left);
@@ -311,7 +312,7 @@ void drawMenu() {
 // ---------- menu LEARN ----------
 void drawLearnPick() {
   canvas.fillSprite(TFT_BLACK);
-  drawHint("turn: scroll  press: select  hold: back");
+  drawHint("press: select  hold: back  turn: scroll");
   canvas.setFont(portrait() ? F_SMALL : F_TEXT); canvas.setTextDatum(middle_left);
   for (int i = 0; i < LEARN_N; i++) {
     const int y = 16 + i * 30;
@@ -351,7 +352,7 @@ void drawEdit() {
   drawLines({ {title, F_TEXT, TFT_CYAN},
               {val, F_LARGE, TFT_GREENYELLOW, F_MID},
               {hint, F_SMALL, TFT_LIGHTGREY} }, 0, H() - 18);
-  drawHint("turn: change  press: save  hold: back");
+  drawHint("press: save  hold: back  turn: change");
   push();
 }
 
@@ -361,7 +362,7 @@ void drawTrim(float shown, float trim) {
   drawLines({ {"AUX1 = MULTIMETER", F_TEXT, TFT_CYAN},
               {String(shown, 2) + " V", F_LARGE, TFT_GREENYELLOW, F_MID},
               {"trim x" + String(trim, 3), F_SMALL, TFT_LIGHTGREY} }, 0, H() - 18);
-  drawHint("turn: 0.05 V  press: save  hold: back");
+  drawHint("press: save  hold: back  turn: 0.05 V");
   push();
 }
 
@@ -378,7 +379,7 @@ void drawCal() {
       // the next press starts the compressor: same engine line and confirmation as LEARN INFLATE (ENGINE CONFIRM)
       drawLines({ {"CAL 1/4", F_TEXT, TFT_WHITE}, {"hose open to air", F_TEXT, TFT_WHITE},
                   {engText(engine()), F_TEXT, engColor(engine())} }, top, H() - 18);
-      drawHint(calEngArm ? "PRESS AGAIN: CONFIRM  hold: abort" : "press when ready: next  hold: abort", calEngArm ? TFT_RED : C_LGREY); break;
+      drawHint(calEngArm ? "PRESS AGAIN: CONFIRM  hold: abort" : "press: next  hold: abort", calEngArm ? TFT_RED : C_LGREY); break;
     case CState::PUMPING:
       drawLines({ {n + ": pumping to ~" + String(cal.points[i], 0), F_TEXT, TFT_WHITE},
                   {mmss(cal.phaseMs()), F_LARGE, TFT_ORANGE, F_MID} }, top, H() - 18);
@@ -433,7 +434,7 @@ void drawVersion() {
 }
 void drawOutTest() {
   canvas.fillSprite(TFT_BLACK);
-  drawHint("press: on / off (30 s max)  turn: choose  hold: back");
+  drawHint("press: on / off  hold: back  turn: choose");
   canvas.setFont(portrait() ? F_SMALL : F_TEXT); canvas.setTextDatum(middle_left);
   for (int i = 0; i < OUT_N; i++) {
     const int y = 12 + i * 24;
