@@ -105,22 +105,21 @@ class KnobView(ctx: Context, private val onStep: (Int) -> Unit, private val onBu
         p.color = Color.BLACK
         p.shader = RadialGradient(x + R * 0.03f, y + R * 0.06f, ring * 1.15f, intArrayOf(0xAA000000.toInt(), 0x00000000), floatArrayOf(0.82f, 1f), Shader.TileMode.CLAMP)
         c.drawCircle(x + R * 0.03f, y + R * 0.06f, ring * 1.15f, p); p.shader = null
-        // steel ring with a diamond knurl, turning with the knob
-        p.shader = android.graphics.SweepGradient(x, y, intArrayOf(0xFF5A5C58.toInt(), 0xFF2A2B29.toInt(), 0xFF6C6E69.toInt(), 0xFF222321.toInt(), 0xFF5A5C58.toInt()), null)
-        c.drawCircle(x, y, ring, p); p.shader = null
-        c.save()
-        val clip = android.graphics.Path().apply { addCircle(x, y, ring, android.graphics.Path.Direction.CW); addCircle(x, y, ringIn, android.graphics.Path.Direction.CCW) }
-        c.clipPath(clip)
-        p.style = Paint.Style.STROKE; p.strokeWidth = 1.1f * dp
-        for (i in 0 until 60) {   // two families of slanted lines make the diamonds
-            for (dir in floatArrayOf(-1f, 1f)) {
-                val a0 = Math.toRadians((angle + i * 6).toDouble()); val a1 = Math.toRadians((angle + i * 6 + dir * 9).toDouble())
-                p.color = if (dir > 0) 0x55000000 else 0x30FFFFFF
-                c.drawLine(x + (ringIn * cos(a0)).toFloat(), y + (ringIn * sin(a0)).toFloat(), x + (ring * cos(a1)).toFloat(), y + (ring * sin(a1)).toFloat(), p)
-            }
+        // steel ring with straight knurling (advisor: the cross-hatch read as mesh): 90 radial ridges, each a light and a
+        // dark stroke half a degree apart, over a sweep with two highlights; bevel rings inside and out. Turns with the knob.
+        p.color = Color.BLACK
+        p.shader = android.graphics.SweepGradient(x, y, intArrayOf(0xFF4A4C48.toInt(), 0xFF8A8C86.toInt(), 0xFF3A3B38.toInt(), 0xFF262724.toInt(), 0xFF3A3B38.toInt(), 0xFF8A8C86.toInt(), 0xFF2E2F2C.toInt(), 0xFF4A4C48.toInt()),
+            floatArrayOf(0f, 0.125f, 0.25f, 0.375f, 0.5f, 0.625f, 0.75f, 1f))
+        c.save(); c.rotate(-90f, x, y); c.drawCircle(x, y, ring, p); c.restore(); p.shader = null
+        p.style = Paint.Style.STROKE; p.strokeWidth = 1f * dp
+        for (i in 0 until 90) {
+            val a0 = Math.toRadians((angle + i * 4).toDouble()); val a1 = Math.toRadians((angle + i * 4 + 0.9).toDouble())
+            val r0 = ringIn + 1.5f * dp; val r1 = ring - 1.5f * dp
+            p.color = 0x66FFFFFF; c.drawLine(x + (r0 * cos(a0)).toFloat(), y + (r0 * sin(a0)).toFloat(), x + (r1 * cos(a0)).toFloat(), y + (r1 * sin(a0)).toFloat(), p)
+            p.color = 0x99000000.toInt(); c.drawLine(x + (r0 * cos(a1)).toFloat(), y + (r0 * sin(a1)).toFloat(), x + (r1 * cos(a1)).toFloat(), y + (r1 * sin(a1)).toFloat(), p)
         }
-        c.restore()
-        p.strokeWidth = 1.2f * dp; p.color = 0xFF1A1B19.toInt(); c.drawCircle(x, y, ring, p); c.drawCircle(x, y, ringIn, p)
+        p.strokeWidth = 1.2f * dp; p.color = 0xFF151614.toInt(); c.drawCircle(x, y, ring, p); c.drawCircle(x, y, ringIn, p)
+        p.strokeWidth = 1f * dp; p.color = 0x33FFFFFF; r.set(x - ring + dp, y - ring + dp, x + ring - dp, y + ring - dp); c.drawArc(r, 200f, 140f, false, p)
         p.style = Paint.Style.FILL
         // matte olive face, slightly domed; pressed: sinks a little
         val pressed = mode == 2
@@ -130,12 +129,15 @@ class KnobView(ctx: Context, private val onStep: (Int) -> Unit, private val onBu
         c.drawCircle(x, y, fr, p); p.shader = null
         // raised pointer fin from the centre to the rim, with a painted white line; amber while armed or running
         c.save(); c.rotate(angle, x, y)
-        path.reset(); path.moveTo(x - fr * 0.11f, y - fr * 0.25f); path.lineTo(x - fr * 0.05f, y - fr * 0.97f); path.lineTo(x + fr * 0.05f, y - fr * 0.97f); path.lineTo(x + fr * 0.11f, y - fr * 0.25f); path.close()
+        // the fin: from the hub to the rim, wider at the hub, with a soft shadow
+        path.reset(); path.moveTo(x - fr * 0.085f + 2 * dp, y - fr * 0.06f + 2 * dp); path.lineTo(x - fr * 0.03f + 2 * dp, y - fr * 0.985f + 2 * dp); path.lineTo(x + fr * 0.03f + 2 * dp, y - fr * 0.985f + 2 * dp); path.lineTo(x + fr * 0.085f + 2 * dp, y - fr * 0.06f + 2 * dp); path.close()
+        p.color = 0x55000000; p.maskFilter = android.graphics.BlurMaskFilter(4 * dp, android.graphics.BlurMaskFilter.Blur.NORMAL); c.drawPath(path, p); p.maskFilter = null
+        path.reset(); path.moveTo(x - fr * 0.085f, y - fr * 0.06f); path.lineTo(x - fr * 0.03f, y - fr * 0.985f); path.lineTo(x + fr * 0.03f, y - fr * 0.985f); path.lineTo(x + fr * 0.085f, y - fr * 0.06f); path.close()
         p.color = Color.BLACK
-        p.shader = LinearGradient(x - fr * 0.11f, 0f, x + fr * 0.11f, 0f, 0xFF6E7452.toInt(), 0xFF262918.toInt(), Shader.TileMode.CLAMP)
+        p.shader = LinearGradient(x - fr * 0.085f, 0f, x + fr * 0.085f, 0f, 0xFF6E7452.toInt(), 0xFF262918.toInt(), Shader.TileMode.CLAMP)
         c.drawPath(path, p); p.shader = null
         p.color = if (!enabledLink) 0xFF808070.toInt() else accent   // white idle, amber armed / running, red error
-        c.drawRect(x - fr * 0.018f, y - fr * 0.93f, x + fr * 0.018f, y - fr * 0.5f, p)
+        c.drawRect(x - fr * 0.016f, y - fr * 0.95f, x + fr * 0.016f, y - fr * 0.5f, p)
         c.restore()
         // hold progress round the face
         if (pressed && !holdSent) {

@@ -145,6 +145,7 @@ consts = {
     'HEAD_X': X(1338), 'HEAD_Y': Y(500), 'TAIL_X': X(128), 'TAIL_Y': Y(492),
     'DECAL_X0': X(1064), 'DECAL_X1': X(1284), 'DECAL_Y': Y(476), 'DECAL_H': 23 * K,
     'BADGE_X': X(972), 'BADGE_Y': Y(592), 'BADGE_H': 20 * K,
+    'MARKER_X': X(1339), 'MARKER_Y': Y(526.5),
 }
 
 def hexc(c): return f'0x{c & 0xFFFFFFFF:08X}.toInt()'

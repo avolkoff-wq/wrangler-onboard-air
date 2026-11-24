@@ -26,6 +26,8 @@ object JeepShape {
     const val BADGE_X = 342.70f
     const val BADGE_Y = 140.79f
     const val BADGE_H = 7.47f
+    const val MARKER_X = 479.86f
+    const val MARKER_Y = 116.31f
     val LAYERS = listOf(
         Layer(0, floatArrayOf(2.62f, 76.88f, 3.32f, 71.98f, 5.42f, 68.48f, 8.92f, 66.37f, 13.83f, 65.67f, 23.54f, 65.67f, 28.45f, 66.37f, 31.95f, 68.48f, 34.06f, 71.98f, 34.76f, 76.88f, 34.76f, 147.89f, 34.06f, 152.80f, 31.95f, 156.30f, 28.45f, 158.40f, 23.54f, 159.10f, 13.83f, 159.10f, 8.92f, 158.40f, 5.42f, 156.30f, 3.32f, 152.80f, 2.62f, 147.89f), 0xFF1A1B1E.toInt(), 0xFF0B0B0D.toInt(), 65.67f, 159.10f, 0x00000000.toInt(), 0.0f, false),
         Layer(0, floatArrayOf(4.11f, 73.15f, 4.18f, 72.66f, 4.39f, 72.31f, 4.74f, 72.10f, 5.23f, 72.03f, 15.70f, 72.03f, 16.19f, 72.10f, 16.54f, 72.31f, 16.75f, 72.66f, 16.82f, 73.15f, 16.82f, 75.02f, 16.75f, 75.51f, 16.54f, 75.86f, 16.19f, 76.07f, 15.70f, 76.14f, 5.23f, 76.14f, 4.74f, 76.07f, 4.39f, 75.86f, 4.18f, 75.51f, 4.11f, 75.02f), 0xFF2A2B2F.toInt(), 0xFF2A2B2F.toInt(), 72.03f, 76.14f, 0x00000000.toInt(), 0.0f, false),

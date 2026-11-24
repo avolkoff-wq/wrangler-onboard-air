@@ -41,7 +41,15 @@ object SceneArt {
         }
     }
 
-    fun draw(c: Canvas, preset: Int, w: Float, h: Float, dim: Boolean = false, time: Float = 0f) {
+    // owner: while a run pumps or vents, the Jeep stands (it does in reality): the world eases to a stop in 0.6 s, the
+    // amber marker blinks once a second and an arc round each tyre fills with the progress. td = seconds of driving.
+    private var td = 0f; private var lastT = 0f; private var moving = 1f
+    private var runProg = -1f; private var runCol = 0
+    fun draw(c: Canvas, preset: Int, w: Float, h: Float, dim: Boolean = false, time: Float = 0f, running: Boolean = false, progress: Float = -1f, accent: Int = 0) {
+        val dt = (time - lastT).coerceIn(0f, 0.1f); lastT = time
+        moving += ((if (running) 0f else 1f) - moving).coerceIn(-dt / 0.6f, dt / 0.6f)
+        td += dt * moving
+        runProg = if (running) progress else -1f; runCol = accent
         t = time
         c.save(); c.clipRect(0f, 0f, w, h)
         when (preset) {
@@ -240,6 +248,22 @@ object SceneArt {
             p.color = 0xFF0A0A0B.toInt(); c.drawCircle(wx, cy, tr * 0.07f, p)
             p.style = Paint.Style.STROKE; p.strokeWidth = tr * 0.012f; p.color = 0xFF6E7278.toInt(); c.drawCircle(wx, cy, tr * 0.07f, p); p.style = Paint.Style.FILL
         }
+        if (runProg >= 0f && !ghost) {
+            // run: an arc round each tyre fills from the top with the progress; the amber marker blinks at 1 Hz
+            p.style = Paint.Style.STROKE; p.strokeCap = Paint.Cap.ROUND; p.strokeWidth = tr * 0.09f
+            for (wx in floatArrayOf(REAR_X, FRONT_X)) {
+                r.set(wx - tr * 1.14f, cy - tr * 1.14f, wx + tr * 1.14f, cy + tr * 1.14f)
+                p.color = 0x40FFFFFF; c.drawArc(r, 0f, 360f, false, p)
+                p.color = runCol; c.drawArc(r, -90f, 360f * runProg.coerceIn(0.01f, 1f), false, p)
+            }
+            p.style = Paint.Style.FILL; p.strokeCap = Paint.Cap.BUTT
+            if ((t % 1f) < 0.5f) {
+                p.color = Color.BLACK
+                p.shader = RadialGradient(J.MARKER_X, J.MARKER_Y, 16f, 0xCCFFB020.toInt(), Color.TRANSPARENT, Shader.TileMode.CLAMP)
+                c.drawCircle(J.MARKER_X, J.MARKER_Y, 16f, p); p.shader = null
+                p.color = 0xFFFFD27A.toInt(); r.set(J.MARKER_X - 5f, J.MARKER_Y - 2f, J.MARKER_X + 5f, J.MARKER_Y + 2f); c.drawRoundRect(r, 1.5f, 1.5f, p)
+            }
+        }
         if (ghost) c.restore()
         c.restore()
         if (lights) {   // small glows: they must not hide the nose or the spare
@@ -252,7 +276,7 @@ object SceneArt {
     }
     /** wheel turn angle for a ground speed (px per second) and the wheel radius on screen */
     /** capped at 7 rad/s so 25 fps never strobes the spokes backwards */
-    private fun turn(speedPx: Float, z: Float) = t * minOf(speedPx / (TYRE_R * z), 7f)
+    private fun turn(speedPx: Float, z: Float) = td * minOf(speedPx / (TYRE_R * z), 7f)
     /** dust behind the rear wheel */
     private fun dust(c: Canvas, ps: Pose, col: Int) {
         val (x, y) = maskPt(ps, REAR_X - WHEEL_R * 0.5f, JeepShape.H - 2f); val len = JeepShape.W * ps.z
@@ -260,7 +284,7 @@ object SceneArt {
             val ph = ((t * 0.8f + i / 16f) % 1f)
             val dx = -ph * len * 0.55f; val dy = -ph * len * 0.14f + sin(i * 2.1f) * len * 0.02f
             val rr = len * (0.02f + 0.07f * ph)
-            val a = ((1f - ph) * 0.45f * 255).toInt().coerceIn(0, 255)
+            val a = ((1f - ph) * 0.45f * 255 * moving).toInt().coerceIn(0, 255)
             // a soft puff without a blur filter per particle (advisor: cheaper at 25 fps)
             p.color = Color.BLACK
             p.shader = RadialGradient(x + dx, y + dy, rr * 1.4f, (col and 0x00FFFFFF) or (a shl 24), col and 0x00FFFFFF, Shader.TileMode.CLAMP)
@@ -271,7 +295,7 @@ object SceneArt {
 
     // ---------- scenes ----------
     private fun highway(c: Canvas, w: Float, h: Float) {   // dusk, the city slides by, lane dashes rush under the Jeep
-        val speed = w * 0.6f; val off = t * speed
+        val speed = w * 0.6f; val off = td * speed
         sky(c, w, h, 0xFF0B1B3A.toInt(), 0xFFF08A3C.toInt(), 0.78f)
         stars(c, w, h)
         sun(c, w * 0.78f, h * 0.6f, h * 0.07f, 0xFFFFC46B.toInt())
@@ -291,12 +315,12 @@ object SceneArt {
         p.color = 0xEEFFFFFF.toInt()
         every(w, w * 0.18f, off) { x, _ -> c.drawRect(x, g + h * 0.15f, x + w * 0.09f, g + h * 0.17f, p) }
         val road = g + h * 0.075f
-        val ps = pose(w * 0.18f, w * 0.66f, { road }, bounce = h * 0.003f * sin(t * 17f))
+        val ps = pose(w * 0.18f, w * 0.66f, { road }, bounce = h * 0.003f * sin(t * 17f) * moving)
         jeep(c, ps, 0xFFE8E4F0.toInt(), 0xFF5D6378.toInt(), lights = true, wheelTurn = turn(speed, ps.z))
     }
 
     private fun rough(c: Canvas, w: Float, h: Float) {   // overcast, broken asphalt with bumps and potholes
-        val speed = w * 0.2f; val off = t * speed
+        val speed = w * 0.2f; val off = td * speed
         sky(c, w, h, 0xFF2E3D4F.toInt(), 0xFFC7B9A6.toInt(), 0.75f)
         clouds(c, w, h, h * 0.18f, 0x55E6EEF5, 5, w * 0.16f, 0.01f)
         band(c, w, h, { x -> h * (0.55f - 0.08f * sin((x + off * 0.1f) / w * 5f)) }, 0xFF4F6372.toInt(), 0xFF35454F.toInt())
@@ -313,7 +337,7 @@ object SceneArt {
     }
 
     private fun gravel(c: Canvas, w: Float, h: Float) {   // afternoon, pines, a dirt road, stones and dust
-        val speed = w * 0.3f; val off = t * speed
+        val speed = w * 0.3f; val off = td * speed
         sky(c, w, h, 0xFF4F86BF.toInt(), 0xFFF1D7A8.toInt(), 0.8f)
         sun(c, w * 0.82f, h * 0.2f, h * 0.06f, 0xFFFFF1C4.toInt())
         clouds(c, w, h, h * 0.16f, 0x88FFFFFF.toInt(), 4, w * 0.13f, 0.012f)
@@ -335,7 +359,7 @@ object SceneArt {
     }
 
     private fun trail(c: Canvas, w: Float, h: Float) {   // forest at dusk, layers of firs, a wavy trail
-        val speed = w * 0.18f; val off = t * speed
+        val speed = w * 0.18f; val off = td * speed
         sky(c, w, h, 0xFF1C3A2E.toInt(), 0xFFB9D49A.toInt(), 0.7f)
         every(w, w * 0.08f, off * 0.2f) { x, k -> fir(c, x, h * 0.66f, h * 0.34f, 0xFF3F6B4C.toInt(), k) }
         haze(c, w, h * 0.35f, h * 0.68f, 0xFFB9D49A.toInt())
@@ -349,7 +373,7 @@ object SceneArt {
     }
 
     private fun rock(c: Canvas, w: Float, h: Float) {   // alpine: the Jeep crawls slowly over boulders
-        val speed = w * 0.07f; val off = t * speed
+        val speed = w * 0.07f; val off = td * speed
         sky(c, w, h, 0xFF2D63A0.toInt(), 0xFFD6E9F7.toInt(), 0.7f)
         fun peak(cx: Float, top: Float, half: Float, col: Int) {
             path.reset(); path.moveTo(cx - half, h * 0.78f); path.lineTo(cx, top); path.lineTo(cx + half, h * 0.78f); path.close()
@@ -397,7 +421,7 @@ object SceneArt {
         p.color = 0x33000000; c.drawRect(x - tw * 0.05f, base - hgt + tw * 0.5f, x + tw * 0.05f, base, p)  // rib
     }
     private fun sand(c: Canvas, w: Float, h: Float) {   // desert noon: rolling over dunes, dust behind
-        val speed = w * 0.22f; val off = t * speed
+        val speed = w * 0.22f; val off = td * speed
         sky(c, w, h, 0xFFF29A3F.toInt(), 0xFFFDE7B8.toInt(), 0.65f)
         sun(c, w * 0.8f, h * 0.25f, h * 0.11f, 0xFFFFF4D6.toInt())
         band(c, w, h, { x -> val u = x + off * 0.15f; h * (0.6f - 0.1f * gauss(rep(u, w * 1.1f, 0f), 0f, w * 0.2f) - 0.06f * gauss(rep(u, w * 0.7f, w * 0.3f), 0f, w * 0.12f)) }, 0xFFE9B36F.toInt(), 0xFFC98942.toInt())
@@ -417,10 +441,10 @@ object SceneArt {
         sky(c, w, h, 0xFF7A2E3B.toInt(), 0xFFF5A35C.toInt(), 0.7f)
         sun(c, w * 0.2f, h * 0.62f, h * 0.09f, 0xFFFFC27A.toInt())
         band(c, w, h, { x -> h * (0.66f - 0.06f * sin(x / w * 4f)) }, 0xFFD18A4C.toInt(), 0xFFA8652F.toInt())
-        val shake = h * 0.004f * sin(t * 23f)   // the body shakes while the wheels dig
+        val shake = h * 0.004f * sin(t * 23f) * moving   // the body shakes while the wheels dig
         val ps = pose(w * 0.20f, w * 0.64f, { h * 0.8f }, bounce = shake)
         val sunk = h * 0.06f
-        jeep(c, ps, 0xFFFFFFFF.toInt(), 0xFF7E4A38.toInt(), lights = true, wheelTurn = t * 14f, sunk = sunk, spin = 14f)
+        jeep(c, ps, 0xFFFFFFFF.toInt(), 0xFF7E4A38.toInt(), lights = true, wheelTurn = td * 14f, sunk = sunk, spin = 14f * moving)
         // the sand the wheels sit in, piled a little higher at each wheel
         val (rx, _) = maskPt(ps, REAR_X, WHEEL_Y); val (fx, _) = maskPt(ps, FRONT_X, WHEEL_Y)
         band(c, w, h, { x -> h * (0.84f - 0.015f * sin(x / w * 11f)) - h * 0.03f * (gauss(x, rx, w * 0.07f) + gauss(x, fx, w * 0.07f)) }, 0xFFE3A15B.toInt(), 0xFFB06A2E.toInt())
@@ -430,7 +454,7 @@ object SceneArt {
                 val ph = ((t * 2.2f + i / 28f + seed) % 1f)
                 val vx = -(0.3f + 0.3f * ((i * 37) % 10) / 10f) * w; val vy = -(0.5f + 0.35f * ((i * 53) % 10) / 10f) * h
                 val x = wx - w * 0.02f + vx * ph * 0.5f; val y = h * 0.82f + vy * ph * 0.5f + 0.9f * h * ph * ph
-                val a = ((1f - ph) * 230).toInt().coerceIn(0, 255)
+                val a = ((1f - ph) * 230 * moving).toInt().coerceIn(0, 255)
                 p.color = (a shl 24) or 0xF2C27E; c.drawCircle(x, y, h * (0.005f + 0.005f * ((i * 7) % 3)), p)
             }
         }

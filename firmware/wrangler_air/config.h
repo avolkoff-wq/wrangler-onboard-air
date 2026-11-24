@@ -7,7 +7,7 @@
 //   VALVE (deflate valve fitted, schematic C), DEMO (virtual tyres for the desk, never saved, off at every power-up).
 // The USB serial log, LIVE stream and commands are always on.
 #define BENCH_USB 1
-#define FW_VERSION "0.7.5"
+#define FW_VERSION "0.7.6"
 inline bool g_valve = true;     // menu VALVE, saved (Settings::valve)
 inline bool g_demo  = false;    // menu DEMO, RAM only
 inline float g_fakeV = -1;      // USB "fake <bar>": pin voltage the sensor pretends to read (< 0 = off), RAM only
@@ -37,6 +37,7 @@ constexpr float VTRIM_MIN = 0.85f, VTRIM_MAX = 1.15f;   // menu AUX1 TRIM range 
 constexpr float ENGINE_HYST  = 0.2f;   // engine counts as off again only below ENGINE_ON_V - this (no flicker at 13.2 V)
 constexpr float SENSOR_TAU_MS = 90.0f;  // sensor filter time constant (was 0.2 per 20 ms pass), from the measured pass time
 constexpr float VBAT_TAU_MS   = 390.0f; // AUX1 filter (was 0.05 per 20 ms pass): ignores cranking dips and relay clicks
+inline volatile uint8_t g_sndSeq = 0, g_sndId = 0;   // the last sound started (sound.h ids), +1 per sound: the phone plays the same (0.7.6)
 inline uint32_t g_loopMaxMs = 0;        // longest main-loop pass since the last RUN start, logged in END
 constexpr float ENGINE_ON_V  = 13.2f;  // at or above: alternator charging, engine runs -> no question before inflating
 constexpr float LOW_V        = 11.5f;  // while the compressor runs (VOLT CHECK, module fitted): below this for LOW_V_MS = stop, ERR LOW VOLTAGE

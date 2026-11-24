@@ -84,8 +84,8 @@ class MainActivity : Activity(), Ble.Listener {
                 addView(left, LinearLayout.LayoutParams(0, MATCH_PARENT, 1.4f))
                 addView(knob, LinearLayout.LayoutParams(0, MATCH_PARENT, 1f).apply { val m = (16 * dp).toInt(); setMargins(m, m, m, m) })
             } else {
-                addView(left, LinearLayout.LayoutParams(MATCH_PARENT, 0, 1.55f))
-                addView(knob, LinearLayout.LayoutParams(MATCH_PARENT, 0, 1f).apply { val m = (18 * dp).toInt(); setMargins(m, 0, m, m) })
+                addView(left, LinearLayout.LayoutParams(MATCH_PARENT, 0, 1.4f))
+                addView(knob, LinearLayout.LayoutParams(MATCH_PARENT, 0, 1f).apply { val m = (6 * dp).toInt(); setMargins(m, 0, m, (10 * dp).toInt()) })   // a larger panel, centred in what is left
             }
         }
         setContentView(root)
@@ -114,7 +114,7 @@ class MainActivity : Activity(), Ble.Listener {
     override fun onDestroy() {
         super.onDestroy()
         if (Link.ui === this) Link.ui = null
-        if (isFinishing) { Link.ble?.stop(); Link.ble = null }
+        if (isFinishing) { Link.ble?.stop(); Link.ble = null; Sounds.release() }
     }
 
     override fun onRequestPermissionsResult(code: Int, perms: Array<out String>, res: IntArray) {
@@ -190,8 +190,13 @@ class MainActivity : Activity(), Ble.Listener {
     }
 
     // ---------- Ble.Listener (UI thread) ----------
-    override fun onStatus(text: String) = runOnUiThread { status.text = text; refresh() }
-    override fun onState(s: Ble.State) = runOnUiThread { home.state = s; refresh() }
+    override fun onStatus(text: String) = runOnUiThread { status.text = text; if (Link.ble?.connected != true) sndSeq = -1; refresh() }
+    private var sndSeq = -1
+    override fun onState(s: Ble.State) = runOnUiThread {
+        // the DinMeter's sounds on the phone too: play what it just started (not the one that was current when we connected)
+        if (s.sndSeq >= 0) { if (sndSeq >= 0 && s.sndSeq != sndSeq) Sounds.play(s.sndId); sndSeq = s.sndSeq }
+        home.state = s; refresh()
+    }
     override fun onFrame(f: Frame) = runOnUiThread { mirror.frame = f; refresh() }
     override fun onIcon(key: Int, strokes: List<Frame.IconItem>) = runOnUiThread { mirror.putIcon(key, strokes); refresh() }
     override fun onMenu(m: MenuList) = runOnUiThread { menuView.menu = m; refresh() }

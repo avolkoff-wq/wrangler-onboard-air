@@ -123,7 +123,7 @@ class HomeView(ctx: Context, private val onTurn: (Int) -> Unit = {}) : View(ctx)
     }
     /** the scene card on top of every main-screen mode (idle, run, result, error): one style everywhere (owner).
      *  tint: a colour laid over the scene (red on an error); returns the y under the card */
-    private fun drawCard(c: Canvas, s: Ble.State, w: Float, h: Float, tint: Int?): Float {
+    private fun drawCard(c: Canvas, s: Ble.State, w: Float, h: Float, tint: Int?, running: Boolean = false, progress: Float = -1f, accent: Int = 0): Float {
         // the scene card (advisor: taller, hairline edge, the link state as a small capsule inside it)
         val m = 16 * dp
         val cw = w - 2 * m
@@ -133,7 +133,7 @@ class HomeView(ctx: Context, private val onTurn: (Int) -> Unit = {}) : View(ctx)
         r.set(m, top, m + cw, top + ch)
         val clip = android.graphics.Path().apply { addRoundRect(r, 24 * dp, 24 * dp, android.graphics.Path.Direction.CW) }
         c.clipPath(clip); c.translate(m, top)
-        SceneArt.draw(c, s.preset, cw, ch, time = (android.os.SystemClock.uptimeMillis() % 3_600_000L) / 1000f)
+        SceneArt.draw(c, s.preset, cw, ch, time = (android.os.SystemClock.uptimeMillis() % 3_600_000L) / 1000f, running = running || tint != null, progress = progress, accent = accent)
         c.restore()
         p.style = Paint.Style.STROKE; p.strokeWidth = 1 * dp; p.color = 0x1AFFFFFF
         r.set(m, top, m + cw, top + ch); c.drawRoundRect(r, 24 * dp, 24 * dp, p); p.style = Paint.Style.FILL
@@ -242,7 +242,7 @@ class HomeView(ctx: Context, private val onTurn: (Int) -> Unit = {}) : View(ctx)
         // the same card as idle (the Jeep drives), then the phase, the live value and a progress capsule (owner: one style)
         val goal = target(s)
         ringShown += (goal - ringShown) * 0.15f
-        var y = drawCard(c, s, w, h, null) + 60 * dp      // the same line as the preset name on the idle screen
+        var y = drawCard(c, s, w, h, null, running = true, progress = ringShown, accent = accent) + 60 * dp      // the same line as the preset name on the idle screen
         p.letterSpacing = 0.14f
         heavy { centeredF(c, phase(s.state).uppercase() + "  ·  " + mmss(s.runMs), y, 22f, accent) }
         p.letterSpacing = 0f

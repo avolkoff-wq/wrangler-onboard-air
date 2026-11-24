@@ -48,7 +48,7 @@ inline uint32_t pairLeftMs() { return pairing() ? pairUntil - millis() : 0; }
 inline int connected() { return on && server ? server->getConnectedCount() : 0; }
 inline int bonds() { return on ? NimBLEDevice::getNumBonds() : 0; }
 
-// STATE packet, 40 bytes (36 until 0.7.3; 36-37 CUSTOM value mbar, 38 step, 39 wheels)
+// STATE packet, 42 bytes (36 until 0.7.3; 36-37 CUSTOM value mbar, 38 step, 39 wheels; 40 sound counter, 41 sound id)
 inline size_t pack(const UiSnapshot& u, uint8_t* b) {
   auto p16 = [&](int i, int32_t v) { v = constrain(v, -32768, 32767); b[i] = v & 0xFF; b[i + 1] = (v >> 8) & 0xFF; };
   auto p32 = [&](int i, uint32_t v) { for (int k = 0; k < 4; k++) b[i + k] = (v >> (8 * k)) & 0xFF; };
@@ -59,7 +59,8 @@ inline size_t pack(const UiSnapshot& u, uint8_t* b) {
   p32(18, u.runMs); p32(22, u.phaseMs); p32(26, u.seq); p32(30, u.adcFails);
   p16(34, lroundf(u.p0 * 1000));   // start pressure of the run, mbar (0.7.2)
   p16(36, lroundf(u.customEdit * 1000)); b[38] = u.customStep; b[39] = u.customWheels;   // CUSTOM editor (0.7.4)
-  return 40;
+  b[40] = g_sndSeq; b[41] = g_sndId;   // the last sound (sound.h mark), for the phone to play too (0.7.6)
+  return 42;
 }
 
 class ServerCb : public NimBLEServerCallbacks {
@@ -197,14 +198,15 @@ inline void update(const UiSnapshot& u) {
   if (evPaired) { evPaired = false; wlog::ev("BT_PAIRED", wlog::kv("bonds", String(NimBLEDevice::getNumBonds())) + wlog::kv("auth", String((int)authInfo, HEX))); }
   if (evDenied) { evDenied = false; wlog::ev("BT_DENIED", wlog::kv("auth", String((int)authInfo, HEX))); }
   if (pairUntil && !pairing()) pairUntil = 0;
-  static uint32_t last = 0; static uint8_t prev[40] = {0};
-  uint8_t b[40]; pack(u, b);
+  static uint32_t last = 0; static uint8_t prev[42] = {0};
+  uint8_t b[42]; pack(u, b);
   const uint32_t now = millis();
   // seq (26..29) and the phase / run clocks change every pass: compare the rest
   const bool changed = memcmp(b, prev, 18) != 0 || memcmp(b + 36, prev + 36, 4) != 0;
-  if (!stateCh || now - last < (changed ? NOTIFY_MS : NOTIFY_IDLE_MS)) return;
-  last = now; memcpy(prev, b, 40);
-  stateCh->setValue(b, 40);
+  const bool snd = b[40] != prev[40];   // a new sound goes out at once, so the phone plays it in time
+  if (!stateCh || (!snd && now - last < (changed ? NOTIFY_MS : NOTIFY_IDLE_MS))) return;
+  last = now; memcpy(prev, b, 42);
+  stateCh->setValue(b, 42);
   if (connected()) stateCh->notify();
 }
 }  // namespace ble
