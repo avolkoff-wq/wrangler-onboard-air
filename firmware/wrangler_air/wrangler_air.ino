@@ -247,6 +247,7 @@ void benchCommand(String c) {
     Serial.printf("# fw %s  preset %s  target %.2f bar  sensor %.3f bar (%.3f V)%s  state %d err %d\n", FW_VERSION,
                   PRESETS[settings.preset].name, settings.target, sensor.bar(settings.calA, settings.calB), sensor.vG1() * DIVIDER,
                   sensor.fault() ? " FAULT" : "", (int)pump.state(), (int)pump.error());
+    Serial.printf("# ADC2 failed samples since the last RUN: %lu%s\n", (unsigned long)adc2::fails, sensor.adcFault() ? "  (sensor ADC fault)" : "");
     Serial.printf("# AUX1 %.2f V  %s  volt check %d  engine confirm %d  valve %d  demo %d\n", supply.volts(),
                   !supply.fitted() ? "no module" : supply.engineOn() ? "engine on" : "engine off", settings.vcheck, settings.econfirm, g_valve, g_demo);
     Serial.printf("# tyre %s  rate %.4f  kTop %.4f  offset %.3f  c %.2f  offcap %.2f%s  tauD %.1f  learned %d/%d  cal a %.4f b %.3f\n",
@@ -281,8 +282,9 @@ void benchCommand(String c) {
     else if (!pump.pulse(v)) Serial.println("# blocked: a run or a pulse is active");
     else Serial.printf("# %s pulse %lu ms\n", v ? "VALVE" : "K1", (unsigned long)OUTPUT_PULSE_MS);
   } else if (c == "io") {   // one line for the Mac bench app: IO,t,bar,pinV,aux1V,k1,valve,fake,state,err
-    Serial.printf("IO,%.1f,%.3f,%.3f,%.2f,%d,%d,%d,%d,%d\n", millis() / 1000.0f, sensor.bar(settings.calA, settings.calB), sensor.vG1(),
-                  supply.volts(), pump.compressorOn() ? 1 : 0, pump.valveOpen() ? 1 : 0, g_fakeV >= 0 ? 1 : 0, (int)pump.state(), (int)pump.error());
+    Serial.printf("IO,%.1f,%.3f,%.3f,%.2f,%d,%d,%d,%d,%d,%lu\n", millis() / 1000.0f, sensor.bar(settings.calA, settings.calB), sensor.vG1(),
+                  supply.volts(), pump.compressorOn() ? 1 : 0, pump.valveOpen() ? 1 : 0, g_fakeV >= 0 ? 1 : 0, (int)pump.state(), (int)pump.error(),
+                  (unsigned long)adc2::fails);   // last field: failed ADC2 samples since the last RUN
   } else if (c == "k1 on" || c == "valve on") {
     const bool v = c.startsWith("valve");
     if (v && !DEFLATE) Serial.println("# no valve (menu VALVE off)");

@@ -75,6 +75,7 @@ DinMeter по USB-C к Mac, Unit 2Relay на PORT.B, датчика нет. Ло
 | 10a | OFFSET MAX | меню OFFSET MAX (рука): AUTO, потом 0.80, потом снова AUTO | на экране AUTO 0.60 (или 0.70 после обучения), в логе `OFFSET_MAX`, в `status`/VERSION `max` |
 | 10 | Калибровка, двигатель | меню CALIBRATE (рука), без модуля 0-25 V | на CAL 1/4 строка NO VOLTAGE, нужно 2 нажатия; удержание: выход |
 | 11 | DEMO | `fake off`, меню DEMO (рука), полный цикл и LEARN | все строки STATIC: смотреть settle_s |
+| 12a | Сбои ADC2 (0.5.4) | `io` в покое, потом меню WIFI (UPDATE + LOG) и снова `io` несколько раз; `fake off`, датчик или блок на G13 | последнее поле `io` = число сбоев ADC2 с последнего RUN. Без Wi-Fi 0. С Wi-Fi записать, растёт ли; если растёт, значение давления не должно прыгать вниз (раньше прыгало) |
 | 12 | Wi-Fi, по желанию | WATCHDOG вкл., меню WIFI: UPDATE + LOG, залить `bin/wrangler_air.bin` с телефона | загрузка без WATCHDOG RESET, через 30 с в логе `OTA app_valid=1` |
 | 13 | После стола | `fake off`, меню RESET LEARNING | прогоны с `fake` учат неверные rate / offset, их надо стереть |
 

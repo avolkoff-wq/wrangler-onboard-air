@@ -7,7 +7,7 @@
 //   VALVE (deflate valve fitted, schematic C), DEMO (virtual tyres for the desk, never saved, off at every power-up).
 // The USB serial log, LIVE stream and commands are always on.
 #define BENCH_USB 1
-#define FW_VERSION "0.5.3"
+#define FW_VERSION "0.5.4"
 inline bool g_valve = true;     // menu VALVE, saved (Settings::valve)
 inline bool g_demo  = false;    // menu DEMO, RAM only
 inline float g_fakeV = -1;      // USB "fake <bar>": pin voltage the sensor pretends to read (< 0 = off), RAM only
@@ -62,6 +62,8 @@ constexpr float SENSOR_SPAN  = 3.3f;   //   so the pin has a pull-down and the p
 constexpr float SENSOR_FS    = 12.0f;  // 1.2 MPa full scale, bar
 constexpr float G1_MIN_V     = -1.0f;  // no low limit
 constexpr float G1_MAX_V     = 3.10f;  // ADC ceiling at 11 dB (~11.3 bar): above = fault
+constexpr int      ADC_MIN_OK = 6;      // of 8 sensor samples per pass the driver must confirm (radio shares ADC2)
+constexpr uint32_t ADC_BAD_MS = 500;    // fewer confirmed for this long -> ERR SENSOR
 // plausibility while the compressor runs: the line is never near 0 bar once air flows into the tyres
 constexpr uint32_t DEAD_AFTER_MS = 3000;   // compressor on this long...
 constexpr float    DEAD_BAR      = 0.10f;  // ...and the sensor still reads below this: wire broken, stop

@@ -129,6 +129,25 @@ static int regressions() {
     check(p.state() == PState::DONE && fabsf(Sensor::simP - 2.4f) < 0.1f, m);
     p.clearResult(); g_ms += 5000;
   }
+  {   // 15-17 (0.5.4): a failed ADC2 sample is dropped, not averaged in as 0 V; too few confirmed -> fault
+    g_demo = false; g_fakeV = -1; adc2::fails = 0;
+    adc2::stubMv[PIN_SENSOR] = (int)lroundf(fakeV(2.5f) * 1000.0f);
+    Sensor s; s.begin();
+    adc2::stubFailOf8 = 1;
+    for (int i = 0; i < 50; i++) { g_ms += 20; s.update(); }
+    char m[120]; snprintf(m, sizeof m, "1 of 8 ADC samples fail at 2.50 bar: reads %.2f (was 2.19), no fault", s.rawBar());
+    check(fabsf(s.rawBar() - 2.5f) < 0.02f && !s.fault(), m);
+    adc2::stubFailOf8 = 3;
+    for (int i = 0; i < 20; i++) { g_ms += 20; s.update(); }
+    const bool early = s.fault();
+    for (int i = 0; i < 10; i++) { g_ms += 20; s.update(); }
+    snprintf(m, sizeof m, "3 of 8 fail: no fault at 0.4 s, ERR SENSOR fault at 0.6 s, reading kept %.2f", s.rawBar());
+    check(!early && s.fault() && fabsf(s.rawBar() - 2.5f) < 0.02f, m);
+    check(adc2::fails == 50 * 1 + 30 * 3, "failed samples counted for END / io");
+    adc2::stubFailOf8 = 0; adc2::fails = 0;
+    for (int i = 0; i < 2; i++) { g_ms += 20; s.update(); }
+    check(!s.fault(), "fault clears once the ADC confirms again");
+  }
   printf("==== regressions: %s (%d failed)\n", g_fail ? "FAILED" : "all ok", g_fail);
   return g_fail ? 1 : 0;
 }

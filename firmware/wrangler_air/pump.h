@@ -54,6 +54,7 @@ class Pump {
     relay(false); valve(false);
     test_ = Mode::NONE; testOk_ = false; testRes_ = 0;
     err_ = PErr::NONE; topups_ = 0; starts_ = 0; vents_ = 0; inBand_ = false; mode_ = Mode::NONE; runStart_ = millis();
+    adc2::fails = 0;                                   // failed ADC2 samples are counted per run, logged in END
     wlog::ev("RUN", wlog::kv("target", st_->target, 2) + wlog::kv("fw", FW_VERSION));
     goSettle(Phase::START);
   }
@@ -261,7 +262,8 @@ class Pump {
     wlog::ev("END", wlog::kv("result", res) + wlog::kv("mode", modeName()) + wlog::kv("target", st_->target, 2) +
                     wlog::kv("p0", p0_, 3) + wlog::kv("p", pStatic_, 3) + wlog::kv("starts", (float)starts_, 0) +
                     wlog::kv("vents", (float)vents_, 0) + wlog::kv("run_s", runMs() / 1000.0f, 1) +
-                    wlog::kv("cmp_h", st_->cmpSec / 3600.0f, 2) + wlog::kv("vent_h", st_->ventSec / 3600.0f, 2));
+                    wlog::kv("cmp_h", st_->cmpSec / 3600.0f, 2) + wlog::kv("vent_h", st_->ventSec / 3600.0f, 2) +
+                    wlog::kv("adc_fail", (float)adc2::fails, 0));
   }
   String modeName() const { return mode_ == Mode::INF ? "INF" : mode_ == Mode::DEF ? "DEF" : "-"; }
   void goSettle(Phase ph) { phase_ = ph; state_ = PState::SETTLE; t0_ = millis(); tS_ = t0_; slope_ = 99; hits_ = 0; rN_ = 0; }

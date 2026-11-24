@@ -164,7 +164,7 @@ async function readLoop() {
 
 function line(t) {
   if (t.startsWith("IO,")) {
-    const f = t.split(",").map(Number);   // IO,t,bar,pinV,aux1,k1,valve,fake,state,err
+    const f = t.split(",").map(Number);   // IO,t,bar,pinV,aux1,k1,valve,fake,state,err,adcfail (0.5.4+)
     const [ , ts, bar, pin, aux, k1, v, fake, st, er] = f;
     $("vBar").textContent = bar.toFixed(2) + " bar";
     $("vBar").style.color = fake ? "var(--fake)" : "";
