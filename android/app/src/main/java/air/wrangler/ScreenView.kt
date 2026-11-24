@@ -32,6 +32,8 @@ class ScreenView(ctx: Context, private val onTurn: (Int) -> Unit) : View(ctx) {
     private val regular = Typeface.create("sans-serif", Typeface.NORMAL)
     private val bold = Typeface.create("sans-serif", Typeface.BOLD)
     private val mono = Typeface.create("monospace", Typeface.BOLD)
+    private val condensed = Typeface.create("sans-serif-condensed", Typeface.NORMAL)
+    private val condensedBold = Typeface.create(Typeface.create("sans-serif-condensed", Typeface.BOLD), 800, false)
     private val r = RectF()
     private val path = Path()
     private val suv: Bitmap by lazy {
@@ -101,7 +103,8 @@ class ScreenView(ctx: Context, private val onTurn: (Int) -> Unit) : View(ctx) {
 
     private fun text(c: Canvas, it: Frame.Item) {
         if (it.text.isEmpty() || it.h == 0) return
-        p.typeface = when (it.aux) { 0, 1 -> mono; 2 -> regular; else -> bold }
+        // one style with the native screens (owner): every DinMeter text in the condensed Jeep type
+        p.typeface = when (it.aux) { 2 -> condensed; else -> condensedBold }
         p.textScaleX = 1f; p.textSize = 100f
         val fm = p.fontMetrics
         p.textSize = it.h * 100f / (fm.descent - fm.ascent)

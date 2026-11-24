@@ -36,54 +36,36 @@ object SceneArt {
             }
         }
     }
-    // JL cues on the silhouette (owner: "it looks like a UAZ Patriot"): black high fender flares, rock rails,
-    // steel bumpers and the spare wheel cover; the body and the hardtop in the owner's Sting Gray (his photo, 24.11). Mask coordinates,
-    // each cut to the body so it follows the outline.
-    private val trim: Path by lazy {
-        val r0 = JeepShape.WHEEL_R; val t = Path()
-        val flareBand = Path()
-        for (cx in floatArrayOf(JeepShape.REAR_X, JeepShape.FRONT_X)) {   // flares: a band of even width round the arch, flat top
-            val o = Path(); val top = TYRE_Y - TYRE_R * (ARCH_K + 0.13f)   // a thin flat plate (advisor)
-            o.moveTo(cx - TYRE_R * 1.5f, 146f); o.lineTo(cx - TYRE_R * 1.05f, top); o.lineTo(cx + TYRE_R * 1.05f, top); o.lineTo(cx + TYRE_R * 1.5f, 146f); o.close()
-            val inner = Path(); val ti = TYRE_Y - TYRE_R * ARCH_K
-            inner.moveTo(cx - TYRE_R * 1.3f, 152f); inner.lineTo(cx - TYRE_R * 0.75f, ti); inner.lineTo(cx + TYRE_R * 0.75f, ti); inner.lineTo(cx + TYRE_R * 1.3f, 152f); inner.close()
-            inner.op(arches, Path.Op.UNION)
-            o.op(inner, Path.Op.DIFFERENCE); flareBand.op(o, Path.Op.UNION)
-        }
-        t.addRect(JeepShape.REAR_X + r0, 139f, JeepShape.FRONT_X - r0, 149f, Path.Direction.CW)   // rock rail
-        t.addRect(484f, 110f, 512f, 130f, Path.Direction.CW)                     // slim steel front bumper
-        t.addRect(0f, 124f, JeepShape.REAR_X - r0 * 0.9f, 142f, Path.Direction.CW)   // rear bumper
-        // flares stick out a little past the body outline like the real ones, so only the hardtop and the rest are cut to it
-        val res = Path(); res.op(t, outer, Path.Op.INTERSECT); res.op(flareBand, Path.Op.UNION)
-        res.op(arches, Path.Op.DIFFERENCE); res
-    }
-    /** the wheel arches: circles a bit larger than the tyres */
-    private val arches: Path by lazy {
-        Path().apply { for (cx in floatArrayOf(JeepShape.REAR_X, JeepShape.FRONT_X)) addCircle(cx, TYRE_Y, TYRE_R * ARCH_K, Path.Direction.CW) }
-    }
-    /** the body with the arches cut wider (the mask's own small wheels go with them) */
-    private val bodyCut: Path by lazy { Path().apply { op(outer, arches, Path.Op.DIFFERENCE) } }
-    /** contour groups: the outer body, the window glass, and the small inner lines (door seams, handles) */
-    private fun contourPath(sel: (FloatArray) -> Boolean) = Path().apply {
-        for (c in JeepShape.CONTOURS) if (sel(c)) { moveTo(c[0], c[1]); var i = 2; while (i < c.size) { lineTo(c[i], c[i + 1]); i += 2 }; close() }
-    }
-    private fun bbox(c: FloatArray): FloatArray {
-        var x0 = 1e9f; var x1 = -1e9f; var y0 = 1e9f; var y1 = -1e9f; var i = 0
-        while (i < c.size) { x0 = minOf(x0, c[i]); x1 = maxOf(x1, c[i]); y0 = minOf(y0, c[i + 1]); y1 = maxOf(y1, c[i + 1]); i += 2 }
-        return floatArrayOf(x0, y0, x1, y1)
-    }
-    private fun isGlass(b: FloatArray) = b[3] < 72f && b[2] - b[0] > 40f
-    private val outer: Path by lazy { contourPath { bbox(it).let { b -> b[2] - b[0] > JeepShape.W * 0.8f } } }
-    private val glass: Path by lazy { contourPath { isGlass(bbox(it)) } }
-    private val seams: Path by lazy { contourPath { bbox(it).let { b -> b[2] - b[0] < JeepShape.W * 0.8f && !isGlass(b) && b[3] < 180f } } }
-    // wheels in the mask (px): centres and radius, measured from the 512 px reference (tools/suv_vector.py)
+    // ---------- the owner's Jeep: a JL Unlimited Rubicon traced from his reference photo (JeepShape, tools/jl_blueprint.py) ----------
     private const val REAR_X = JeepShape.REAR_X; private const val FRONT_X = JeepShape.FRONT_X
     private const val WHEEL_Y = JeepShape.WHEEL_Y; private const val WHEEL_R = JeepShape.WHEEL_R
-    private const val TYRE_K = 0.94f   // owner: 33 in tyres, then "a touch smaller" (the lugs stick out 4 %) (285/70R17); JL Unlimited is ~192 in long, so the tyre is 0.172 of the length = the mask wheel
-    private const val ARCH_K = 1.24f   // owner: more room between the arch and the tyre
-    private val TYRE_R = JeepShape.WHEEL_R * TYRE_K
-    private val TYRE_Y = JeepShape.PIVOT_Y - TYRE_R   // still on the ground
-    private const val MW = JeepShape.W / 128f   // the old 128 px mask -> this one (lamp positions below)
+    private const val TYRE_K = 0.97f   // 33 in tyres (owner: a touch smaller than the photo's)
+    private const val ARCH_K = 1.2f    // the arch round the tyre, generous like the photo
+    private val TYRE_R = WHEEL_R * TYRE_K
+    private val TYRE_Y = JeepShape.PIVOT_Y - TYRE_R   // on the ground
+    private fun poly(a: FloatArray) = Path().apply { moveTo(a[0], a[1]); var i = 2; while (i < a.size) { lineTo(a[i], a[i + 1]); i += 2 }; close() }
+    private val outer: Path by lazy { poly(JeepShape.CONTOURS[0]) }
+    private val glass: Path by lazy { Path().apply { for (i in 1..3) addPath(poly(JeepShape.CONTOURS[i])) } }
+    private val seams: Path by lazy { Path().apply { for (i in 4 until JeepShape.CONTOURS.size) addPath(poly(JeepShape.CONTOURS[i])) } }
+    private val arches: Path by lazy {
+        Path().apply { for (cx in floatArrayOf(REAR_X, FRONT_X)) addCircle(cx, TYRE_Y, TYRE_R * ARCH_K, Path.Direction.CW) }
+    }
+    /** a flare: the photo's outline (bottom-left, top-left, top-right, bottom-right) and its inner edge, t px inside */
+    private fun flareInner(f: FloatArray, t: Float) = poly(floatArrayOf(f[0] + t * 1.4f, f[1], f[2] + t, f[3] + t, f[4] - t, f[5] + t, f[6] - t * 1.4f, f[7]))
+    private val wells: Path by lazy {   // the dark wheel wells: inside the flares and the arch circles
+        Path().apply {
+            op(flareInner(JeepShape.FLARE_REAR, 7f), Path.Op.UNION); op(flareInner(JeepShape.FLARE_FRONT, 7f), Path.Op.UNION)
+            op(arches, Path.Op.UNION)
+        }
+    }
+    private val flares: Path by lazy {
+        Path().apply {
+            op(poly(JeepShape.FLARE_REAR), Path.Op.UNION); op(poly(JeepShape.FLARE_FRONT), Path.Op.UNION)
+            op(wells, Path.Op.DIFFERENCE)
+        }
+    }
+    private val bodyCut: Path by lazy { Path().apply { op(outer, wells, Path.Op.DIFFERENCE) } }
+    private fun rr(c: Canvas, a: FloatArray, rad: Float) { r.set(a[0], a[1], a[2], a[3]); c.drawRoundRect(r, rad, rad, p) }
 
     fun draw(c: Canvas, preset: Int, w: Float, h: Float, dim: Boolean = false, time: Float = 0f) {
         t = time
@@ -199,8 +181,9 @@ object SceneArt {
     }
     private fun jeep(c: Canvas, ps: Pose, body: Int, shade: Int, lights: Boolean = false, wheelTurn: Float, sunk: Float = 0f, spin: Float = 0f) {
         val len = JeepShape.W * ps.z
-        if (lights) {
-            val (hx, hy) = maskPt(ps, 124f * MW, 24f * MW)
+        val J = JeepShape
+        if (lights) {   // headlight beam, under the body
+            val (hx, hy) = maskPt(ps, J.HEADLAMP[0], J.HEADLAMP[1])
             c.save(); c.translate(hx, hy); c.rotate(ps.ang + 4f)
             path.reset(); path.moveTo(0f, -len * 0.015f); path.lineTo(len * 0.9f, -len * 0.09f); path.lineTo(len * 0.9f, len * 0.12f); path.lineTo(0f, len * 0.015f); path.close()
             p.color = Color.BLACK; p.shader = LinearGradient(0f, 0f, len * 0.9f, 0f, 0x66FFF2C8, Color.TRANSPARENT, Shader.TileMode.CLAMP)
@@ -208,82 +191,80 @@ object SceneArt {
         }
         // contact shadow
         p.color = 0x55000000; p.maskFilter = BlurMaskFilter(len * 0.03f, BlurMaskFilter.Blur.NORMAL)
-        val (sx0, sy0) = maskPt(ps, REAR_X - WHEEL_R * 1.3f, JeepShape.H); val (sx1, sy1) = maskPt(ps, FRONT_X + WHEEL_R * 1.3f, JeepShape.H)
+        val (sx0, sy0) = maskPt(ps, REAR_X - WHEEL_R * 1.6f, J.H); val (sx1, sy1) = maskPt(ps, FRONT_X + WHEEL_R * 1.8f, J.H)
         r.set(sx0, minOf(sy0, sy1) - len * 0.012f, sx1, maxOf(sy0, sy1) + len * 0.025f); c.drawOval(r, p); p.maskFilter = null
-        c.save(); c.translate(ps.x, ps.y + sunk); c.rotate(ps.ang); c.scale(ps.z, ps.z); c.translate(-JeepShape.PIVOT_X, -JeepShape.PIVOT_Y)
-        // the owner's colour: Sting Gray, a warm grey, lit from above; the scene tints the highlight and the shadow a little
+        c.save(); c.translate(ps.x, ps.y + sunk); c.rotate(ps.ang); c.scale(ps.z, ps.z); c.translate(-J.PIVOT_X, -J.PIVOT_Y)
         val reflection = Color.red(body) < 0x80
+        // dark wheel wells behind everything
+        c.save(); c.clipRect(0f, 0f, J.W, J.H); p.color = 0xFF0E0E10.toInt(); c.drawPath(wells, p); c.restore()
+        // the spare on the tailgate, seen on its tread
+        p.color = Color.BLACK
+        p.shader = LinearGradient(J.SPARE[0], 0f, J.SPARE[2], 0f, intArrayOf(0xFF0F0F11.toInt(), 0xFF3A3B40.toInt(), 0xFF141416.toInt()), floatArrayOf(0f, 0.45f, 1f), Shader.TileMode.CLAMP)
+        rr(c, J.SPARE, 16f); p.shader = null
+        p.color = 0xFF08080A.toInt(); var gy = J.SPARE[1] + 8f
+        while (gy < J.SPARE[3] - 8f) { c.drawRect(J.SPARE[0] + 4f, gy, J.SPARE[2] - 4f, gy + 2.2f, p); gy += 7f }
+        // body: Sting Gray, lit from above, the scene tints the highlight and the shadow a little
         val top = if (reflection) body else mix(0xFFBDBEBD.toInt(), body, 0.10f)
         val mid = if (reflection) body else 0xFF8C8D8C.toInt()
         val bot = if (reflection) shade else mix(0xFF54555A.toInt(), shade, 0.20f)
         p.color = Color.BLACK
-        p.shader = LinearGradient(0f, 0f, 0f, 152f, intArrayOf(top, mid, mid, bot), floatArrayOf(0f, 0.22f, 0.6f, 1f), Shader.TileMode.CLAMP)
+        p.shader = LinearGradient(0f, J.ROOF_Y, 0f, J.BODY_BOTTOM, intArrayOf(top, mid, mid, bot), floatArrayOf(0f, 0.22f, 0.6f, 1f), Shader.TileMode.CLAMP)
         c.drawPath(bodyCut, p); p.shader = null
         if (!reflection) {
             c.save(); c.clipPath(bodyCut)
-            p.color = 0x14000000; c.drawRect(0f, 0f, JeepShape.W, 62f, p)               // the hardtop reads as its own part
-            p.color = 0xFF3A3B3E.toInt(); c.drawRect(150f, 29.3f, 330f, 30.7f, p)          // Freedom panel joint
-            p.color = 0x29FFFFFF; c.drawRect(44f, 70f, 486f, 71f, p)                     // belt crease, lit
-            p.color = 0x33000000; c.drawRect(44f, 72f, 486f, 73f, p)
-            p.color = 0x1F000000; c.drawRect(0f, 112f, JeepShape.W, 138f, p)              // lower doors, in shade
+            p.color = 0x14000000; c.drawRect(0f, 0f, J.W, J.BELT_Y - 2f, p)                       // hardtop as its own part
+            p.color = 0xFF3A3B3E.toInt(); c.drawRect(36f, J.ROOF_Y + 9f, J.ROOF_FRONT_X - 6f, J.ROOF_Y + 10.4f, p)   // Freedom panel joint
+            p.color = 0x29FFFFFF; c.drawRect(30f, J.BELT_Y + 2f, 500f, J.BELT_Y + 3f, p)            // belt crease
+            p.color = 0x33000000; c.drawRect(30f, J.BELT_Y + 4f, 500f, J.BELT_Y + 5f, p)
+            p.color = 0x1F000000; c.drawRect(0f, J.BODY_BOTTOM - 28f, J.W, J.BODY_BOTTOM, p)        // lower doors in shade
             c.restore()
         }
-        // tinted glass with a soft sky reflection
-        p.color = Color.BLACK   // the shader takes the paint's alpha: the overlay before left it at 12 %
-        p.shader = LinearGradient(0f, 10f, 0f, 62f, 0xFF3A444D.toInt(), 0xFF15191D.toInt(), Shader.TileMode.CLAMP)
+        // tinted glass with a soft reflection, thick black frames like the hardtop's
+        p.style = Paint.Style.STROKE; p.strokeWidth = 4f; p.color = 0xFF1C1D20.toInt(); c.drawPath(glass, p); p.style = Paint.Style.FILL
+        p.color = Color.BLACK; p.shader = LinearGradient(0f, J.ROOF_Y + 10f, 0f, J.BELT_Y, 0xFF3A444D.toInt(), 0xFF15191D.toInt(), Shader.TileMode.CLAMP)
         c.drawPath(glass, p); p.shader = null
         c.save(); c.clipPath(glass); p.color = 0x18FFFFFF
-        path.reset(); path.moveTo(60f, 62f); path.lineTo(110f, 10f); path.lineTo(140f, 10f); path.lineTo(90f, 62f); path.close(); c.drawPath(path, p)
+        path.reset(); path.moveTo(50f, J.BELT_Y); path.lineTo(100f, J.ROOF_Y + 10f); path.lineTo(130f, J.ROOF_Y + 10f); path.lineTo(80f, J.BELT_Y); path.close(); c.drawPath(path, p)
         path.offset(170f, 0f); c.drawPath(path, p); c.restore()
-        // door seams and handles
-        p.color = 0xFF2A2B2E.toInt(); c.drawPath(seams, p)
-        // black details: door hinges, the mirror, the window rubber at the belt line
-        p.color = 0xFF1A1B1D.toInt()
-        for ((hx, hy) in listOf(248f to 80f, 248f to 116f, 338f to 82f, 338f to 118f)) { r.set(hx, hy, hx + 8f, hy + 11f); c.drawRoundRect(r, 2f, 2f, p) }
-        r.set(324f, 44f, 346f, 64f); c.drawRoundRect(r, 5f, 5f, p)
-        c.drawRect(50f, 62f, 326f, 65f, p)
-
-        // JL trim: satin black with a faint sheen from above
-        p.color = Color.BLACK
-        p.shader = LinearGradient(0f, 0f, 0f, JeepShape.H, 0xFF3A3B40.toInt(), 0xFF141416.toInt(), Shader.TileMode.CLAMP)
-        c.drawPath(trim, p); p.shader = null
-        // red RUBICON on the hood side, above the front flare (owner's photo)
-        // flare tops read as a shelf
+        p.color = 0xFF2A2B2E.toInt(); c.drawPath(seams, p)                                            // door seams
+        // flares, rock rail, bumpers: satin black with a sheen from above
+        p.color = Color.BLACK; p.shader = LinearGradient(0f, 100f, 0f, J.H, 0xFF3A3B40.toInt(), 0xFF141416.toInt(), Shader.TileMode.CLAMP)
+        c.drawPath(flares, p); rr(c, J.ROCK_RAIL, 3f); rr(c, J.BUMPER_FRONT, 4f); rr(c, J.BUMPER_REAR, 3f); p.shader = null
         p.color = 0xFF55575C.toInt()
-        for (cx in floatArrayOf(REAR_X, FRONT_X)) { val ty = TYRE_Y - TYRE_R * (ARCH_K + 0.13f); c.drawRect(cx - TYRE_R * 1.03f, ty, cx + TYRE_R * 1.03f, ty + 1f, p) }
-        p.typeface = rubiconFont; p.textSize = 12.5f; p.letterSpacing = 0.14f; p.textScaleX = 0.92f
-        p.color = 0x59000000; c.drawText("RUBICON", 372.6f, 79.6f, p)
-        p.color = 0xFFC8102E.toInt(); c.drawText("RUBICON", 372f, 79f, p); p.letterSpacing = 0f; p.textScaleX = 1f
-        // the spare wheel on the tailgate, seen on its tread: a dark rounded tyre with grooves and a soft highlight
-        r.set(1f, 40f, 37f, 136f)
-        p.color = Color.BLACK
-        p.shader = LinearGradient(1f, 0f, 37f, 0f, intArrayOf(0xFF0F0F11.toInt(), 0xFF3A3B40.toInt(), 0xFF141416.toInt()), floatArrayOf(0f, 0.45f, 1f), Shader.TileMode.CLAMP)
-        c.drawRoundRect(r, 15f, 22f, p); p.shader = null
-        p.color = 0xFF08080A.toInt(); var gy = 50f
-        while (gy < 128f) { c.drawRect(5f, gy, 33f, gy + 2.2f, p); gy += 7f }
-        p.color = 0xFF1C1D20.toInt(); c.drawRect(36f, 70f, 42f, 108f, p)   // carrier bracket
-        // rock rail highlight, lamps (always), door handles, fuel door; rim light on the roof and hood top
-        p.color = 0xFF4A4C52.toInt(); c.drawRect(JeepShape.REAR_X + WHEEL_R, 140f, JeepShape.FRONT_X - WHEEL_R, 141f, p)
-        r.set(40f, 70f, 50f, 94f); p.color = 0xFF9B1C22.toInt(); c.drawRoundRect(r, 2f, 2f, p)
-        p.color = 0xFFFF6B62.toInt(); c.drawRect(42f, 72f, 44f, 92f, p)
-        p.color = 0xFFE8902A.toInt(); c.drawRect(472f, 98f, 482f, 102f, p)
-        p.color = 0xFF1A1B1D.toInt(); c.drawRect(224f, 72f, 238f, 76f, p); c.drawRect(316f, 72f, 330f, 76f, p)
-        p.style = Paint.Style.STROKE; p.strokeWidth = 1.2f; p.color = 0xFF2A2B2E.toInt(); c.drawCircle(70f, 96f, 6f, p)
-        if (Color.red(body) >= 0x80) {
-            c.save(); c.clipRect(0f, 0f, 512f, 66f); p.strokeWidth = 1.6f; p.color = 0x61FFFFFF; c.drawPath(outer, p); c.restore()
+        for (f in arrayOf(J.FLARE_REAR, J.FLARE_FRONT)) c.drawRect(f[2], f[3], f[4], f[3] + 1f, p)   // flare tops read as a shelf
+        p.color = 0xFF4A4C52.toInt(); c.drawRect(J.ROCK_RAIL[0], J.ROCK_RAIL[1] + 1f, J.ROCK_RAIL[2], J.ROCK_RAIL[1] + 2f, p)
+        // fender vent (gills) in front of the door
+        p.color = 0xFF151518.toInt(); rr(c, J.VENT, 3f)
+        p.color = 0xFF3A3B40.toInt(); var vy = J.VENT[1] + 3f
+        while (vy < J.VENT[3] - 2f) { c.drawRect(J.VENT[0] + 3f, vy, J.VENT[2] - 3f, vy + 1.2f, p); vy += 3.2f }
+        // hinges (body colour, dark edge): the rear door's on the centre pillar, the front door's on the A pillar
+        for (hg in J.HINGES) {
+            p.color = if (reflection) body else 0xFF9A9B99.toInt(); rr(c, hg, 2f)
+            p.style = Paint.Style.STROKE; p.strokeWidth = 1f; p.color = 0xFF2A2B2E.toInt(); rr(c, hg, 2f); p.style = Paint.Style.FILL
         }
-        p.style = Paint.Style.FILL
-        // a thin dark outline, so the body stands out on light scenes (sand, dusk)
-        p.style = Paint.Style.STROKE; p.strokeWidth = 1.1f * MW; p.color = 0x66000000; c.drawPath(bodyCut, p); p.style = Paint.Style.FILL
-        // wheels (owner: bigger, a lifted JL on 35s): a fat dark tyre with tread blocks, a satin rim with five spokes.
-        // The tyre is 1.3x the mask wheel; its centre is lifted so it still stands on the ground.
+        p.color = 0xFF1A1B1D.toInt(); for (hd in J.HANDLES) rr(c, hd, 2.5f)                    // door handles
+        p.color = 0xFF151618.toInt(); rr(c, J.MIRROR, 5f)                                        // mirror
+        p.color = 0xFF2A2B2E.toInt(); c.drawRect(J.ANTENNA[0], J.ANTENNA[1], J.ANTENNA[0] + 1.2f, J.ANTENNA[3], p)   // antenna
+        // tail lamp: black surround, red lens
+        p.color = 0xFF151518.toInt(); rr(c, J.TAIL_LAMP, 3f)
+        p.color = 0xFFB3141E.toInt(); r.set(J.TAIL_LAMP[0] + 2f, J.TAIL_LAMP[1] + 2f, J.TAIL_LAMP[2] - 2f, J.TAIL_LAMP[1] + (J.TAIL_LAMP[3] - J.TAIL_LAMP[1]) * 0.55f); c.drawRoundRect(r, 2f, 2f, p)
+        p.color = 0xFFE8902A.toInt(); rr(c, J.MARKER, 2f)                                         // amber side marker
+        p.color = 0xFF1A1B1D.toInt(); c.drawCircle(J.HEADLAMP[0], J.HEADLAMP[1], 6f, p)          // headlamp bucket
+        p.color = 0xFFCFD6DC.toInt(); c.drawCircle(J.HEADLAMP[0] + 1f, J.HEADLAMP[1], 3.5f, p)
+        // badges: Jeep behind the front arch, RUBICON along the hood side (red, as on the owner's car)
+        p.typeface = rubiconFont; p.letterSpacing = 0.06f
+        p.textSize = 10f; p.color = 0xFF8E1F2A.toInt(); c.drawText("Jeep", J.BADGE[0], J.BADGE[1], p)
+        p.letterSpacing = 0.12f; p.textSize = 13.5f
+        val dw = J.DECAL[2] - J.DECAL[0]; p.textScaleX = 1f
+        p.textScaleX = dw / p.measureText("RUBICON")
+        p.color = 0x59000000; c.drawText("RUBICON", J.DECAL[0] + 0.6f, J.DECAL[1] + 0.6f, p)
+        p.color = 0xFFC8102E.toInt(); c.drawText("RUBICON", J.DECAL[0], J.DECAL[1], p)
+        p.textScaleX = 1f; p.letterSpacing = 0f
+        // rim light on the roof and the hood top, a thin outline for light scenes
+        if (!reflection) { c.save(); c.clipRect(0f, 0f, J.W, J.BELT_Y); p.style = Paint.Style.STROKE; p.strokeWidth = 1.6f; p.color = 0x61FFFFFF; c.drawPath(outer, p); c.restore() }
+        p.style = Paint.Style.STROKE; p.strokeWidth = 1.2f; p.color = 0x66000000; c.drawPath(bodyCut, p); p.style = Paint.Style.FILL
+        // wheels
         val tr = TYRE_R; val cy = TYRE_Y
-        // dark wheel wells, so the arch is not see-through (owner's photo)
-        c.save(); c.clipRect(0f, 0f, JeepShape.W, JeepShape.H); p.color = 0xFF0E0E10.toInt()
-        for (wx in floatArrayOf(REAR_X, FRONT_X)) c.drawCircle(wx, cy, tr * ARCH_K, p)
-        c.restore()
-        // advisor (Fable review): a 17" wheel in a 35" tyre is about 0.5 of the tyre radius; lumpy mud-terrain outline;
-        // wide machined spokes with a split; past ~0.35 rad a frame the spokes blur instead of strobing
         val fast = spin > 0.35f * 25f
         for (wx in floatArrayOf(REAR_X, FRONT_X)) {
             p.color = 0xFF141517.toInt(); c.drawCircle(wx, cy, tr * 0.99f, p)
@@ -316,12 +297,12 @@ object SceneArt {
             p.style = Paint.Style.STROKE; p.strokeWidth = tr * 0.035f; p.color = 0xFF8A8E95.toInt(); c.drawCircle(wx, cy, tr * 0.485f, p); p.style = Paint.Style.FILL
             p.color = 0xFF1A1B1E.toInt(); c.drawCircle(wx, cy, tr * 0.13f, p)
             p.color = 0xFF6E7278.toInt(); c.drawCircle(wx, cy, tr * 0.045f, p)
-        }
+                }
         c.restore()
         if (lights) {
-            val (hx, hy) = maskPt(ps, 124f * MW, 24f * MW)
+            val (hx, hy) = maskPt(ps, J.HEADLAMP[0], J.HEADLAMP[1])
             p.color = Color.BLACK; p.shader = RadialGradient(hx, hy, len * 0.06f, 0xFFFFF6D8.toInt(), Color.TRANSPARENT, Shader.TileMode.CLAMP); c.drawCircle(hx, hy, len * 0.06f, p)
-            val (tx, ty) = maskPt(ps, 10f * MW, 27f * MW)
+            val (tx, ty) = maskPt(ps, (J.TAIL_LAMP[0] + J.TAIL_LAMP[2]) / 2, J.TAIL_LAMP[1] + 10f)
             p.color = Color.BLACK; p.shader = RadialGradient(tx, ty, len * 0.04f, 0xFFFF3B30.toInt(), Color.TRANSPARENT, Shader.TileMode.CLAMP); c.drawCircle(tx, ty, len * 0.04f, p)
             p.shader = null
         }

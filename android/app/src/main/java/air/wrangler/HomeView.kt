@@ -118,6 +118,12 @@ class HomeView(ctx: Context, private val onTurn: (Int) -> Unit = {}) : View(ctx)
     // Jeep style (owner): heavy condensed capitals for the name, the numbers and the line under them
     private val jeepFont: Typeface = Typeface.create(Typeface.create("sans-serif-condensed", Typeface.BOLD), 800, false)
     private fun drawIdle(c: Canvas, s: Ble.State, w: Float, h: Float) {
+        val y0 = drawCard(c, s, w, h, null)
+        idleBelow(c, s, w, h, y0)
+    }
+    /** the scene card on top of every main-screen mode (idle, run, result, error): one style everywhere (owner).
+     *  tint: a colour laid over the scene (red on an error); returns the y under the card */
+    private fun drawCard(c: Canvas, s: Ble.State, w: Float, h: Float, tint: Int?): Float {
         // the scene card (advisor: taller, hairline edge, the link state as a small capsule inside it)
         val m = 16 * dp
         val cw = w - 2 * m
@@ -139,8 +145,12 @@ class HomeView(ctx: Context, private val onTurn: (Int) -> Unit = {}) : View(ctx)
             p.color = GREEN; c.drawCircle(r.left + 12 * dp, r.centerY(), 4 * dp, p)
             p.color = 0xFFEBEBF5.toInt(); c.drawText(lt, r.left + 22 * dp, r.centerY() + 4.3f * dp, p)
         }
+        if (tint != null) { r.set(m, top, m + cw, top + ch); c.save(); c.clipPath(clip); p.color = tint; c.drawRect(r, p); c.restore() }
+        return top + ch
+    }
+    private fun idleBelow(c: Canvas, s: Ble.State, w: Float, h: Float, cardBottom: Float) {
         // page dots: eight presets, the swipe affordance
-        var y = top + ch + 16 * dp
+        var y = cardBottom + 16 * dp
         val n = PRESETS.size; val gap = 14 * dp
         val dx0 = w / 2 - gap * (n - 1) / 2
         for (k in 0 until n) { p.color = if (k == s.preset) Color.WHITE else 0xFF48484A.toInt(); c.drawCircle(dx0 + k * gap, y, 3 * dp, p) }
@@ -229,51 +239,66 @@ class HomeView(ctx: Context, private val onTurn: (Int) -> Unit = {}) : View(ctx)
 
     // ---------- run ----------
     private fun drawRun(c: Canvas, s: Ble.State, w: Float, h: Float, accent: Int) {
+        // the same card as idle (the Jeep drives), then the phase, the live value and a progress capsule (owner: one style)
         val goal = target(s)
         ringShown += (goal - ringShown) * 0.15f
-        val d = min(w * 0.78f, h * 0.62f)
-        val cx = w / 2; val cy = h * 0.42f
-        val stroke = d * 0.075f
-        r.set(cx - d / 2, cy - d / 2, cx + d / 2, cy + d / 2)
-        p.style = Paint.Style.STROKE; p.strokeWidth = stroke; p.strokeCap = Paint.Cap.ROUND
-        p.color = 0xFF1C1C1E.toInt(); c.drawArc(r, 0f, 360f, false, p)
-        p.shader = LinearGradient(r.left, r.top, r.right, r.bottom, accent, (accent and 0x00FFFFFF) or 0xFF000000.toInt(), Shader.TileMode.CLAMP)
-        p.color = accent
-        c.drawArc(r, -90f, 360f * ringShown.coerceAtLeast(0.005f), false, p)
-        p.shader = null; p.style = Paint.Style.FILL; p.strokeCap = Paint.Cap.BUTT
-        // live value: the tyre estimate while pumping, else the line
+        var y = drawCard(c, s, w, h, null) + 44 * dp
+        p.letterSpacing = 0.14f
+        heavy { centeredF(c, phase(s.state).uppercase() + "  ·  " + mmss(s.runMs), y, 22f, accent) }
+        p.letterSpacing = 0f
         val est = s.state == 4 || s.state == 5
         val v = if (est) s.est else s.bar
-        p.typeface = jeepFont; p.textSize = d * 0.30f; p.color = Color.WHITE
-        val txt = (if (est) "~" else "") + "%.2f".format(v)
-        c.drawText(txt, cx - p.measureText(txt) / 2, cy + p.textSize * 0.32f, p)
-        centered(c, "bar  ·  target %.1f".format(s.target), cy + d * 0.22f, 15f, GREY, regular)
-        val ph = phase(s.state).uppercase()
-        p.letterSpacing = 0.16f
-        centeredF(c, ph, cy - d * 0.2f, 15f, accent)
+        val numSize = min(h * 0.18f, w * 0.40f)
+        y += numSize * 0.92f
+        p.typeface = jeepFont; p.textSize = numSize; p.color = 0xFFF5F5F7.toInt(); p.textScaleX = 0.9f
+        val num = (if (est) "~" else "") + "%.2f".format(v)
+        val nw = p.measureText(num)
+        val pu = Paint(p).apply { textSize = numSize * 0.22f; color = GREY; letterSpacing = 0.08f; textScaleX = 1f; style = Paint.Style.FILL }
+        val x0 = (w - nw - 8 * dp - pu.measureText("BAR")) / 2
+        heavy { c.drawText(num, x0, y, p) }
+        p.textScaleX = 1f
+        c.drawText("BAR", x0 + nw + 8 * dp, y, pu)
+        // progress capsule from the start pressure to the target, the two numbers at its ends
+        y += 26 * dp
+        val bx0 = 32 * dp; val bx1 = w - 32 * dp; val bh = 10 * dp
+        r.set(bx0, y, bx1, y + bh); p.color = 0xFF2C2C2E.toInt(); c.drawRoundRect(r, bh / 2, bh / 2, p)
+        r.set(bx0, y, bx0 + (bx1 - bx0) * ringShown.coerceIn(0.02f, 1f), y + bh); p.color = accent; c.drawRoundRect(r, bh / 2, bh / 2, p)
+        y += bh + 22 * dp
+        p.typeface = jeepFont; p.textSize = 14 * dp; p.color = GREY; p.letterSpacing = 0.08f
+        c.drawText("%.1f".format(s.p0), bx0, y, p)
+        val tt = "TARGET %.1f".format(s.target); c.drawText(tt, bx1 - p.measureText(tt), y, p)
         p.letterSpacing = 0f
-        centeredF(c, mmss(s.runMs), cy + d / 2 + h * 0.08f, 24f, Color.WHITE)
-        centered(c, "Tap the knob to stop", cy + d / 2 + h * 0.13f, 14f, GREY, regular)
+        y += 30 * dp
+        p.letterSpacing = 0.1f; centeredF(c, "PRESS THE KNOB TO STOP", y, 13f, GREY); p.letterSpacing = 0f
     }
 
     // ---------- error ----------
     private fun drawError(c: Canvas, s: Ble.State, w: Float, h: Float) {
+        // same card, tinted red, then what happened in the Jeep type, and the live line pressure (owner: one style)
         val (title, sub) = error(s.err)
-        val m = 20 * dp
-        r.set(m, h * 0.12f, w - m, h * 0.62f)
-        p.color = 0xFF2A0F0E.toInt(); c.drawRoundRect(r, 28 * dp, 28 * dp, p)
-        p.style = Paint.Style.STROKE; p.strokeWidth = 1.5f * dp; p.color = (RED and 0x00FFFFFF) or 0x88000000.toInt()
-        c.drawRoundRect(r, 28 * dp, 28 * dp, p); p.style = Paint.Style.FILL
-        // warning glyph
-        val gy = r.top + r.height() * 0.2f
-        p.color = RED; c.drawCircle(w / 2, gy, 24 * dp, p)
-        centered(c, "!", gy + 10 * dp, 30f, Color.WHITE, medium)
-        centered(c, title, r.top + r.height() * 0.46f, 28f, Color.WHITE, medium)
-        wrapped(c, sub, r.top + r.height() * 0.6f, 16f, 0xFFFFB4AE.toInt(), r.width() - 32 * dp)
-        p.typeface = thin; p.textSize = h * 0.12f; p.color = Color.WHITE
-        val v = "%.2f".format(s.bar)
-        c.drawText(v, w / 2 - p.measureText(v) / 2, h * 0.8f, p)
-        centered(c, "bar in the line now", h * 0.86f, 15f, GREY, regular)
+        var y = drawCard(c, s, w, h, 0x55FF2A1F) + 46 * dp
+        p.letterSpacing = 0.08f
+        heavy { centeredF(c, title.uppercase(), y, 30f, RED) }
+        p.letterSpacing = 0.06f
+        y += 26 * dp
+        p.typeface = jeepFont; p.textSize = 15 * dp; p.color = 0xFFFFB4AE.toInt()
+        val words = sub.uppercase().split(" "); var line = ""
+        for (wd in words) {
+            val cand = if (line.isEmpty()) wd else "$line $wd"
+            if (p.measureText(cand) > w - 48 * dp && line.isNotEmpty()) { c.drawText(line, (w - p.measureText(line)) / 2, y, p); y += 20 * dp; line = wd } else line = cand
+        }
+        if (line.isNotEmpty()) c.drawText(line, (w - p.measureText(line)) / 2, y, p)
+        p.letterSpacing = 0f
+        val numSize = min(h * 0.15f, w * 0.34f)
+        y += numSize * 1.0f
+        p.typeface = jeepFont; p.textSize = numSize; p.color = 0xFFF5F5F7.toInt(); p.textScaleX = 0.9f
+        val num = "%.2f".format(s.bar); val nw = p.measureText(num)
+        val pu = Paint(p).apply { textSize = numSize * 0.22f; color = GREY; letterSpacing = 0.08f; textScaleX = 1f; style = Paint.Style.FILL }
+        val x0 = (w - nw - 8 * dp - pu.measureText("BAR")) / 2
+        heavy { c.drawText(num, x0, y, p) }
+        p.textScaleX = 1f; c.drawText("BAR", x0 + nw + 8 * dp, y, pu)
+        y += 26 * dp
+        p.letterSpacing = 0.1f; centeredF(c, "IN THE LINE NOW  ·  PRESS: OK", y, 13f, GREY); p.letterSpacing = 0f
     }
 
     // ---------- text helpers ----------

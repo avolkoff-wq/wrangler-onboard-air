@@ -61,7 +61,7 @@ void push();
 
 // timing constants used by idle / hold UI (kept here so screens compile standalone of .ino order)
 #ifndef UI_ARM_MS
-#define UI_ARM_MS 3000
+#define UI_ARM_MS 6000   // 0.7.4, owner: 3 s was too short to read NO VOLTAGE / PRESS AGAIN and press
 constexpr uint32_t ARM_MS = UI_ARM_MS;
 constexpr uint32_t HOLD_SHOW_MS = 300;
 #endif
