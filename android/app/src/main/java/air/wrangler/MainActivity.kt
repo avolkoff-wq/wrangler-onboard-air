@@ -42,6 +42,7 @@ class MainActivity : Activity(), Ble.Listener {
     private lateinit var knob: KnobView
     private lateinit var status: TextView
     private lateinit var dot: View
+    private lateinit var pillView: LinearLayout
 
     override fun onCreate(b: Bundle?) {
         super.onCreate(b)
@@ -57,7 +58,7 @@ class MainActivity : Activity(), Ble.Listener {
         // status pill: dot + text
         dot = View(this).apply { background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(0xFF636366.toInt()) } }
         status = TextView(this).apply { setTextColor(0xFFAEAEB2.toInt()); textSize = 13f; text = Link.status }
-        val pill = LinearLayout(this).apply {
+        pillView = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL
             setPadding((14 * dp).toInt(), (8 * dp).toInt(), (16 * dp).toInt(), (8 * dp).toInt())
             background = GradientDrawable().apply { cornerRadius = 20 * dp; setColor(0xFF1C1C1E.toInt()) }
@@ -73,7 +74,7 @@ class MainActivity : Activity(), Ble.Listener {
         }
         val left = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            addView(pill, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT).apply { gravity = Gravity.CENTER_HORIZONTAL; topMargin = (8 * dp).toInt() })
+            addView(pillView, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT).apply { gravity = Gravity.CENTER_HORIZONTAL; topMargin = (8 * dp).toInt() })
             addView(stage, LinearLayout.LayoutParams(MATCH_PARENT, 0, 1f))
         }
         val root = LinearLayout(this).apply {
@@ -159,6 +160,10 @@ class MainActivity : Activity(), Ble.Listener {
             else -> HomeView.GREEN
         }
         (dot.background as GradientDrawable).setColor(if (online) HomeView.GREEN else 0xFF636366.toInt())
+        // the link capsule moves into the scene card on the main screen (advisor); the top pill stays for search / errors
+        pillView.visibility = if (online && onMain) View.GONE else View.VISIBLE
+        knob.preset = if (onMain && s != null) s.preset else -1
+        knob.busy = s != null && (s.state in 1..6 || s.armStage > 0)
         // the preset icon of the main screen: the ICON item of the newest frame
         val key = Link.frame?.items?.firstOrNull { it.kind == Frame.ICON }?.raw
         if (key != null) {

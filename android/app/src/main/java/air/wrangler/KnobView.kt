@@ -30,6 +30,12 @@ class KnobView(ctx: Context, private val onStep: (Int) -> Unit, private val onBu
         set(v) { if (field != v) { field = v; invalidate() } }
     var enabledLink = false
         set(v) { if (field != v) { field = v; invalidate() } }
+    /** the preset shown on the main screen (-1 elsewhere): the dial marks it and the pointer settles on it */
+    var preset = -1
+        set(v) { if (field != v) { field = v; invalidate() } }
+    /** armed or running: the pointer takes the accent colour */
+    var busy = false
+        set(v) { if (field != v) { field = v; invalidate() } }
 
     private val dp = resources.displayMetrics.density
     private val p = Paint(Paint.ANTI_ALIAS_FLAG)
@@ -44,75 +50,121 @@ class KnobView(ctx: Context, private val onStep: (Int) -> Unit, private val onBu
     private val cx get() = width / 2f
     private val cy get() = height / 2f
     private val rad get() = min(width, height) / 2f - 10 * dp
-    private val inner get() = rad * 0.60f   // the face is the button
+    private val inner get() = rad * 0.58f   // the face is the button
 
     // drawn like the Wrangler JL climate-control knob (owner): a scale arc on the dash, a black rubber grip with fine ribs,
     // a thin chrome bezel, a matte black face with a pointer that turns; the face is the button
     private val jeepFont = Typeface.create(Typeface.create("sans-serif-condensed", Typeface.BOLD), 800, false)
+    // owner: military style, the button is START / MENU. An olive-drab panel with four screws, engraved preset marks
+    // with stencil codes, a heavy steel ring with a diamond knurl, a matte olive face with a raised pointer fin.
+    private val CODES = arrayOf("CST", "RCV", "SND", "RCK", "TRL", "GRV", "RGH", "HWY")   // dial order, clockwise
     override fun onDraw(c: Canvas) {
         val R = rad; val x = cx; val y = cy
-        val grip = R * 0.80f; val bezel = R * 0.64f; val face = R * 0.60f
-        // dash scale: a 270 degree arc, blue to orange like the temperature scale, with ticks
-        r.set(x - R, y - R, x + R, y + R)
-        p.style = Paint.Style.STROKE; p.strokeWidth = R * 0.05f; p.strokeCap = Paint.Cap.ROUND
-        p.shader = android.graphics.SweepGradient(x, y, intArrayOf(0xFF0A84FF.toInt(), 0xFF64D2FF.toInt(), 0xFFFFD60A.toInt(), 0xFFFF9F0A.toInt(), 0xFFFF453A.toInt(), 0xFF0A84FF.toInt()),
-            floatArrayOf(0f, 0.2f, 0.45f, 0.6f, 0.75f, 1f))
-        c.save(); c.rotate(135f, x, y)
-        r.set(x - R * 0.95f, y - R * 0.95f, x + R * 0.95f, y + R * 0.95f)
-        c.drawArc(r, 0f, 270f, false, p)
-        c.restore(); p.shader = null
-        p.strokeWidth = 1.5f * dp; p.color = 0xFF8E8E93.toInt()
-        for (i in 0..27) {
-            val a = Math.toRadians((135 + i * 10).toDouble())
-            val r0 = R * 0.86f; val r1 = R * (if (i % 3 == 0) 0.89f else 0.875f)
-            c.drawLine(x + (r0 * cos(a)).toFloat(), y + (r0 * sin(a)).toFloat(), x + (r1 * cos(a)).toFloat(), y + (r1 * sin(a)).toFloat(), p)
-        }
-        p.strokeCap = Paint.Cap.BUTT; p.style = Paint.Style.FILL
-        // drop shadow of the knob on the dash
+        val ring = R * 0.74f; val ringIn = R * 0.6f; val face = R * 0.58f
+        // panel plate
+        val pl = R * 1.0f
+        r.set(x - pl, y - pl, x + pl, y + pl)
         p.color = Color.BLACK
-        p.shader = RadialGradient(x, y + R * 0.06f, grip * 1.12f, intArrayOf(0xCC000000.toInt(), 0x00000000), floatArrayOf(0.8f, 1f), Shader.TileMode.CLAMP)
-        c.drawCircle(x, y + R * 0.06f, grip * 1.12f, p); p.shader = null
-        // rubber grip: dark, lit from above, 72 fine ribs that turn with the knob
-        p.shader = LinearGradient(x, y - grip, x, y + grip, 0xFF3C3D42.toInt(), 0xFF0E0E10.toInt(), Shader.TileMode.CLAMP)
-        c.drawCircle(x, y, grip, p); p.shader = null
-        p.strokeWidth = 1.2f * dp
-        for (i in 0 until 72) {
-            val a = Math.toRadians((angle + i * 5).toDouble())
-            val lit = (0.5f - 0.5f * sin(a).toFloat())   // ribs at the top catch the light
-            p.color = (((40 + 70 * lit).toInt()) shl 24) or 0xFFFFFF
-            c.drawLine(x + (bezel * 1.04f * cos(a)).toFloat(), y + (bezel * 1.04f * sin(a)).toFloat(), x + (grip * 0.98f * cos(a)).toFloat(), y + (grip * 0.98f * sin(a)).toFloat(), p)
+        p.shader = LinearGradient(x, y - pl, x, y + pl, 0xFF4A4F3A.toInt(), 0xFF2C2F23.toInt(), Shader.TileMode.CLAMP)
+        c.drawRoundRect(r, R * 0.1f, R * 0.1f, p); p.shader = null
+        p.style = Paint.Style.STROKE; p.strokeWidth = 1.5f * dp; p.color = 0xFF1C1E16.toInt(); c.drawRoundRect(r, R * 0.1f, R * 0.1f, p)
+        p.style = Paint.Style.FILL
+        for ((sx, sy) in listOf(-1f to -1f, 1f to -1f, -1f to 1f, 1f to 1f)) {   // screws with a slot
+            val qx = x + sx * pl * 0.86f; val qy = y + sy * pl * 0.86f; val qr = R * 0.045f
+            p.color = Color.BLACK
+            p.shader = RadialGradient(qx - qr * 0.3f, qy - qr * 0.3f, qr * 1.3f, 0xFF9A9D90.toInt(), 0xFF4C4E45.toInt(), Shader.TileMode.CLAMP)
+            c.drawCircle(qx, qy, qr, p); p.shader = null
+            p.color = 0xFF2A2B26.toInt(); c.save(); c.rotate(35f + sx * 20f, qx, qy); c.drawRect(qx - qr * 0.8f, qy - qr * 0.12f, qx + qr * 0.8f, qy + qr * 0.12f, p); c.restore()
         }
-        // chrome bezel
-        p.shader = android.graphics.SweepGradient(x, y, intArrayOf(0xFFE8E8ED.toInt(), 0xFF6E6E73.toInt(), 0xFFF2F2F7.toInt(), 0xFF48484A.toInt(), 0xFFE8E8ED.toInt()), null)
-        c.drawCircle(x, y, bezel, p); p.shader = null
-        // the face: matte black, slightly domed; darker while pressed
+        // engraved preset marks and stencil codes
+        val det = if (preset >= 0) (7 - preset) % 8 else -1
+        p.typeface = jeepFont; p.textSize = R * 0.085f; p.letterSpacing = 0.1f
+        for (i in 0..7) {
+            val a = Math.toRadians((135 + i * 270.0 / 7)); val ca = cos(a).toFloat(); val sa = sin(a).toFloat()
+            val on = i == det
+            p.style = Paint.Style.STROKE; p.strokeWidth = (if (on) 3f else 2f) * dp; p.strokeCap = Paint.Cap.BUTT
+            p.color = if (on) 0xFFFFB020.toInt() else 0xFFD8D6C4.toInt()
+            c.drawLine(x + ring * 1.04f * ca, y + ring * 1.04f * sa, x + R * 0.8f * ca, y + R * 0.8f * sa, p)
+            p.style = Paint.Style.FILL
+            val tx = x + R * 0.89f * ca; val ty = y + R * 0.89f * sa + p.textSize * 0.36f
+            if (on) { p.color = 0x40FFB020; c.drawCircle(x + R * 0.89f * ca, y + R * 0.89f * sa, R * 0.08f, p) }
+            p.color = if (on) 0xFFFFB020.toInt() else 0xFFBFBDAA.toInt()
+            c.drawText(CODES[i], tx - p.measureText(CODES[i]) / 2, ty, p)
+        }
+        p.letterSpacing = 0f
+        // the pointer settles on the preset when the finger is off the knob
+        if (det >= 0 && mode != 1) {
+            val target = 135f + det * 270f / 7f + 90f
+            var d = (target - angle) % 360f; if (d > 180) d -= 360; if (d < -180) d += 360
+            if (kotlin.math.abs(d) > 0.3f) { angle += d * 0.25f; postInvalidateOnAnimation() } else angle += d
+        }
+        // shadow of the knob on the plate
+        p.color = Color.BLACK
+        p.shader = RadialGradient(x + R * 0.03f, y + R * 0.06f, ring * 1.15f, intArrayOf(0xAA000000.toInt(), 0x00000000), floatArrayOf(0.82f, 1f), Shader.TileMode.CLAMP)
+        c.drawCircle(x + R * 0.03f, y + R * 0.06f, ring * 1.15f, p); p.shader = null
+        // steel ring with a diamond knurl, turning with the knob
+        p.shader = android.graphics.SweepGradient(x, y, intArrayOf(0xFF5A5C58.toInt(), 0xFF2A2B29.toInt(), 0xFF6C6E69.toInt(), 0xFF222321.toInt(), 0xFF5A5C58.toInt()), null)
+        c.drawCircle(x, y, ring, p); p.shader = null
+        c.save()
+        val clip = android.graphics.Path().apply { addCircle(x, y, ring, android.graphics.Path.Direction.CW); addCircle(x, y, ringIn, android.graphics.Path.Direction.CCW) }
+        c.clipPath(clip)
+        p.style = Paint.Style.STROKE; p.strokeWidth = 1.1f * dp
+        for (i in 0 until 60) {   // two families of slanted lines make the diamonds
+            for (dir in floatArrayOf(-1f, 1f)) {
+                val a0 = Math.toRadians((angle + i * 6).toDouble()); val a1 = Math.toRadians((angle + i * 6 + dir * 9).toDouble())
+                p.color = if (dir > 0) 0x55000000 else 0x30FFFFFF
+                c.drawLine(x + (ringIn * cos(a0)).toFloat(), y + (ringIn * sin(a0)).toFloat(), x + (ring * cos(a1)).toFloat(), y + (ring * sin(a1)).toFloat(), p)
+            }
+        }
+        c.restore()
+        p.strokeWidth = 1.2f * dp; p.color = 0xFF1A1B19.toInt(); c.drawCircle(x, y, ring, p); c.drawCircle(x, y, ringIn, p)
+        p.style = Paint.Style.FILL
+        // matte olive face, slightly domed; pressed: sinks a little
         val pressed = mode == 2
-        p.shader = RadialGradient(x - face * 0.25f, y - face * 0.35f, face * 1.3f,
-            if (pressed) 0xFF1C1C1E.toInt() else 0xFF2E2F33.toInt(), 0xFF09090A.toInt(), Shader.TileMode.CLAMP)
-        c.drawCircle(x, y, face * (if (pressed) 0.98f else 1f), p); p.shader = null
-        // pointer notch on the face, turns with the knob
-        val pa = Math.toRadians((angle - 90).toDouble())
-        p.strokeWidth = 3.2f * dp; p.strokeCap = Paint.Cap.ROUND; p.color = if (enabledLink) accent else 0xFF636366.toInt()
-        c.drawLine(x + (face * 0.72f * cos(pa)).toFloat(), y + (face * 0.72f * sin(pa)).toFloat(), x + (face * 0.9f * cos(pa)).toFloat(), y + (face * 0.9f * sin(pa)).toFloat(), p)
-        p.strokeCap = Paint.Cap.BUTT
-        // hold progress on the bezel
+        val fr = face * (if (pressed) 0.97f else 1f)
+        p.color = Color.BLACK
+        p.shader = RadialGradient(x - fr * 0.3f, y - fr * 0.35f, fr * 1.35f, 0xFF5E6446.toInt(), 0xFF2A2D1F.toInt(), Shader.TileMode.CLAMP)
+        c.drawCircle(x, y, fr, p); p.shader = null
+        // raised pointer fin from the centre to the rim, with a painted white line; amber while armed or running
+        c.save(); c.rotate(angle, x, y)
+        path.reset(); path.moveTo(x - fr * 0.11f, y - fr * 0.25f); path.lineTo(x - fr * 0.05f, y - fr * 0.97f); path.lineTo(x + fr * 0.05f, y - fr * 0.97f); path.lineTo(x + fr * 0.11f, y - fr * 0.25f); path.close()
+        p.color = Color.BLACK
+        p.shader = LinearGradient(x - fr * 0.11f, 0f, x + fr * 0.11f, 0f, 0xFF6E7452.toInt(), 0xFF262918.toInt(), Shader.TileMode.CLAMP)
+        c.drawPath(path, p); p.shader = null
+        p.color = if (!enabledLink) 0xFF808070.toInt() else if (busy) 0xFFFFB020.toInt() else 0xFFF2F0E4.toInt()
+        c.drawRect(x - fr * 0.018f, y - fr * 0.93f, x + fr * 0.018f, y - fr * 0.5f, p)
+        c.restore()
+        // hold progress round the face
         if (pressed && !holdSent) {
             val held = SystemClock.uptimeMillis() - downAt
             if (held > 300) {
                 val f = ((held - 300) / 1700f).coerceIn(0f, 1f)
-                p.style = Paint.Style.STROKE; p.strokeWidth = 4 * dp; p.strokeCap = Paint.Cap.ROUND; p.color = 0xFFFF9F0A.toInt()
-                r.set(x - bezel, y - bezel, x + bezel, y + bezel)
+                p.style = Paint.Style.STROKE; p.strokeWidth = 4 * dp; p.strokeCap = Paint.Cap.ROUND; p.color = 0xFFFFB020.toInt()
+                r.set(x - (ringIn + face) / 2, y - (ringIn + face) / 2, x + (ringIn + face) / 2, y + (ringIn + face) / 2)
                 c.drawArc(r, -90f, 360f * f, false, p)
                 p.strokeCap = Paint.Cap.BUTT; p.style = Paint.Style.FILL
             }
             postInvalidateOnAnimation()
         }
-        p.style = Paint.Style.FILL
-        p.typeface = jeepFont; p.textSize = face * 0.28f; p.color = if (enabledLink) Color.WHITE else 0xFF636366.toInt()
-        p.letterSpacing = 0.06f
-        val t = if (pressed && SystemClock.uptimeMillis() - downAt > 300 && !holdSent) "MENU" else label
-        c.drawText(t, x - p.measureText(t) / 2, y + p.textSize * 0.36f, p)
-        p.letterSpacing = 0f
+        // stencil label: START / MENU (two lines), lower half of the face, under the fin's pivot
+        p.typeface = jeepFont; p.letterSpacing = 0.16f; p.textSize = fr * 0.16f
+        p.color = if (enabledLink) 0xFFE8E6D8.toInt() else 0xFF808070.toInt()
+        p.style = Paint.Style.FILL_AND_STROKE; p.strokeWidth = p.textSize * 0.03f
+        val l1 = "START"; val l2 = "MENU"
+        c.drawText(l1, x - p.measureText(l1) / 2, y + fr * 0.33f, p)
+        p.textSize = fr * 0.11f; p.strokeWidth = p.textSize * 0.03f
+        val held = pressed && SystemClock.uptimeMillis() - downAt > 300 && !holdSent
+        p.color = if (held) 0xFFFFB020.toInt() else if (enabledLink) 0xFFBFBDAA.toInt() else 0xFF808070.toInt()
+        c.drawText("HOLD: $l2", x - p.measureText("HOLD: $l2") / 2, y + fr * 0.52f, p)
+        p.style = Paint.Style.FILL; p.letterSpacing = 0f
+        // centre pivot
+        p.color = 0xFF1E2016.toInt(); c.drawCircle(x, y, fr * 0.1f, p)
+        p.color = 0xFF7A7E62.toInt(); c.drawCircle(x, y, fr * 0.05f, p)
+    }
+    private val path = android.graphics.Path()
+    private fun mixC(a: Int, b: Int, k: Float): Int {
+        fun ch(sh: Int) = (((a shr sh) and 0xFF) * (1 - k) + ((b shr sh) and 0xFF) * k).toInt().coerceIn(0, 255)
+        return (0xFF shl 24) or (ch(16) shl 16) or (ch(8) shl 8) or ch(0)
     }
 
     private fun ang(e: MotionEvent) = Math.toDegrees(atan2((e.x - cx).toDouble(), -(e.y - cy).toDouble())).toFloat()

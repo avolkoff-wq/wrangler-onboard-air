@@ -43,16 +43,16 @@ object SceneArt {
         val r0 = JeepShape.WHEEL_R; val t = Path()
         val flareBand = Path()
         for (cx in floatArrayOf(JeepShape.REAR_X, JeepShape.FRONT_X)) {   // flares: a band of even width round the arch, flat top
-            val o = Path(); val top = TYRE_Y - TYRE_R * (ARCH_K + 0.24f)
-            o.moveTo(cx - TYRE_R * 1.6f, 150f); o.lineTo(cx - TYRE_R * 0.95f, top); o.lineTo(cx + TYRE_R * 0.95f, top); o.lineTo(cx + TYRE_R * 1.6f, 150f); o.close()
+            val o = Path(); val top = TYRE_Y - TYRE_R * (ARCH_K + 0.13f)   // a thin flat plate (advisor)
+            o.moveTo(cx - TYRE_R * 1.5f, 146f); o.lineTo(cx - TYRE_R * 1.05f, top); o.lineTo(cx + TYRE_R * 1.05f, top); o.lineTo(cx + TYRE_R * 1.5f, 146f); o.close()
             val inner = Path(); val ti = TYRE_Y - TYRE_R * ARCH_K
             inner.moveTo(cx - TYRE_R * 1.3f, 152f); inner.lineTo(cx - TYRE_R * 0.75f, ti); inner.lineTo(cx + TYRE_R * 0.75f, ti); inner.lineTo(cx + TYRE_R * 1.3f, 152f); inner.close()
             inner.op(arches, Path.Op.UNION)
             o.op(inner, Path.Op.DIFFERENCE); flareBand.op(o, Path.Op.UNION)
         }
-        t.addRect(JeepShape.REAR_X + r0, 138f, JeepShape.FRONT_X - r0, 152f, Path.Direction.CW)   // rocker / slider
-        t.addRect(484f, 104f, 512f, 152f, Path.Direction.CW)                     // front bumper
-        t.addRect(0f, 122f, JeepShape.REAR_X - r0 * 0.9f, 152f, Path.Direction.CW)   // rear bumper
+        t.addRect(JeepShape.REAR_X + r0, 139f, JeepShape.FRONT_X - r0, 149f, Path.Direction.CW)   // rock rail
+        t.addRect(484f, 110f, 512f, 130f, Path.Direction.CW)                     // slim steel front bumper
+        t.addRect(0f, 124f, JeepShape.REAR_X - r0 * 0.9f, 142f, Path.Direction.CW)   // rear bumper
         // flares stick out a little past the body outline like the real ones, so only the hardtop and the rest are cut to it
         val res = Path(); res.op(t, outer, Path.Op.INTERSECT); res.op(flareBand, Path.Op.UNION)
         res.op(arches, Path.Op.DIFFERENCE); res
@@ -79,7 +79,7 @@ object SceneArt {
     // wheels in the mask (px): centres and radius, measured from the 512 px reference (tools/suv_vector.py)
     private const val REAR_X = JeepShape.REAR_X; private const val FRONT_X = JeepShape.FRONT_X
     private const val WHEEL_Y = JeepShape.WHEEL_Y; private const val WHEEL_R = JeepShape.WHEEL_R
-    private const val TYRE_K = 1.12f   // owner: bigger wheels; the arches are cut wider to keep the gap (bodyCut)
+    private const val TYRE_K = 0.94f   // owner: 33 in tyres, then "a touch smaller" (the lugs stick out 4 %) (285/70R17); JL Unlimited is ~192 in long, so the tyre is 0.172 of the length = the mask wheel
     private const val ARCH_K = 1.24f   // owner: more room between the arch and the tyre
     private val TYRE_R = JeepShape.WHEEL_R * TYRE_K
     private val TYRE_Y = JeepShape.PIVOT_Y - TYRE_R   // still on the ground
@@ -98,7 +98,7 @@ object SceneArt {
             6 -> recovery(c, w, h)
             else -> custom(c, w, h)
         }
-        p.color = Color.BLACK; p.shader = RadialGradient(w / 2, h * 0.45f, w * 0.75f, Color.TRANSPARENT, 0x66000000, Shader.TileMode.CLAMP)
+        p.color = Color.BLACK; p.shader = RadialGradient(w / 2, h * 0.45f, w * 0.75f, Color.TRANSPARENT, 0x40000000, Shader.TileMode.CLAMP)
         c.drawRect(0f, 0f, w, h, p); p.shader = null
         if (dim) { p.color = 0x88000000.toInt(); c.drawRect(0f, 0f, w, h, p) }
         c.restore()
@@ -127,14 +127,19 @@ object SceneArt {
         c.drawCircle(x, y, rad * 3.2f * pulse, p); p.shader = null
         p.color = col; c.drawCircle(x, y, rad, p)
     }
-    private fun fir(c: Canvas, x: Float, base: Float, hgt: Float, col: Int) {
-        p.color = col
-        for (k in 0 until 3) {
-            val tt = base - hgt * (0.18f + 0.27f * k); val wd = hgt * (0.34f - 0.08f * k)
-            path.reset(); path.moveTo(x, tt - hgt * 0.34f); path.lineTo(x + wd, tt + hgt * 0.08f); path.lineTo(x - wd, tt + hgt * 0.08f); path.close()
-            c.drawPath(path, p)
+    private fun fir(c: Canvas, x0: Float, base: Float, hgt0: Float, col: Int, k: Int = 0) {
+        // advisor: vary height +-25 % and place by a hash of the index; the right half of each tier in shade
+        val hsh = ((k * 2654435761L) ushr 8).toInt() and 0xFFFF
+        val hgt = hgt0 * (0.75f + 0.5f * (hsh and 0xFF) / 255f); val x = x0 + hgt0 * 0.25f * (((hsh shr 8) and 0xFF) / 255f - 0.5f)
+        val dark = mix(col, 0xFF000000.toInt(), 0.18f)
+        for (tier in 0 until 3) {
+            val tt = base - hgt * (0.18f + 0.27f * tier); val wd = hgt * (0.34f - 0.08f * tier)
+            path.reset(); path.moveTo(x, tt - hgt * 0.34f); path.lineTo(x, tt + hgt * 0.08f); path.lineTo(x - wd, tt + hgt * 0.08f); path.close()
+            p.color = col; c.drawPath(path, p)
+            path.reset(); path.moveTo(x, tt - hgt * 0.34f); path.lineTo(x + wd, tt + hgt * 0.08f); path.lineTo(x, tt + hgt * 0.08f); path.close()
+            p.color = dark; c.drawPath(path, p)
         }
-        c.drawRect(x - hgt * 0.03f, base - hgt * 0.16f, x + hgt * 0.03f, base, p)
+        p.color = dark; c.drawRect(x - hgt * 0.03f, base - hgt * 0.16f, x + hgt * 0.03f, base, p)
     }
     /** objects every `gap` px of the world, scrolled by `off`: screen x and index of each copy */
     private inline fun every(w: Float, gap: Float, off: Float, f: (x: Float, k: Int) -> Unit) {
@@ -160,7 +165,7 @@ object SceneArt {
         repeat(60) {
             val sx = rnd.nextFloat() * w; val sy = rnd.nextFloat() * h * 0.4f
             val tw = 0.5f + 0.5f * sin(t * 1.5f + it)
-            p.color = (((90 + 120 * tw * (1 - sy / (h * 0.4f))).toInt().coerceIn(0, 255)) shl 24) or 0xFFFFFF
+            p.color = (((63 + 84 * tw * (1 - sy / (h * 0.4f))).toInt().coerceIn(0, 255)) shl 24) or 0xFFFFFF
             c.drawCircle(sx, sy, h * 0.004f * (1 + rnd.nextFloat()), p)
         }
     }
@@ -192,7 +197,7 @@ object SceneArt {
         fun ch(sh: Int) = (((a shr sh) and 0xFF) * (1 - k) + ((b shr sh) and 0xFF) * k).toInt().coerceIn(0, 255)
         return (0xFF shl 24) or (ch(16) shl 16) or (ch(8) shl 8) or ch(0)
     }
-    private fun jeep(c: Canvas, ps: Pose, body: Int, shade: Int, lights: Boolean = false, wheelTurn: Float, sunk: Float = 0f) {
+    private fun jeep(c: Canvas, ps: Pose, body: Int, shade: Int, lights: Boolean = false, wheelTurn: Float, sunk: Float = 0f, spin: Float = 0f) {
         val len = JeepShape.W * ps.z
         if (lights) {
             val (hx, hy) = maskPt(ps, 124f * MW, 24f * MW)
@@ -208,16 +213,26 @@ object SceneArt {
         c.save(); c.translate(ps.x, ps.y + sunk); c.rotate(ps.ang); c.scale(ps.z, ps.z); c.translate(-JeepShape.PIVOT_X, -JeepShape.PIVOT_Y)
         // the owner's colour: Sting Gray, a warm grey, lit from above; the scene tints the highlight and the shadow a little
         val reflection = Color.red(body) < 0x80
-        val top = if (reflection) body else mix(0xFFB4B5AD.toInt(), body, 0.25f)
-        val mid = if (reflection) body else 0xFF80817A.toInt()
-        val bot = if (reflection) shade else mix(0xFF45464A.toInt(), shade, 0.3f)
+        val top = if (reflection) body else mix(0xFFBDBEBD.toInt(), body, 0.10f)
+        val mid = if (reflection) body else 0xFF8C8D8C.toInt()
+        val bot = if (reflection) shade else mix(0xFF54555A.toInt(), shade, 0.20f)
         p.color = Color.BLACK
-        p.shader = LinearGradient(0f, 0f, 0f, 152f, intArrayOf(top, mid, mid, bot), floatArrayOf(0f, 0.3f, 0.62f, 1f), Shader.TileMode.CLAMP)
+        p.shader = LinearGradient(0f, 0f, 0f, 152f, intArrayOf(top, mid, mid, bot), floatArrayOf(0f, 0.22f, 0.6f, 1f), Shader.TileMode.CLAMP)
         c.drawPath(bodyCut, p); p.shader = null
+        if (!reflection) {
+            c.save(); c.clipPath(bodyCut)
+            p.color = 0x14000000; c.drawRect(0f, 0f, JeepShape.W, 62f, p)               // the hardtop reads as its own part
+            p.color = 0xFF3A3B3E.toInt(); c.drawRect(150f, 29.3f, 330f, 30.7f, p)          // Freedom panel joint
+            p.color = 0x29FFFFFF; c.drawRect(44f, 70f, 486f, 71f, p)                     // belt crease, lit
+            p.color = 0x33000000; c.drawRect(44f, 72f, 486f, 73f, p)
+            p.color = 0x1F000000; c.drawRect(0f, 112f, JeepShape.W, 138f, p)              // lower doors, in shade
+            c.restore()
+        }
         // tinted glass with a soft sky reflection
-        p.shader = LinearGradient(0f, 10f, 0f, 62f, 0xFF4C5761.toInt(), 0xFF15191D.toInt(), Shader.TileMode.CLAMP)
+        p.color = Color.BLACK   // the shader takes the paint's alpha: the overlay before left it at 12 %
+        p.shader = LinearGradient(0f, 10f, 0f, 62f, 0xFF3A444D.toInt(), 0xFF15191D.toInt(), Shader.TileMode.CLAMP)
         c.drawPath(glass, p); p.shader = null
-        c.save(); c.clipPath(glass); p.color = 0x22FFFFFF
+        c.save(); c.clipPath(glass); p.color = 0x18FFFFFF
         path.reset(); path.moveTo(60f, 62f); path.lineTo(110f, 10f); path.lineTo(140f, 10f); path.lineTo(90f, 62f); path.close(); c.drawPath(path, p)
         path.offset(170f, 0f); c.drawPath(path, p); c.restore()
         // door seams and handles
@@ -233,8 +248,12 @@ object SceneArt {
         p.shader = LinearGradient(0f, 0f, 0f, JeepShape.H, 0xFF3A3B40.toInt(), 0xFF141416.toInt(), Shader.TileMode.CLAMP)
         c.drawPath(trim, p); p.shader = null
         // red RUBICON on the hood side, above the front flare (owner's photo)
-        p.typeface = rubiconFont; p.textSize = 20f; p.color = 0xFFB3262A.toInt(); p.letterSpacing = 0.1f
-        c.drawText("RUBICON", 352f, 82f, p); p.letterSpacing = 0f
+        // flare tops read as a shelf
+        p.color = 0xFF55575C.toInt()
+        for (cx in floatArrayOf(REAR_X, FRONT_X)) { val ty = TYRE_Y - TYRE_R * (ARCH_K + 0.13f); c.drawRect(cx - TYRE_R * 1.03f, ty, cx + TYRE_R * 1.03f, ty + 1f, p) }
+        p.typeface = rubiconFont; p.textSize = 12.5f; p.letterSpacing = 0.14f; p.textScaleX = 0.92f
+        p.color = 0x59000000; c.drawText("RUBICON", 372.6f, 79.6f, p)
+        p.color = 0xFFC8102E.toInt(); c.drawText("RUBICON", 372f, 79f, p); p.letterSpacing = 0f; p.textScaleX = 1f
         // the spare wheel on the tailgate, seen on its tread: a dark rounded tyre with grooves and a soft highlight
         r.set(1f, 40f, 37f, 136f)
         p.color = Color.BLACK
@@ -243,6 +262,17 @@ object SceneArt {
         p.color = 0xFF08080A.toInt(); var gy = 50f
         while (gy < 128f) { c.drawRect(5f, gy, 33f, gy + 2.2f, p); gy += 7f }
         p.color = 0xFF1C1D20.toInt(); c.drawRect(36f, 70f, 42f, 108f, p)   // carrier bracket
+        // rock rail highlight, lamps (always), door handles, fuel door; rim light on the roof and hood top
+        p.color = 0xFF4A4C52.toInt(); c.drawRect(JeepShape.REAR_X + WHEEL_R, 140f, JeepShape.FRONT_X - WHEEL_R, 141f, p)
+        r.set(40f, 70f, 50f, 94f); p.color = 0xFF9B1C22.toInt(); c.drawRoundRect(r, 2f, 2f, p)
+        p.color = 0xFFFF6B62.toInt(); c.drawRect(42f, 72f, 44f, 92f, p)
+        p.color = 0xFFE8902A.toInt(); c.drawRect(472f, 98f, 482f, 102f, p)
+        p.color = 0xFF1A1B1D.toInt(); c.drawRect(224f, 72f, 238f, 76f, p); c.drawRect(316f, 72f, 330f, 76f, p)
+        p.style = Paint.Style.STROKE; p.strokeWidth = 1.2f; p.color = 0xFF2A2B2E.toInt(); c.drawCircle(70f, 96f, 6f, p)
+        if (Color.red(body) >= 0x80) {
+            c.save(); c.clipRect(0f, 0f, 512f, 66f); p.strokeWidth = 1.6f; p.color = 0x61FFFFFF; c.drawPath(outer, p); c.restore()
+        }
+        p.style = Paint.Style.FILL
         // a thin dark outline, so the body stands out on light scenes (sand, dusk)
         p.style = Paint.Style.STROKE; p.strokeWidth = 1.1f * MW; p.color = 0x66000000; c.drawPath(bodyCut, p); p.style = Paint.Style.FILL
         // wheels (owner: bigger, a lifted JL on 35s): a fat dark tyre with tread blocks, a satin rim with five spokes.
@@ -252,32 +282,40 @@ object SceneArt {
         c.save(); c.clipRect(0f, 0f, JeepShape.W, JeepShape.H); p.color = 0xFF0E0E10.toInt()
         for (wx in floatArrayOf(REAR_X, FRONT_X)) c.drawCircle(wx, cy, tr * ARCH_K, p)
         c.restore()
+        // advisor (Fable review): a 17" wheel in a 35" tyre is about 0.5 of the tyre radius; lumpy mud-terrain outline;
+        // wide machined spokes with a split; past ~0.35 rad a frame the spokes blur instead of strobing
+        val fast = spin > 0.35f * 25f
         for (wx in floatArrayOf(REAR_X, FRONT_X)) {
-            p.color = 0xFF1B1C1F.toInt(); c.drawCircle(wx, cy, tr, p)
-            p.color = 0xFF2E3035.toInt()
-            for (k in 0 until 22) {   // mud-terrain tread: big staggered blocks on the shoulder, turning
-                val a = wheelTurn + k * 0.2856f
-                c.save(); c.rotate(Math.toDegrees(a.toDouble()).toFloat(), wx, cy)
-                val inset = if (k % 2 == 0) 0.8f else 0.84f
-                c.drawRect(wx + tr * inset, cy - tr * 0.07f, wx + tr * 1.01f, cy + tr * 0.07f, p); c.restore()
+            p.color = 0xFF141517.toInt(); c.drawCircle(wx, cy, tr * 0.99f, p)
+            for (k in 0 until 20) {   // tread blocks that break the outline
+                c.save(); c.rotate(Math.toDegrees((wheelTurn + k * 0.31416f).toDouble()).toFloat(), wx, cy)
+                c.drawRect(wx + tr * 0.93f, cy - tr * 0.075f, wx + tr * 1.045f, cy + tr * 0.075f, p); c.restore()
             }
-            p.color = 0xFF111214.toInt(); c.drawCircle(wx, cy, tr * 0.68f, p)          // sidewall shadow
-            // Rubicon wheel: gloss black, five split spokes with a machined silver face
-            p.color = 0xFF151518.toInt(); c.drawCircle(wx, cy, tr * 0.6f, p)
-            for (k in 0 until 5) {
-                val a0 = wheelTurn + k * 1.2566f
-                c.save(); c.rotate(Math.toDegrees(a0.toDouble()).toFloat(), wx, cy)
-                for (side in floatArrayOf(-1f, 1f)) {   // a split spoke: two blades with a silver face
-                    path.reset()
-                    path.moveTo(wx + tr * 0.14f, cy + side * tr * 0.03f); path.lineTo(wx + tr * 0.56f, cy + side * tr * 0.05f)
-                    path.lineTo(wx + tr * 0.56f, cy + side * tr * 0.16f); path.lineTo(wx + tr * 0.14f, cy + side * tr * 0.09f); path.close()
-                    p.color = 0xFFCDD1D6.toInt(); c.drawPath(path, p)
-                }
+            p.color = 0xFF26272B.toInt()
+            for (k in 0 until 20) {   // shoulder lugs, half a pitch offset
+                c.save(); c.rotate(Math.toDegrees((wheelTurn + k * 0.31416f + 0.157f).toDouble()).toFloat(), wx, cy)
+                c.drawRect(wx + tr * 0.80f, cy - tr * 0.06f, wx + tr * 0.92f, cy + tr * 0.06f, p); c.restore()
+            }
+            p.color = 0xFF17181A.toInt(); c.drawCircle(wx, cy, tr * 0.79f, p)                 // sidewall
+            p.style = Paint.Style.STROKE; p.strokeWidth = tr * 0.02f; p.color = 0xFF232427.toInt(); c.drawCircle(wx, cy, tr * 0.78f, p); p.style = Paint.Style.FILL
+            p.color = 0xFF0D0D0F.toInt(); c.drawCircle(wx, cy, tr * 0.54f, p)                 // wheel well of the rim
+            p.color = 0xFF0D0D0F.toInt(); c.drawCircle(wx, cy, tr * 0.5f, p)
+            for (k in 0 until 5) {   // five wide spokes, machined silver, a dark slit down each
+                c.save(); c.rotate(Math.toDegrees((wheelTurn + k * 1.2566f).toDouble()).toFloat(), wx, cy)
+                path.reset()
+                path.moveTo(wx + tr * 0.11f, cy - tr * 0.11f); path.lineTo(wx + tr * 0.46f, cy - tr * 0.075f)
+                path.lineTo(wx + tr * 0.46f, cy + tr * 0.075f); path.lineTo(wx + tr * 0.11f, cy + tr * 0.11f); path.close()
+                p.color = Color.BLACK
+                p.shader = LinearGradient(wx + tr * 0.11f, cy, wx + tr * 0.46f, cy, 0xFFA9ADB3.toInt(), 0xFF7C8087.toInt(), Shader.TileMode.CLAMP)
+                if (fast) p.alpha = 90
+                c.drawPath(path, p); p.shader = null; p.alpha = 255
+                p.color = 0xFF0D0D0F.toInt(); c.drawRect(wx + tr * 0.20f, cy - tr * 0.011f, wx + tr * 0.44f, cy + tr * 0.011f, p)
                 c.restore()
             }
-            p.style = Paint.Style.STROKE; p.strokeWidth = tr * 0.05f; p.color = 0xFF0C0C0E.toInt(); c.drawCircle(wx, cy, tr * 0.58f, p); p.style = Paint.Style.FILL
-            p.color = 0xFF1F2023.toInt(); c.drawCircle(wx, cy, tr * 0.16f, p)
-            p.color = 0xFF8A8E95.toInt(); c.drawCircle(wx, cy, tr * 0.06f, p)
+            if (fast) { p.color = 0x6E5A5E64; c.drawCircle(wx, cy, tr * 0.46f, p) }
+            p.style = Paint.Style.STROKE; p.strokeWidth = tr * 0.035f; p.color = 0xFF8A8E95.toInt(); c.drawCircle(wx, cy, tr * 0.485f, p); p.style = Paint.Style.FILL
+            p.color = 0xFF1A1B1E.toInt(); c.drawCircle(wx, cy, tr * 0.13f, p)
+            p.color = 0xFF6E7278.toInt(); c.drawCircle(wx, cy, tr * 0.045f, p)
         }
         c.restore()
         if (lights) {
@@ -289,7 +327,8 @@ object SceneArt {
         }
     }
     /** wheel turn angle for a ground speed (px per second) and the wheel radius on screen */
-    private fun turn(speedPx: Float, z: Float) = t * speedPx / (TYRE_R * z)
+    /** capped at 7 rad/s so 25 fps never strobes the spokes backwards */
+    private fun turn(speedPx: Float, z: Float) = t * minOf(speedPx / (TYRE_R * z), 7f)
     /** dust behind the rear wheel */
     private fun dust(c: Canvas, ps: Pose, col: Int) {
         val (x, y) = maskPt(ps, REAR_X - WHEEL_R * 0.5f, JeepShape.H - 2f); val len = JeepShape.W * ps.z
@@ -298,11 +337,12 @@ object SceneArt {
             val dx = -ph * len * 0.55f; val dy = -ph * len * 0.14f + sin(i * 2.1f) * len * 0.02f
             val rr = len * (0.02f + 0.07f * ph)
             val a = ((1f - ph) * 0.45f * 255).toInt().coerceIn(0, 255)
-            p.color = (col and 0x00FFFFFF) or (a shl 24)
-            p.maskFilter = BlurMaskFilter(rr * 0.6f, BlurMaskFilter.Blur.NORMAL)
-            c.drawCircle(x + dx, y + dy, rr, p)
+            // a soft puff without a blur filter per particle (advisor: cheaper at 25 fps)
+            p.color = Color.BLACK
+            p.shader = RadialGradient(x + dx, y + dy, rr * 1.4f, (col and 0x00FFFFFF) or (a shl 24), col and 0x00FFFFFF, Shader.TileMode.CLAMP)
+            c.drawCircle(x + dx, y + dy, rr * 1.4f, p)
         }
-        p.maskFilter = null
+        p.shader = null
     }
 
     // ---------- scenes ----------
@@ -327,35 +367,35 @@ object SceneArt {
         p.color = 0xEEFFFFFF.toInt()
         every(w, w * 0.18f, off) { x, _ -> c.drawRect(x, g + h * 0.15f, x + w * 0.09f, g + h * 0.17f, p) }
         val road = g + h * 0.075f
-        val ps = pose(w * 0.3f, w * 0.48f, { road }, bounce = h * 0.003f * sin(t * 17f))
+        val ps = pose(w * 0.17f, w * 0.60f, { road }, bounce = h * 0.003f * sin(t * 17f))
         jeep(c, ps, 0xFFE8E4F0.toInt(), 0xFF5D6378.toInt(), lights = true, wheelTurn = turn(speed, ps.z))
     }
 
     private fun rough(c: Canvas, w: Float, h: Float) {   // overcast, broken asphalt with bumps and potholes
         val speed = w * 0.2f; val off = t * speed
-        sky(c, w, h, 0xFF2E3D4F.toInt(), 0xFF9FB0BE.toInt(), 0.75f)
+        sky(c, w, h, 0xFF2E3D4F.toInt(), 0xFFC7B9A6.toInt(), 0.75f)
         clouds(c, w, h, h * 0.18f, 0x55E6EEF5, 5, w * 0.16f, 0.01f)
         band(c, w, h, { x -> h * (0.55f - 0.08f * sin((x + off * 0.1f) / w * 5f)) }, 0xFF4F6372.toInt(), 0xFF35454F.toInt())
         haze(c, w, h * 0.45f, h * 0.66f, 0xFF9FB0BE.toInt())
-        band(c, w, h, { x -> h * (0.66f - 0.05f * sin((x + off * 0.3f) / w * 7f + 1f)) }, 0xFF3D4D45.toInt(), 0xFF27322C.toInt())
+        band(c, w, h, { x -> h * (0.66f - 0.05f * sin((x + off * 0.3f) / w * 7f + 1f)) }, 0xFF3F5A46.toInt(), 0xFF27322C.toInt())
         val period = w * 0.9f
         val g = { x: Float -> val u = x + off; h * 0.8f - h * 0.06f * gauss(rep(u, period, 0f), 0f, w * 0.05f) + h * 0.03f * gauss(rep(u, period, period * 0.5f), 0f, w * 0.03f) }
-        band(c, w, h, g, 0xFF3A3C42.toInt(), 0xFF17181C.toInt())
+        band(c, w, h, g, 0xFF2B2F38.toInt(), 0xFF121419.toInt())
         p.color = 0xFF0E0F12.toInt(); p.style = Paint.Style.STROKE; p.strokeWidth = h * 0.008f
         every(w, w * 0.45f, off) { x, _ -> path.reset(); path.moveTo(x, h * 0.85f); path.lineTo(x + w * 0.03f, h * 0.89f); path.lineTo(x + w * 0.07f, h * 0.87f); path.lineTo(x + w * 0.1f, h * 0.92f); c.drawPath(path, p) }
         p.style = Paint.Style.FILL
-        val ps = pose(w * 0.2f, w * 0.46f, g)
+        val ps = pose(w * 0.17f, w * 0.60f, g)
         jeep(c, ps, 0xFFEDF1F5.toInt(), 0xFF7D8792.toInt(), wheelTurn = turn(speed, ps.z))
     }
 
     private fun gravel(c: Canvas, w: Float, h: Float) {   // afternoon, pines, a dirt road, stones and dust
         val speed = w * 0.3f; val off = t * speed
         sky(c, w, h, 0xFF4F86BF.toInt(), 0xFFF1D7A8.toInt(), 0.8f)
-        sun(c, w * 0.15f, h * 0.22f, h * 0.06f, 0xFFFFF1C4.toInt())
+        sun(c, w * 0.82f, h * 0.2f, h * 0.06f, 0xFFFFF1C4.toInt())
         clouds(c, w, h, h * 0.16f, 0x88FFFFFF.toInt(), 4, w * 0.13f, 0.012f)
         band(c, w, h, { x -> h * (0.6f - 0.07f * sin((x + off * 0.1f) / w * 4f + 0.5f)) }, 0xFF6E8A6A.toInt(), 0xFF4D664B.toInt())
         haze(c, w, h * 0.5f, h * 0.68f, 0xFFF1D7A8.toInt())
-        every(w, w * 0.07f, off * 0.35f) { x, k -> fir(c, x, h * 0.72f, h * (0.24f + 0.06f * (((k % 3) + 3) % 3)), 0xFF2E4A33.toInt()) }
+        every(w, w * 0.07f, off * 0.35f) { x, k -> fir(c, x, h * 0.72f, h * 0.3f, 0xFF2E4A33.toInt(), k) }
         val g = { x: Float -> h * 0.8f + h * 0.012f * sin((x + off) / w * 13f) }
         band(c, w, h, g, 0xFFB08A60.toInt(), 0xFF6E5236.toInt())
         val rnd = java.util.Random(7)
@@ -365,7 +405,7 @@ object SceneArt {
             val sy = h * 0.83f + fy * h * 0.17f
             p.color = if (fr > 0.5f) 0xFFD9C4A3.toInt() else 0xFF8C7458.toInt(); c.drawCircle(sx, sy, h * (0.006f + fr * 0.012f), p)
         }
-        val ps = pose(w * 0.18f, w * 0.47f, g)
+        val ps = pose(w * 0.17f, w * 0.60f, g)
         dust(c, ps, 0xFFD9C4A3.toInt())
         jeep(c, ps, 0xFFFFF8EE.toInt(), 0xFF9C8C78.toInt(), wheelTurn = turn(speed, ps.z))
     }
@@ -373,14 +413,14 @@ object SceneArt {
     private fun trail(c: Canvas, w: Float, h: Float) {   // forest at dusk, layers of firs, a wavy trail
         val speed = w * 0.18f; val off = t * speed
         sky(c, w, h, 0xFF1C3A2E.toInt(), 0xFFB9D49A.toInt(), 0.7f)
-        every(w, w * 0.08f, off * 0.2f) { x, _ -> fir(c, x, h * 0.66f, h * 0.34f, 0xFF3F6B4C.toInt()) }
+        every(w, w * 0.08f, off * 0.2f) { x, k -> fir(c, x, h * 0.66f, h * 0.34f, 0xFF3F6B4C.toInt(), k) }
         haze(c, w, h * 0.35f, h * 0.68f, 0xFFB9D49A.toInt())
-        every(w, w * 0.11f, off * 0.5f) { x, _ -> fir(c, x, h * 0.74f, h * 0.48f, 0xFF244634.toInt()) }
+        every(w, w * 0.11f, off * 0.5f) { x, k -> fir(c, x, h * 0.74f, h * 0.48f, 0xFF244634.toInt(), k + 1000) }
         val g = { x: Float -> h * 0.8f + h * 0.045f * sin((x + off) / w * 8f) + h * 0.015f * sin((x + off) / w * 23f) }
         band(c, w, h, g, 0xFF6B4E33.toInt(), 0xFF3A2A1C.toInt())
         p.color = 0x553A2A1C
         every(w, w * 0.12f, off) { x, _ -> c.drawRect(x, g(x) + h * 0.09f, x + w * 0.05f, g(x) + h * 0.105f, p) }
-        val ps = pose(w * 0.22f, w * 0.46f, g)
+        val ps = pose(w * 0.17f, w * 0.60f, g)
         jeep(c, ps, 0xFFEFF5EA.toInt(), 0xFF5F7562.toInt(), lights = true, wheelTurn = turn(speed, ps.z))
     }
 
@@ -411,7 +451,7 @@ object SceneArt {
         band(c, w, h, g, 0xFF8E8A84.toInt(), 0xFF3B3935.toInt())
         p.color = 0x22FFFFFF
         every(w, period, off) { x, _ -> path.reset(); path.moveTo(x - w * 0.12f, g(x - w * 0.12f)); path.lineTo(x, g(x)); path.lineTo(x + w * 0.02f, g(x) + h * 0.06f); path.close(); c.drawPath(path, p) }
-        val ps = pose(w * 0.14f, w * 0.44f, g)
+        val ps = pose(w * 0.15f, w * 0.52f, g)
         jeep(c, ps, 0xFFF2F7FF.toInt(), 0xFF6C7C92.toInt(), wheelTurn = turn(speed, ps.z))
     }
 
@@ -425,7 +465,7 @@ object SceneArt {
         p.color = 0x22000000; p.style = Paint.Style.STROKE; p.strokeWidth = h * 0.006f
         for (i in 0 until 4) { path.reset(); var x = 0f; path.moveTo(0f, g(0f) + h * (0.04f + i * 0.03f)); while (x < w) { path.lineTo(x, g(x) + h * (0.04f + i * 0.03f) + h * 0.006f * sin((x + off) / w * 40)); x += w / 40 }; c.drawPath(path, p) }
         p.style = Paint.Style.FILL
-        val ps = pose(w * 0.18f, w * 0.45f, g)
+        val ps = pose(w * 0.17f, w * 0.60f, g)
         dust(c, ps, 0xFFF3CD8F.toInt())
         jeep(c, ps, 0xFFFFFFFF.toInt(), 0xFF8E6440.toInt(), wheelTurn = turn(speed, ps.z))
     }
@@ -435,9 +475,9 @@ object SceneArt {
         sun(c, w * 0.2f, h * 0.62f, h * 0.09f, 0xFFFFC27A.toInt())
         band(c, w, h, { x -> h * (0.66f - 0.06f * sin(x / w * 4f)) }, 0xFFD18A4C.toInt(), 0xFFA8652F.toInt())
         val shake = h * 0.004f * sin(t * 23f)   // the body shakes while the wheels dig
-        val ps = pose(w * 0.24f, w * 0.46f, { h * 0.8f }, bounce = shake)
+        val ps = pose(w * 0.20f, w * 0.58f, { h * 0.8f }, bounce = shake)
         val sunk = h * 0.06f
-        jeep(c, ps, 0xFFFFFFFF.toInt(), 0xFF7E4A38.toInt(), lights = true, wheelTurn = t * 14f, sunk = sunk)
+        jeep(c, ps, 0xFFFFFFFF.toInt(), 0xFF7E4A38.toInt(), lights = true, wheelTurn = t * 14f, sunk = sunk, spin = 14f)
         // the sand the wheels sit in, piled a little higher at each wheel
         val (rx, _) = maskPt(ps, REAR_X, WHEEL_Y); val (fx, _) = maskPt(ps, FRONT_X, WHEEL_Y)
         band(c, w, h, { x -> h * (0.84f - 0.015f * sin(x / w * 11f)) - h * 0.03f * (gauss(x, rx, w * 0.07f) + gauss(x, fx, w * 0.07f)) }, 0xFFE3A15B.toInt(), 0xFFB06A2E.toInt())
@@ -462,14 +502,15 @@ object SceneArt {
     private fun custom(c: Canvas, w: Float, h: Float) {   // studio: dark backdrop, a floor with a reflection, a gauge
         sky(c, w, h, 0xFF2A2C33.toInt(), 0xFF0E0F12.toInt())
         val sweep = (t * 0.15f) % 1f
-        p.color = Color.BLACK; p.shader = RadialGradient(w * (0.1f + 0.8f * sweep), h * 0.82f, w * 0.5f, 0x4430D158, Color.TRANSPARENT, Shader.TileMode.CLAMP)
+        p.color = Color.BLACK; p.shader = RadialGradient(w * 0.38f, h * 0.3f, w * 0.55f, 0x17FFFFFF, Color.TRANSPARENT, Shader.TileMode.CLAMP)   // a neutral softbox (advisor)
         c.drawRect(0f, 0f, w, h, p); p.shader = null
-        p.color = 0xFF1A1B20.toInt(); c.drawRect(0f, h * 0.8f, w, h, p)
-        val ps = pose(w * 0.14f, w * 0.46f, { h * 0.8f })
+        p.color = Color.BLACK; p.shader = LinearGradient(0f, h * 0.8f, 0f, h, 0xFF1F2024.toInt(), 0xFF0C0C0E.toInt(), Shader.TileMode.CLAMP); c.drawRect(0f, h * 0.8f, w, h, p); p.shader = null
+        p.color = 0x0FFFFFFF; c.drawRect(0f, h * 0.8f, w, h * 0.8f + 1f, p)
+        val ps = pose(w * 0.17f, w * 0.60f, { h * 0.8f })
         c.save(); c.scale(1f, -1f, 0f, h * 0.8f); jeep(c, ps, 0xFF3A3D45.toInt(), 0xFF1A1B20.toInt(), wheelTurn = 0f); c.restore()
         p.color = Color.BLACK; p.shader = LinearGradient(0f, h * 0.8f, 0f, h, 0x991A1B20.toInt(), 0xFF1A1B20.toInt(), Shader.TileMode.CLAMP); c.drawRect(0f, h * 0.8f, w, h, p); p.shader = null
         jeep(c, ps, 0xFFF2F2F7.toInt(), 0xFF6E717C.toInt(), wheelTurn = 0f)
-        val gx = w * 0.82f; val gy = h * 0.35f; val gr = h * 0.2f
+        val gx = w * 0.86f; val gy = h * 0.3f; val gr = h * 0.15f
         p.style = Paint.Style.STROKE; p.strokeWidth = gr * 0.12f; p.strokeCap = Paint.Cap.ROUND
         r.set(gx - gr, gy - gr, gx + gr, gy + gr)
         p.color = 0xFF3A3A3C.toInt(); c.drawArc(r, 140f, 260f, false, p)

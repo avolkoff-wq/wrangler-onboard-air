@@ -118,54 +118,79 @@ class HomeView(ctx: Context, private val onTurn: (Int) -> Unit = {}) : View(ctx)
     // Jeep style (owner): heavy condensed capitals for the name, the numbers and the line under them
     private val jeepFont: Typeface = Typeface.create(Typeface.create("sans-serif-condensed", Typeface.BOLD), 800, false)
     private fun drawIdle(c: Canvas, s: Ble.State, w: Float, h: Float) {
-        // the scene card: an illustration of the preset, rounded like a widget
+        // the scene card (advisor: taller, hairline edge, the link state as a small capsule inside it)
         val m = 16 * dp
         val cw = w - 2 * m
-        val ch = min(cw * 0.58f, h * 0.42f)
-        val top = 8 * dp
+        val ch = min(cw * 0.62f, h * 0.44f)
+        val top = 4 * dp
         c.save()
         r.set(m, top, m + cw, top + ch)
-        val clip = android.graphics.Path().apply { addRoundRect(r, 26 * dp, 26 * dp, android.graphics.Path.Direction.CW) }
+        val clip = android.graphics.Path().apply { addRoundRect(r, 28 * dp, 28 * dp, android.graphics.Path.Direction.CW) }
         c.clipPath(clip); c.translate(m, top)
         SceneArt.draw(c, s.preset, cw, ch, time = (android.os.SystemClock.uptimeMillis() % 3_600_000L) / 1000f)
         c.restore()
-        // name on the card's lower edge? no: under it, big
-        var y = top + ch + h * 0.1f
+        p.style = Paint.Style.STROKE; p.strokeWidth = 1 * dp; p.color = 0x1AFFFFFF
+        r.set(m, top, m + cw, top + ch); c.drawRoundRect(r, 28 * dp, 28 * dp, p); p.style = Paint.Style.FILL
+        if (online) {   // link capsule, top left in the card
+            p.typeface = medium; p.textSize = 12 * dp
+            val lt = "Connected"; val lw = p.measureText(lt)
+            r.set(m + 12 * dp, top + 12 * dp, m + 12 * dp + lw + 30 * dp, top + 36 * dp)
+            p.color = 0x66000000; c.drawRoundRect(r, 12 * dp, 12 * dp, p)
+            p.color = GREEN; c.drawCircle(r.left + 12 * dp, r.centerY(), 4 * dp, p)
+            p.color = 0xFFEBEBF5.toInt(); c.drawText(lt, r.left + 22 * dp, r.centerY() + 4.3f * dp, p)
+        }
+        // page dots: eight presets, the swipe affordance
+        var y = top + ch + 16 * dp
+        val n = PRESETS.size; val gap = 14 * dp
+        val dx0 = w / 2 - gap * (n - 1) / 2
+        for (k in 0 until n) { p.color = if (k == s.preset) Color.WHITE else 0xFF48484A.toInt(); c.drawCircle(dx0 + k * gap, y, 3 * dp, p) }
+        // name: owner wants it big and heavy, Jeep style
+        y += 44 * dp
         val name = PRESETS.getOrElse(s.preset) { "Preset" }.uppercase()
-        p.letterSpacing = 0.04f
-        centeredF(c, name, y, 40f, if (s.target < 0.8f) ORANGE else Color.WHITE)
+        p.letterSpacing = 0.08f
+        heavy { centeredF(c, name, y, 34f, if (s.target < 0.8f) ORANGE else 0xFFF5F5F7.toInt()) }
         p.letterSpacing = 0f
-        y += h * 0.17f
-        // target: big heavy digits + BAR
-        p.typeface = jeepFont; p.textSize = min(h * 0.17f, w * 0.36f); p.color = YELLOW
+        // target: big white heavy digits + BAR (advisor: one accent per state, no neon)
+        val numSize = min(h * 0.18f, w * 0.40f)
+        y += numSize * 0.92f
+        p.typeface = jeepFont; p.textSize = numSize; p.color = 0xFFF5F5F7.toInt()
         val num = "%.1f".format(s.target)
+        p.textScaleX = 0.9f
         val nw = p.measureText(num)
-        val pu = Paint(p).apply { textSize = p.textSize * 0.26f; color = GREY; letterSpacing = 0.06f }
-        val total = nw + 10 * dp + pu.measureText("BAR")
+        val pu = Paint(p).apply { textSize = numSize * 0.22f; color = GREY; letterSpacing = 0.08f; textScaleX = 1f; style = Paint.Style.FILL }
+        val total = nw + 8 * dp + pu.measureText("BAR")
         val x0 = (w - total) / 2
-        c.drawText(num, x0, y, p)
-        c.drawText("BAR", x0 + nw + 10 * dp, y, pu)
-        y += h * 0.085f
+        heavy { c.drawText(num, x0, y, p) }
+        p.textScaleX = 1f
+        c.drawText("BAR", x0 + nw + 8 * dp, y, pu)
+        y += 34 * dp
         val (line, col) = when {
             s.state == 7 && s.inBand -> "ALREADY WITHIN 0.1 BAR" to GREEN
             s.state == 7 && s.offTarget -> "OFF TARGET: %.2f BAR".format(s.staticBar) to ORANGE
             s.state == 7 -> "DONE: %.2f BAR IN %s".format(s.staticBar, mmss(s.runMs)) to GREEN
             s.armStage == 2 -> "ENGINE OFF? PRESS AGAIN" to RED
             s.armStage == 1 -> "PRESS AGAIN TO START" to Color.WHITE
-            s.noAir -> "CONNECT THE SYSTEM" to GREY
+            s.noAir -> "NO PRESSURE  ·  CONNECT THE HOSE" to GREY
             abs(s.bar - s.target) <= 0.1f -> "NOW %.1f BAR  ·  OK".format(s.bar) to GREEN
             s.bar < s.target -> "NOW %.1f BAR  ·  ▲ INFLATE".format(s.bar) to ORANGE
             else -> "NOW %.1f BAR  ·  ▼ DEFLATE".format(s.bar) to BLUE
         }
-        p.letterSpacing = 0.05f
-        if (s.armStage > 0 || s.state == 7) pill(c, line, y, col) else centeredF(c, line, y, 20f, col)
+        p.letterSpacing = 0.1f
+        if (s.armStage > 0 || s.state == 7) pill(c, line, y, col) else centeredF(c, line, y, 15f, col)
         p.letterSpacing = 0f
         if (s.demo || s.fake) centeredF(c, if (s.demo) "DEMO" else "FAKE SENSOR", h - 10 * dp, 13f, 0xFFFF2D9F.toInt())
+    }
+    /** a heavier weight than Roboto Condensed Bold has: fill and a thin stroke of the same colour (advisor) */
+    private inline fun heavy(f: () -> Unit) {
+        p.style = Paint.Style.FILL_AND_STROKE; p.strokeWidth = p.textSize * 0.03f; p.strokeJoin = Paint.Join.MITER
+        f()
+        p.style = Paint.Style.FILL; p.strokeWidth = 0f
     }
     private fun centeredF(c: Canvas, t: String, y: Float, sp: Float, col: Int) {
         p.typeface = jeepFont; p.textSize = sp * dp; p.color = col
         var tw = p.measureText(t)
         if (tw > width - 24 * dp) { p.textSize *= (width - 24 * dp) / tw; tw = p.measureText(t) }
+        if (p.style == Paint.Style.FILL_AND_STROKE) p.strokeWidth = p.textSize * 0.03f
         c.drawText(t, (width - tw) / 2, y, p)
     }
 
@@ -199,9 +224,9 @@ class HomeView(ctx: Context, private val onTurn: (Int) -> Unit = {}) : View(ctx)
         centered(c, "bar  ·  target %.1f".format(s.target), cy + d * 0.22f, 15f, GREY, regular)
         val ph = phase(s.state).uppercase()
         p.letterSpacing = 0.16f
-        centered(c, ph, cy - d * 0.2f, 14f, accent, medium)
+        centeredF(c, ph, cy - d * 0.2f, 15f, accent)
         p.letterSpacing = 0f
-        centered(c, mmss(s.runMs), cy + d / 2 + h * 0.08f, 22f, Color.WHITE, light)
+        centeredF(c, mmss(s.runMs), cy + d / 2 + h * 0.08f, 24f, Color.WHITE)
         centered(c, "Tap the knob to stop", cy + d / 2 + h * 0.13f, 14f, GREY, regular)
     }
 
