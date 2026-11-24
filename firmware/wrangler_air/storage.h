@@ -77,7 +77,7 @@ struct Settings {
     rate /= k; kTop /= k; c *= k; tauD *= tauWheels(constrain((int)n, 1, 4));
   }
   float airL() const { return airVL(tyre) * wk; }
-  float presetBar(int i) const { return i == P_CUSTOM ? custom : PRESETS[i].bar; }
+  float presetBar(int i) const { return i == P_CUSTOM ? custom : i == 0 ? HIGHWAY_BY_TYRE[tyre < N_TYRE_SIZES ? tyre : 0] : PRESETS[i].bar; }
 
   void load() {
     Preferences p; p.begin("air", true);
@@ -200,7 +200,9 @@ struct Settings {
   void setTyre(uint8_t i) {
     if (i >= N_TYRE_SIZES || i == tyre || wk != 1.0f) return;
     const float k = airVL(i) / airVL(tyre);
-    rate /= k; kTop /= k; tauD *= k; c *= k; tyre = i; save();
+    rate /= k; kTop /= k; tauD *= k; c *= k; tyre = i;
+    if (preset == 0) target = presetBar(0);   // HIGHWAY follows the tyre size
+    save();
   }
   void resetLearning() {
     wk = 1.0f;

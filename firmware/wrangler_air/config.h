@@ -7,7 +7,7 @@
 //   VALVE (deflate valve fitted, schematic C), DEMO (virtual tyres for the desk, never saved, off at every power-up).
 // The USB serial log, LIVE stream and commands are always on.
 #define BENCH_USB 1
-#define FW_VERSION "0.6.0"
+#define FW_VERSION "0.6.1"
 inline bool g_valve = true;     // menu VALVE, saved (Settings::valve)
 inline bool g_demo  = false;    // menu DEMO, RAM only
 inline float g_fakeV = -1;      // USB "fake <bar>": pin voltage the sensor pretends to read (< 0 = off), RAM only
@@ -83,7 +83,7 @@ constexpr float TARGET_STEP      = 0.1f;
 // 255/75R17 without beadlocks. Below 0.8 bar the screen shows LOW.
 struct Preset { const char* name; float bar; };
 constexpr Preset PRESETS[] = {      // owner's list, 18.11.2026, high to low; index 0 = default
-  {"HIGHWAY",    2.5f}, // 36 psi: factory door placard 37 psi (LT255/75R17 and LT285/70R17), Swiss motorway
+  {"HIGHWAY",    2.5f}, // 255/75R17: 2.5 bar = factory door placard 37 psi. 285/70R17: HIGHWAY_BY_TYRE below
   {"ROUGH ROAD", 1.8f}, // 26 psi: broken asphalt, comfort
   {"GRAVEL",     1.5f}, // 22 psi: gravel, dirt roads, washboard
   {"TRAIL",      1.2f}, // 17 psi: trails, mud, snow
@@ -143,6 +143,9 @@ constexpr float    LEARN_ALPHA   = 0.3f;   // new = 0.7*old + 0.3*measured
 // Two tyre sizes, picked in the menu (TYRE). Air volume ~ annulus x width x fill factor: 255/75R17 ~52 L, 285/70R17 ~62 L each.
 struct TyreSize { const char* name; float w, ar, rim; };
 constexpr TyreSize TYRES[] = { {"255/75R17", 255, 75, 17}, {"285/70R17", 285, 70, 17} };
+// HIGHWAY per tyre size (index = TYRES): 255/75R17 2.5 bar (placard 37 psi); 285/70R17 2.3 bar (owners of C-load
+// 285/70 on JL / JK run 30-35 psi on the road; fine-tune with a chalk test). Checked 24.11.2026.
+constexpr float HIGHWAY_BY_TYRE[] = { 2.5f, 2.3f };
 constexpr int   N_TYRE_SIZES = sizeof(TYRES) / sizeof(TYRES[0]);
 constexpr int   N_TYRES     = 4;
 constexpr float TYRE_FILL   = 0.55f;                       // torus shape vs the full annulus box

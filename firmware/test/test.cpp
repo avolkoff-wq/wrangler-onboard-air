@@ -207,6 +207,12 @@ static int regressions() {
     char m[120]; snprintf(m, sizeof m, "AUX1: on 13.4, stays on 13.1, off 12.9, stays off 13.1; trim 1.02 x 13.0 = %.2f V", tv);
     check(on1 && on2 && !on3 && !on4 && fabsf(tv - 13.26f) < 0.03f, m);
   }
+  {   // 26: HIGHWAY follows the tyre size
+    Settings st; st.preset = 0; st.target = st.presetBar(0);
+    const float h255 = st.target; st.setTyre(1); const float h285 = st.target; st.setTyre(0);
+    char m[96]; snprintf(m, sizeof m, "HIGHWAY: 255/75 %.1f bar, 285/70 %.1f bar, back %.1f", h255, h285, st.target);
+    check(fabsf(h255 - 2.5f) < 1e-4f && fabsf(h285 - 2.3f) < 1e-4f && fabsf(st.target - 2.5f) < 1e-4f, m);
+  }
   printf("==== regressions: %s (%d failed)\n", g_fail ? "FAILED" : "all ok", g_fail);
   return g_fail ? 1 : 0;
 }
