@@ -43,7 +43,8 @@ class Ble(private val ctx: Context, private val listener: Listener) {
     data class State(val screen: Int, val menuPos: Int, val preset: Int, val state: Int, val err: Int, val armStage: Int,
                      val k1: Boolean, val valve: Boolean, val noAir: Boolean, val inBand: Boolean, val offTarget: Boolean,
                      val fake: Boolean, val demo: Boolean, val bar: Float, val est: Float, val target: Float, val staticBar: Float,
-                     val aux1: Float, val runMs: Long, val phaseMs: Long, val seq: Long, val adcFails: Long, val p0: Float)
+                     val aux1: Float, val runMs: Long, val phaseMs: Long, val seq: Long, val adcFails: Long, val p0: Float,
+                     val customEdit: Float = 0f, val customStep: Int = 0, val customWheels: Int = 4)
 
     companion object {
         val SVC: UUID = UUID.fromString("7a1f0001-5c0e-4b6a-9d2f-57a1e5a1c0de")
@@ -241,7 +242,8 @@ class Ble(private val ctx: Context, private val listener: Listener) {
         return State(u8(1), u8(2), u8(3), u8(4), u8(5), u8(6),
             fl and 1 != 0, fl and 2 != 0, fl and 4 != 0, fl and 8 != 0, fl and 16 != 0, fl and 32 != 0, fl and 64 != 0,
             s16(8) / 1000f, s16(10) / 1000f, s16(12) / 1000f, s16(14) / 1000f, s16(16) / 100f,
-            u32(18), u32(22), u32(26), u32(30), if (b.size >= 36) s16(34) / 1000f else 0f)
+            u32(18), u32(22), u32(26), u32(30), if (b.size >= 36) s16(34) / 1000f else 0f,
+            if (b.size >= 40) s16(36) / 1000f else 0f, if (b.size >= 40) u8(38) else 0, if (b.size >= 40) u8(39) else 4)
     }
 
     private fun status(t: String) = listener.onStatus(t)

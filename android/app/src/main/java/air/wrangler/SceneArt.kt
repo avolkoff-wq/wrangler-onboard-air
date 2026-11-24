@@ -455,11 +455,30 @@ object SceneArt {
         jeep(c, ps, 0xFFF2F7FF.toInt(), 0xFF6C7C92.toInt(), wheelTurn = turn(speed, ps.z))
     }
 
+    /** a saguaro: trunk and two arms, rounded, lit from the left (owner: SAND needs a cactus) */
+    private fun cactus(c: Canvas, x: Float, base: Float, hgt: Float, k: Int) {
+        val tw = hgt * 0.16f
+        val lit = 0xFF5E8F4E.toInt(); val dark = 0xFF33562E.toInt()
+        fun stem(x0: Float, y0: Float, x1: Float, y1: Float, wd: Float) {
+            r.set(minOf(x0, x1) - wd / 2, minOf(y0, y1) - wd / 2, maxOf(x0, x1) + wd / 2, maxOf(y0, y1) + wd / 2)
+            p.color = Color.BLACK; p.shader = LinearGradient(r.left, 0f, r.right, 0f, lit, dark, Shader.TileMode.CLAMP)
+            c.drawRoundRect(r, wd / 2, wd / 2, p); p.shader = null
+        }
+        val armL = if (k % 2 == 0) 0.45f else 0.55f; val armR = if (k % 2 == 0) 0.6f else 0.4f
+        stem(x - tw * 1.6f, base - hgt * armL, x - tw * 1.6f, base - hgt * (armL + 0.28f), tw * 0.75f)   // left arm, up
+        stem(x - tw * 1.6f, base - hgt * armL, x, base - hgt * armL, tw * 0.75f)
+        stem(x + tw * 1.5f, base - hgt * armR, x + tw * 1.5f, base - hgt * (armR + 0.22f), tw * 0.7f)    // right arm, up
+        stem(x, base - hgt * armR, x + tw * 1.5f, base - hgt * armR, tw * 0.7f)
+        stem(x, base, x, base - hgt, tw)                                                                    // trunk
+        p.color = 0x33000000; c.drawRect(x - tw * 0.05f, base - hgt + tw * 0.5f, x + tw * 0.05f, base, p)  // rib
+    }
     private fun sand(c: Canvas, w: Float, h: Float) {   // desert noon: rolling over dunes, dust behind
         val speed = w * 0.22f; val off = t * speed
         sky(c, w, h, 0xFFF29A3F.toInt(), 0xFFFDE7B8.toInt(), 0.65f)
         sun(c, w * 0.8f, h * 0.25f, h * 0.11f, 0xFFFFF4D6.toInt())
         band(c, w, h, { x -> val u = x + off * 0.15f; h * (0.6f - 0.1f * gauss(rep(u, w * 1.1f, 0f), 0f, w * 0.2f) - 0.06f * gauss(rep(u, w * 0.7f, w * 0.3f), 0f, w * 0.12f)) }, 0xFFE9B36F.toInt(), 0xFFC98942.toInt())
+        // saguaros on the far dunes, slower than the ground
+        every(w, w * 0.42f, off * 0.45f) { x, k -> val gx = x + w * 0.1f * (((k * 7) % 5) - 2) / 2f; cactus(c, gx, h * (0.6f + 0.03f * sin(gx / w * 5f)), h * (0.24f + 0.06f * (((k % 3) + 3) % 3)), k) }
         val g = { x: Float -> val u = x + off; h * 0.84f - h * 0.12f * (0.5f + 0.5f * sin(u / w * 3.4f)) - h * 0.03f * sin(u / w * 9f) }
         band(c, w, h, g, 0xFFF0C27E.toInt(), 0xFFB97734.toInt())
         p.color = 0x22000000; p.style = Paint.Style.STROKE; p.strokeWidth = h * 0.006f

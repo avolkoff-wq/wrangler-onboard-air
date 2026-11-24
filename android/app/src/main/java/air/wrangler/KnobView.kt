@@ -150,7 +150,7 @@ class KnobView(ctx: Context, private val onStep: (Int) -> Unit, private val onBu
         p.typeface = jeepFont; p.letterSpacing = 0.16f; p.textSize = fr * 0.16f
         p.color = if (enabledLink) 0xFFE8E6D8.toInt() else 0xFF808070.toInt()
         p.style = Paint.Style.FILL_AND_STROKE; p.strokeWidth = p.textSize * 0.03f
-        val l1 = "START"; val l2 = "MENU"
+        val l1 = label; val l2 = "MENU"   // the knob says what a press does now (START, STOP, OK, NEXT, SELECT)
         c.drawText(l1, x - p.measureText(l1) / 2, y + fr * 0.33f, p)
         p.textSize = fr * 0.11f; p.strokeWidth = p.textSize * 0.03f
         val held = pressed && SystemClock.uptimeMillis() - downAt > 300 && !holdSent

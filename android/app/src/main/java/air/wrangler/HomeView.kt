@@ -144,6 +144,7 @@ class HomeView(ctx: Context, private val onTurn: (Int) -> Unit = {}) : View(ctx)
         val n = PRESETS.size; val gap = 14 * dp
         val dx0 = w / 2 - gap * (n - 1) / 2
         for (k in 0 until n) { p.color = if (k == s.preset) Color.WHITE else 0xFF48484A.toInt(); c.drawCircle(dx0 + k * gap, y, 3 * dp, p) }
+        if (s.screen == 7) { drawCustomEdit(c, s, w, y); return }
         // name: owner wants it big and heavy, Jeep style
         y += 44 * dp
         val name = PRESETS.getOrElse(s.preset) { "Preset" }.uppercase()
@@ -179,6 +180,31 @@ class HomeView(ctx: Context, private val onTurn: (Int) -> Unit = {}) : View(ctx)
         if (s.armStage > 0 || s.state == 7) pill(c, line, y, col) else centeredF(c, line, y, 15f, col)
         p.letterSpacing = 0f
         if (s.demo || s.fake) centeredF(c, if (s.demo) "DEMO" else "FAKE SENSOR", h - 10 * dp, 13f, 0xFFFF2D9F.toInt())
+    }
+    /** the CUSTOM editor (DinMeter screen CUSTOM): step 0 the pressure in 0.1 bar, step 1 the wheels on the line */
+    private fun drawCustomEdit(c: Canvas, s: Ble.State, w: Float, y0: Float) {
+        var y = y0 + 44 * dp
+        p.letterSpacing = 0.08f
+        heavy { centeredF(c, if (s.customStep == 0) "CUSTOM PRESSURE" else "WHEELS ON THE LINE", y, 26f, 0xFF64D2FF.toInt()) }
+        p.letterSpacing = 0f
+        val numSize = min(height * 0.18f, w * 0.40f)
+        y += numSize * 0.92f
+        p.typeface = jeepFont; p.textSize = numSize; p.color = 0xFF64D2FF.toInt(); p.textScaleX = 0.9f
+        val num = if (s.customStep == 0) "%.1f".format(s.customEdit) else "${s.customWheels}"
+        val unit = if (s.customStep == 0) "BAR" else if (s.customWheels == 1) "WHEEL" else "WHEELS"
+        val nw = p.measureText(num)
+        val pu = Paint(p).apply { textSize = numSize * 0.22f; color = GREY; letterSpacing = 0.08f; textScaleX = 1f; style = Paint.Style.FILL }
+        val x0 = (w - nw - 8 * dp - pu.measureText(unit)) / 2
+        heavy { c.drawText(num, x0, y, p) }
+        p.textScaleX = 1f
+        c.drawText(unit, x0 + nw + 8 * dp, y, pu)
+        // step dots: value, wheels
+        y += 28 * dp
+        for (k in 0..1) { p.color = if (k == s.customStep) 0xFF64D2FF.toInt() else 0xFF48484A.toInt(); r.set(w / 2 - 34 * dp + k * 38 * dp, y - 3 * dp, w / 2 - 4 * dp + k * 38 * dp, y + 3 * dp); c.drawRoundRect(r, 3 * dp, 3 * dp, p) }
+        y += 30 * dp
+        p.letterSpacing = 0.1f
+        centeredF(c, if (s.customStep == 0) "TURN: 0.1 BAR  ·  PRESS: NEXT  ·  HOLD: CANCEL" else "TURN: WHEELS  ·  PRESS: OK  ·  HOLD: BACK", y, 13f, GREY)
+        p.letterSpacing = 0f
     }
     /** a heavier weight than Roboto Condensed Bold has: fill and a thin stroke of the same colour (advisor) */
     private inline fun heavy(f: () -> Unit) {

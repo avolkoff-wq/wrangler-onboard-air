@@ -32,7 +32,7 @@ class MenuList(val group: Int, val cursor: Int, val title: String, val rows: Lis
 
         /** "CALIBRATE GAUGE" -> "Calibrate gauge", keeping AUX1, Wi-Fi and the like */
         fun nice(s: String): String {
-            if (s.isEmpty() || s.any { it.isLowerCase() }) return s
+            if (s.isEmpty() || s.any { it.isLowerCase() } || s.any { it.isDigit() }) return s   // 285/70R17, 0.80 stay as they are
             val words = s.lowercase().split(" ").map { w ->
                 when (w) { "aux1" -> "AUX1"; "aux2" -> "AUX2"; "wifi" -> "Wi-Fi"; "bluetooth" -> "Bluetooth"; "demo" -> "Demo"; else -> w }
             }.joinToString(" ")

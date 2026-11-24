@@ -135,7 +135,7 @@ class MainActivity : Activity(), Ble.Listener {
     private fun refresh() {
         val s = Link.state
         val online = Link.ble?.connected == true
-        val onMain = s == null || s.screen == 0
+        val onMain = s == null || s.screen == 0 || s.screen == 7   // 7: the CUSTOM editor, drawn natively too
         val onMenu = s != null && s.screen == 1 && Link.menu != null
         home.visibility = if (onMain) View.VISIBLE else View.GONE
         menuView.visibility = if (onMenu) View.VISIBLE else View.GONE
@@ -145,6 +145,7 @@ class MainActivity : Activity(), Ble.Listener {
         val running = s != null && s.state in 1..6
         knob.label = when {
             s == null -> "PRESS"
+            s.screen == 7 -> if (s.customStep == 0) "NEXT" else "OK"
             !onMain -> "SELECT"  // menus and service screens
             running -> "STOP"
             s.state == 7 || s.state == 8 -> "OK"

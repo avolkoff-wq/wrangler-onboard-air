@@ -423,7 +423,7 @@ void publishUi(int scr) {
   u.state = (uint8_t)pump.state(); u.err = (uint8_t)pump.error(); u.armStage = armed ? armStage : 0;
   u.k1 = pump.compressorOn(); u.valve = pump.valveOpen(); u.noAir = noAir; u.inBand = pump.inBand(); u.offTarget = pump.offTarget();
   u.fake = g_fakeV >= 0; u.demo = g_demo;
-  u.bar = sensor.bar(settings.calA, settings.calB); u.est = pump.estimate(); u.target = settings.target; u.staticBar = pump.staticBar(); u.p0 = pump.p0();
+  u.bar = sensor.bar(settings.calA, settings.calB); u.est = pump.estimate(); u.target = settings.target; u.staticBar = pump.staticBar(); u.p0 = pump.p0(); u.customEdit = customEdit; u.customStep = customStep; u.customWheels = customWheels;
   u.aux1 = supply.volts(); u.runMs = pump.runMs(); u.phaseMs = pump.phaseMs(); u.adcFails = adc2::fails;
   uiPublish(u);
   ble::update(u);   // notify the phone (ble.h), nothing when BT is off

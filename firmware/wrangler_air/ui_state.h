@@ -18,6 +18,8 @@ struct UiSnapshot {
   float    target = 0;
   float    staticBar = 0;  // last static measurement
   float    p0 = 0;         // start pressure of the run (phone progress ring)
+  float    customEdit = 0; // CUSTOM editor: the value being set, its step (0 value, 1 wheels) and the wheels (0.7.4)
+  uint8_t  customStep = 0, customWheels = 4;
   float    aux1 = 0;       // AUX1 volts (0 = no module)
   uint32_t runMs = 0, phaseMs = 0;
   uint32_t adcFails = 0;
