@@ -49,7 +49,7 @@ class MainActivity : Activity(), Ble.Listener {
         val dp = resources.displayMetrics.density
         val land = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
-        home = HomeView(this)
+        home = HomeView(this) { send(if (it < 0) Ble.LEFT else Ble.RIGHT) }
         mirror = ScreenView(this) { send(if (it < 0) Ble.LEFT else Ble.RIGHT) }
         menuView = MenuView(this) { send(it) }
         knob = KnobView(this, { send(if (it < 0) Ble.LEFT else Ble.RIGHT) }, { send(it) })

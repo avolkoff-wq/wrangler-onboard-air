@@ -22,7 +22,27 @@ import kotlin.math.min
  *  result : green Done / Already there / orange Off target
  *  error  : a red card with what happened and the live line pressure
  */
-class HomeView(ctx: Context) : View(ctx) {
+class HomeView(ctx: Context, private val onTurn: (Int) -> Unit = {}) : View(ctx) {
+    // owner: swipe across the picture to change the preset, like flipping cards: one preset per 70 dp, finger to the
+    // left = the next preset in the list (lower pressure), to the right = the previous one; a haptic tick each
+    private var downX = 0f; private var stepped = 0; private var swiping = false
+    override fun onTouchEvent(e: android.view.MotionEvent): Boolean {
+        val s = state ?: return false
+        if (s.state in 1..8 && s.state != 7) return false          // not during a run or on an error
+        val step = 70 * dp
+        when (e.actionMasked) {
+            android.view.MotionEvent.ACTION_DOWN -> { downX = e.x; stepped = 0; swiping = false; return true }
+            android.view.MotionEvent.ACTION_MOVE -> {
+                val want = ((downX - e.x) / step).toInt()
+                if (want != 0) { swiping = true; parent.requestDisallowInterceptTouchEvent(true) }
+                while (stepped < want) { onTurn(-1); stepped++; performHapticFeedback(android.view.HapticFeedbackConstants.CLOCK_TICK) }
+                while (stepped > want) { onTurn(1); stepped--; performHapticFeedback(android.view.HapticFeedbackConstants.CLOCK_TICK) }
+                return true
+            }
+        }
+        return true
+    }
+
     var state: Ble.State? = null
         set(v) { field = v; invalidate() }
     var iconStrokes: List<Frame.IconItem>? = null
