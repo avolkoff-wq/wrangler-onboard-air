@@ -462,6 +462,7 @@ void setup() {
   cal.begin(&sensor, &settings);
   input::begin();
   input::queueBegin();
+  ble::menuSource = menuBlob;      // the menu as a list for the phone
   if (settings.bt) ble::begin();   // menu BLUETOOTH, off by default
   supply.setTrim(settings.vtrim);
   splash();          // outputs are already off; sensor and pump wait
@@ -580,8 +581,14 @@ void loop() {
       if (armed && millis() - armT >= ARM_MS) disarm("TIMEOUT");
       if (steps && !pump.busy()) {
         // the knob steps through the typical pressures (config.h PRESETS), clockwise = higher; CUSTOM is last
-        int i = constrain((int)settings.preset - steps, 0, N_PRESETS - 1);
-        while (settings.presetBar(i) < TARGET_MIN && i > 0) i--;
+        // 0.7.3, owner: the presets go round (CUSTOM <-> HIGHWAY), like the menu; one step at a time, skipping a preset
+        // below the lowest target in the direction of travel
+        const int dir = steps > 0 ? -1 : 1;
+        int i = settings.preset;
+        for (int k = 0; k < abs(steps); k++) {
+          int tries = 0;
+          do { i = ((i + dir) % N_PRESETS + N_PRESETS) % N_PRESETS; } while (settings.presetBar(i) < TARGET_MIN && ++tries < N_PRESETS);
+        }
         settings.preset = i; settings.target = settings.presetBar(i);
         pump.clearResult();
       }

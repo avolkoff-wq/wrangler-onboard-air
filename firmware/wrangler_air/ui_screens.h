@@ -37,6 +37,7 @@ extern bool learnArm;
 extern bool calEngArm;
 extern String learnMsg;
 extern int outPos;
+extern Screen screen;
 extern int btPos;
 extern uint32_t btForgetArm;
 extern const char* const MENU[];
@@ -298,6 +299,44 @@ void drawMain() {
   push();
 }
 
+// one menu row as data (0.7.3): the DinMeter draws it, the phone gets it as a list (menuBlob below).
+// kind: 0 action, 1 group, 2 back, 3 exit, 4 switch on, 5 switch off, 6 waiting for the second press (red)
+void menuRow(int pos, String& label, String& value, uint8_t& kind) {
+  const int i = menuEntry(pos);
+  value = ""; kind = 0;
+  if (i == -1) { label = "BACK"; kind = 2; return; }
+  if (i <= -2) { label = GROUPS[-2 - i].name; kind = 1; return; }
+  label = MENU[i];
+  if (i == M_EXIT) kind = 3;
+  if (i == M_UNITS)  value = unitName();
+  if (i == M_TYRE)   value = TYRES[settings.tyre].name;
+  if (i == M_OFFSET) value = offText(offIdx());
+  if (i == M_OFFMAX) value = String(settings.omAuto ? "AUTO " : "") + String(settings.offCap(), 2);
+  if (i == M_SETTLE) value = setText(setIdx());
+  if (i == M_SCREEN) value = rotName(settings.rot);
+  if (i == M_DEMO || i == M_VALVE || i == M_VCHECK || i == M_ECONF || i == M_WDOG || i == M_VSTUCK || i == M_PSTUCK) {
+    const bool on = i == M_DEMO ? g_demo : i == M_VALVE ? settings.valve : i == M_VCHECK ? settings.vcheck : i == M_WDOG ? settings.wdog : i == M_VSTUCK ? settings.vchk2 : i == M_PSTUCK ? settings.pchk : settings.econfirm;
+    kind = on ? 4 : 5;
+  }
+  if (i == M_RESET && resetArm && millis() - resetArm < 3000) { label = "PRESS AGAIN"; kind = 6; }
+}
+
+// the whole menu level for the phone: 'M', 1, group (255 = top), cursor, count, title, then per row kind, label, value
+// (strings as length + bytes). The phone draws it as a list and moves the cursor by the same knob steps.
+size_t menuBlob(uint8_t* b, size_t cap) {
+  if (screen != Screen::MENU || cap < 64) return 0;
+  size_t n = 0;
+  auto str = [&](const String& t) { const uint8_t L = min((int)t.length(), 40); if (n + 1 + L > cap) return; b[n++] = L; memcpy(b + n, t.c_str(), L); n += L; };
+  const int cnt = menuLen();
+  b[n++] = 'M'; b[n++] = 1; b[n++] = menuGroup < 0 ? 255 : menuGroup; b[n++] = menuPos; b[n++] = cnt;
+  str(menuGroup < 0 ? String("MENU") : String(GROUPS[menuGroup].name));
+  for (int pos = 0; pos < cnt && n + 90 < cap; pos++) {
+    String label, value; uint8_t kind; menuRow(pos, label, value, kind);
+    b[n++] = kind; str(label); str(value);
+  }
+  return n;
+}
+
 void drawMenu() {
   dlClear(TFT_BLACK);
   const int ht = drawHint("press: select  hold: exit  turn: scroll");
@@ -310,27 +349,13 @@ void drawMenu() {
   const int n = menuLen(), rowH = 26, vis = max(1, (ht - top - 2) / rowH);
   const int first = constrain(menuPos - vis / 2, 0, max(0, n - vis));
   for (int k = 0; k < vis && first + k < n; k++) {
-    const int pos = first + k, i = menuEntry(pos);
+    const int pos = first + k;
     const int y = top + rowH / 2 + k * rowH;
     if (pos == menuPos) dlFillRRect(3, y - 11, W() - 6, 22, 4, TFT_DARKGREEN);
-    String t; uint16_t col = TFT_WHITE;
-    if (i == -1) { t = "< BACK"; col = C_LGREY; }
-    else if (i <= -2) t = String(GROUPS[-2 - i].name) + " >";
-    else {
-      t = MENU[i];
-      if (i == M_UNITS)  t += String(": ") + unitName();
-      if (i == M_TYRE)   t += String(": ") + TYRES[settings.tyre].name;
-      if (i == M_OFFSET) t += String(": ") + offText(offIdx());
-      if (i == M_OFFMAX) t += String(": ") + (settings.omAuto ? "AUTO " : "") + String(settings.offCap(), 2);
-      if (i == M_SETTLE) t += String(": ") + setText(setIdx());
-      if (i == M_SCREEN) t += String(": ") + rotName(settings.rot);
-      if (i == M_DEMO || i == M_VALVE || i == M_VCHECK || i == M_ECONF || i == M_WDOG || i == M_VSTUCK || i == M_PSTUCK) {
-        const bool on = i == M_DEMO ? g_demo : i == M_VALVE ? settings.valve : i == M_VCHECK ? settings.vcheck : i == M_WDOG ? settings.wdog : i == M_VSTUCK ? settings.vchk2 : i == M_PSTUCK ? settings.pchk : settings.econfirm;
-        t = String(on ? "[x] " : "[ ] ") + t;
-      }
-      if (i == M_RESET && resetArm && millis() - resetArm < 3000) t = "PRESS AGAIN";
-      if (i == M_EXIT) col = C_LGREY;
-    }
+    String label, value; uint8_t kind; menuRow(pos, label, value, kind);
+    String t = kind == 2 ? String("< BACK") : kind == 1 ? label + " >" : kind == 4 ? "[x] " + label : kind == 5 ? "[ ] " + label : label;
+    if (value.length()) t += ": " + value;
+    const uint16_t col = kind == 2 || kind == 3 ? C_LGREY : TFT_WHITE;
     // the bold font if it fits, else the regular one, else the 16 px one (portrait is 135 px wide)
     Font f = F_TEXT; canvas.setFont(f);
     if (canvas.textWidth(t) > W() - 14) { f = F_SMALL; canvas.setFont(f); }

@@ -85,6 +85,7 @@ class HomeView(ctx: Context) : View(ctx) {
         }
         if (!online) { p.color = 0x99000000.toInt(); c.drawRect(0f, 0f, w, h, p) }
         if (running || abs(ringShown - target(s)) > 0.002f) postInvalidateOnAnimation()
+        else if (isShown) postInvalidateDelayed(40)   // the scene moves slowly (clouds, dashes, dust): 25 frames a second
     }
 
     private fun target(s: Ble.State): Float {
@@ -94,50 +95,58 @@ class HomeView(ctx: Context) : View(ctx) {
     }
 
     // ---------- idle and results ----------
+    // Jeep style (owner): heavy condensed capitals for the name, the numbers and the line under them
+    private val jeepFont: Typeface = Typeface.create(Typeface.create("sans-serif-condensed", Typeface.BOLD), 800, false)
     private fun drawIdle(c: Canvas, s: Ble.State, w: Float, h: Float) {
-        // scene: the DinMeter's own preset picture, big and crisp
-        val iconW = min(w * 0.84f, h * 0.34f / 0.62f)
-        val iconH = iconW * 0.62f
-        val ix = (w - iconW) / 2; val iy = h * 0.09f
-        iconStrokes?.let { strokes ->
-            c.save(); c.translate(ix, iy)
-            val box = strokesBox(strokes)
-            val k = iconW / box
-            c.scale(k, k)
-            IconPainter.draw(c, 0f, 0f, strokes)
-            c.restore()
-        }
-        var y = iy + iconH + h * 0.08f
+        // the scene card: an illustration of the preset, rounded like a widget
+        val m = 16 * dp
+        val cw = w - 2 * m
+        val ch = min(cw * 0.58f, h * 0.42f)
+        val top = 8 * dp
+        c.save()
+        r.set(m, top, m + cw, top + ch)
+        val clip = android.graphics.Path().apply { addRoundRect(r, 26 * dp, 26 * dp, android.graphics.Path.Direction.CW) }
+        c.clipPath(clip); c.translate(m, top)
+        SceneArt.draw(c, s.preset, cw, ch, time = (android.os.SystemClock.uptimeMillis() % 3_600_000L) / 1000f)
+        c.restore()
+        // name on the card's lower edge? no: under it, big
+        var y = top + ch + h * 0.1f
         val name = PRESETS.getOrElse(s.preset) { "Preset" }.uppercase()
-        p.letterSpacing = 0.18f
-        centered(c, name, y, 15f, if (s.target < 0.8f) ORANGE else GREY, medium)
+        p.letterSpacing = 0.04f
+        centeredF(c, name, y, 40f, if (s.target < 0.8f) ORANGE else Color.WHITE)
         p.letterSpacing = 0f
-        y += h * 0.16f
-        // target in big thin digits + unit
-        p.typeface = thin; p.textSize = min(h * 0.17f, w * 0.34f); p.color = Color.WHITE
+        y += h * 0.17f
+        // target: big heavy digits + BAR
+        p.typeface = jeepFont; p.textSize = min(h * 0.17f, w * 0.36f); p.color = YELLOW
         val num = "%.1f".format(s.target)
         val nw = p.measureText(num)
-        val unitSize = p.textSize * 0.22f
-        val pu = Paint(p).apply { typeface = light; textSize = unitSize; color = GREY }
-        val total = nw + 8 * dp + pu.measureText("bar")
+        val pu = Paint(p).apply { textSize = p.textSize * 0.26f; color = GREY; letterSpacing = 0.06f }
+        val total = nw + 10 * dp + pu.measureText("BAR")
         val x0 = (w - total) / 2
         c.drawText(num, x0, y, p)
-        c.drawText("bar", x0 + nw + 8 * dp, y, pu)
+        c.drawText("BAR", x0 + nw + 10 * dp, y, pu)
         y += h * 0.085f
-        // the line below: what a start would do, the result, or armed
         val (line, col) = when {
-            s.state == 7 && s.inBand -> "Already within 0.1 bar" to GREEN
-            s.state == 7 && s.offTarget -> "Off target: %.2f bar".format(s.staticBar) to ORANGE
-            s.state == 7 -> "Done: %.2f bar in %s".format(s.staticBar, mmss(s.runMs)) to GREEN
-            s.armStage == 2 -> "Engine off? Press again to start" to RED
-            s.armStage == 1 -> "Press again to start" to Color.WHITE
-            s.noAir -> "Connect the system" to GREY
-            abs(s.bar - s.target) <= 0.1f -> "Now %.1f bar  ·  OK".format(s.bar) to GREEN
-            s.bar < s.target -> "Now %.1f bar  ·  ▲ Inflate".format(s.bar) to ORANGE
-            else -> "Now %.1f bar  ·  ▼ Deflate".format(s.bar) to BLUE
+            s.state == 7 && s.inBand -> "ALREADY WITHIN 0.1 BAR" to GREEN
+            s.state == 7 && s.offTarget -> "OFF TARGET: %.2f BAR".format(s.staticBar) to ORANGE
+            s.state == 7 -> "DONE: %.2f BAR IN %s".format(s.staticBar, mmss(s.runMs)) to GREEN
+            s.armStage == 2 -> "ENGINE OFF? PRESS AGAIN" to RED
+            s.armStage == 1 -> "PRESS AGAIN TO START" to Color.WHITE
+            s.noAir -> "CONNECT THE SYSTEM" to GREY
+            abs(s.bar - s.target) <= 0.1f -> "NOW %.1f BAR  ·  OK".format(s.bar) to GREEN
+            s.bar < s.target -> "NOW %.1f BAR  ·  ▲ INFLATE".format(s.bar) to ORANGE
+            else -> "NOW %.1f BAR  ·  ▼ DEFLATE".format(s.bar) to BLUE
         }
-        if (s.armStage > 0 || s.state == 7) pill(c, line, y, col) else centered(c, line, y, 19f, col, regular)
-        if (s.demo || s.fake) centered(c, if (s.demo) "DEMO" else "FAKE SENSOR", h - 10 * dp, 12f, 0xFFFF2D9F.toInt(), medium)
+        p.letterSpacing = 0.05f
+        if (s.armStage > 0 || s.state == 7) pill(c, line, y, col) else centeredF(c, line, y, 20f, col)
+        p.letterSpacing = 0f
+        if (s.demo || s.fake) centeredF(c, if (s.demo) "DEMO" else "FAKE SENSOR", h - 10 * dp, 13f, 0xFFFF2D9F.toInt())
+    }
+    private fun centeredF(c: Canvas, t: String, y: Float, sp: Float, col: Int) {
+        p.typeface = jeepFont; p.textSize = sp * dp; p.color = col
+        var tw = p.measureText(t)
+        if (tw > width - 24 * dp) { p.textSize *= (width - 24 * dp) / tw; tw = p.measureText(t) }
+        c.drawText(t, (width - tw) / 2, y, p)
     }
 
     // the icon strokes: the box is 52 units wide on the DinMeter; take the largest x reached as the box width
@@ -164,7 +173,7 @@ class HomeView(ctx: Context) : View(ctx) {
         // live value: the tyre estimate while pumping, else the line
         val est = s.state == 4 || s.state == 5
         val v = if (est) s.est else s.bar
-        p.typeface = thin; p.textSize = d * 0.30f; p.color = Color.WHITE
+        p.typeface = jeepFont; p.textSize = d * 0.30f; p.color = Color.WHITE
         val txt = (if (est) "~" else "") + "%.2f".format(v)
         c.drawText(txt, cx - p.measureText(txt) / 2, cy + p.textSize * 0.32f, p)
         centered(c, "bar  ·  target %.1f".format(s.target), cy + d * 0.22f, 15f, GREY, regular)
@@ -214,7 +223,7 @@ class HomeView(ctx: Context) : View(ctx) {
         if (line.isNotEmpty()) c.drawText(line, (width - p.measureText(line)) / 2, y, p)
     }
     private fun pill(c: Canvas, t: String, y: Float, col: Int) {
-        p.typeface = medium; p.textSize = 17 * dp
+        p.typeface = jeepFont; p.textSize = 18 * dp
         val tw = p.measureText(t); val ph = 40 * dp
         r.set((width - tw) / 2 - 20 * dp, y - ph * 0.7f, (width + tw) / 2 + 20 * dp, y + ph * 0.3f)
         p.color = (col and 0x00FFFFFF) or 0x33000000; c.drawRoundRect(r, ph / 2, ph / 2, p)

@@ -6,6 +6,7 @@
 //   INPUT   7a1f0003-...  write, needs an authenticated encrypted link (a bonded phone): 1 byte,
 //                         1 = left, 2 = right, 3 = press, 4 = medium press, 5 = hold, 6 = back (one level up),
 //                         9 = send the preset icon again
+//                         SCREEN also carries 'M' blobs: the current menu level as a list (0.7.3)
 //   SCREEN  7a1f0004-...  notify, open: the display list of the current screen (dlist.h), sent in chunks
 //                         [frame id, chunk index, chunk count] + up to MTU - 6 bytes; the phone joins them by frame id
 // Pairing: passkey entry, the DinMeter is display-only. Menu BLUETOOTH > PAIR shows a random 6-digit PIN for 60 s.
@@ -34,6 +35,7 @@ inline NimBLEServer* server = nullptr;
 inline NimBLECharacteristic* stateCh = nullptr;
 inline NimBLECharacteristic* screenCh = nullptr;
 inline volatile bool screenNow = false;   // a phone connected: send the screen at once
+inline size_t (*menuSource)(uint8_t*, size_t) = nullptr;   // the menu as a list for the phone (ui_screens.h menuBlob)
 inline volatile bool iconReset = false;   // the phone asked for the icons again (INPUT 9), or a new phone
 inline uint32_t pin = 0, pairUntil = 0;
 // set in the host task, logged in loop()
@@ -158,7 +160,14 @@ inline void sendScreen() {
   if (!screenCh || !connected()) { outN = 0; return; }
   pumpOut();
   if (outBusy() || dl::frames == lastFrame) return;
-  if (iconReset) { memset(sentKeys, 0, sizeof sentKeys); iconReset = false; }   // once, not while screenNow waits
+  static uint8_t mPrev[1400]; static size_t mPrevN = 0;
+  if (iconReset) { memset(sentKeys, 0, sizeof sentKeys); iconReset = false; mPrevN = 0; }   // once, not while screenNow waits
+  if (menuSource) {   // the menu level as a list, when it changed (cursor, values, level)
+    static uint8_t mb[1400];
+    const size_t mn = menuSource(mb, sizeof mb);
+    if (!mn) mPrevN = 0;
+    else if (mn != mPrevN || memcmp(mb, mPrev, mn)) { memcpy(mPrev, mb, mn); mPrevN = mn; queueBlob(mb, mn); pumpOut(); return; }
+  }
   const uint16_t key = dl::icKey;
   bool known = !key;
   for (uint16_t k : sentKeys) if (k == key) known = true;

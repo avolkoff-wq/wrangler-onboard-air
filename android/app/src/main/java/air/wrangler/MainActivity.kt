@@ -23,6 +23,7 @@ object Link {
     var ble: Ble? = null
     var state: Ble.State? = null
     var frame: Frame? = null
+    var menu: MenuList? = null
     var status = "Starting ..."
     val icons = HashMap<Int, List<Frame.IconItem>>()
     var ui: Ble.Listener? = null
@@ -37,6 +38,7 @@ object Link {
 class MainActivity : Activity(), Ble.Listener {
     private lateinit var home: HomeView
     private lateinit var mirror: ScreenView
+    private lateinit var menuView: MenuView
     private lateinit var knob: KnobView
     private lateinit var status: TextView
     private lateinit var dot: View
@@ -49,6 +51,7 @@ class MainActivity : Activity(), Ble.Listener {
 
         home = HomeView(this)
         mirror = ScreenView(this) { send(if (it < 0) Ble.LEFT else Ble.RIGHT) }
+        menuView = MenuView(this) { send(it) }
         knob = KnobView(this, { send(if (it < 0) Ble.LEFT else Ble.RIGHT) }, { send(it) })
 
         // status pill: dot + text
@@ -66,6 +69,7 @@ class MainActivity : Activity(), Ble.Listener {
             addView(mirror, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT).apply {
                 val m = (12 * dp).toInt(); setMargins(m, m, m, m)
             })
+            addView(menuView, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
         }
         val left = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -91,9 +95,10 @@ class MainActivity : Activity(), Ble.Listener {
             override fun onFrame(f: Frame) { Link.frame = f; Link.ui?.onFrame(f) }
             override fun onNeedPairing() { Link.ui?.onNeedPairing() }
             override fun onIcon(key: Int, strokes: List<Frame.IconItem>) { Link.icons[key] = strokes; Link.ui?.onIcon(key, strokes) }
+            override fun onMenu(m: MenuList) { Link.menu = m; Link.ui?.onMenu(m) }
         })
         Link.icons.forEach { (k, v) -> mirror.putIcon(k, v) }
-        Link.state?.let { onState(it) }; Link.frame?.let { onFrame(it) }
+        Link.state?.let { onState(it) }; Link.frame?.let { onFrame(it) }; Link.menu?.let { menuView.menu = it }
         refresh()
     }
 
@@ -130,14 +135,16 @@ class MainActivity : Activity(), Ble.Listener {
         val s = Link.state
         val online = Link.ble?.connected == true
         val onMain = s == null || s.screen == 0
+        val onMenu = s != null && s.screen == 1 && Link.menu != null
         home.visibility = if (onMain) View.VISIBLE else View.GONE
-        mirror.visibility = if (onMain) View.GONE else View.VISIBLE
+        menuView.visibility = if (onMenu) View.VISIBLE else View.GONE
+        mirror.visibility = if (onMain || onMenu) View.GONE else View.VISIBLE
         home.online = online; mirror.offline = !online
         knob.enabledLink = online
         val running = s != null && s.state in 1..6
         knob.label = when {
             s == null -> "PRESS"
-            !onMain -> "SELECT"
+            !onMain -> "SELECT"  // menus and service screens
             running -> "STOP"
             s.state == 7 || s.state == 8 -> "OK"
             s.armStage > 0 -> "START"
@@ -176,6 +183,7 @@ class MainActivity : Activity(), Ble.Listener {
     override fun onState(s: Ble.State) = runOnUiThread { home.state = s; refresh() }
     override fun onFrame(f: Frame) = runOnUiThread { mirror.frame = f; refresh() }
     override fun onIcon(key: Int, strokes: List<Frame.IconItem>) = runOnUiThread { mirror.putIcon(key, strokes); refresh() }
+    override fun onMenu(m: MenuList) = runOnUiThread { menuView.menu = m; refresh() }
     override fun onNeedPairing() = runOnUiThread {
         status.text = "Pair first: DinMeter menu CONNECT > BLUETOOTH > PAIR A PHONE"
     }

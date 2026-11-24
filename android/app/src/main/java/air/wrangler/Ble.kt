@@ -37,6 +37,7 @@ class Ble(private val ctx: Context, private val listener: Listener) {
         fun onFrame(f: Frame)
         fun onNeedPairing()
         fun onIcon(key: Int, strokes: List<Frame.IconItem>)
+        fun onMenu(m: MenuList)
     }
 
     data class State(val screen: Int, val menuPos: Int, val preset: Int, val state: Int, val err: Int, val armStage: Int,
@@ -223,7 +224,8 @@ class Ble(private val ctx: Context, private val listener: Listener) {
                     chunks.keys.filter { it != fid }.forEach { chunks.remove(it) }
                     chunks.remove(fid)
                     val all = arr.fold(ByteArray(0)) { a, b -> a + b!! }
-                    if (all.isNotEmpty() && all[0] == 'I'.code.toByte()) Frame.decodeIcon(all)?.let { listener.onIcon(it.first, it.second) }
+                    if (all.isNotEmpty() && all[0] == 'M'.code.toByte()) MenuList.decode(all)?.let { listener.onMenu(it) }
+                    else if (all.isNotEmpty() && all[0] == 'I'.code.toByte()) Frame.decodeIcon(all)?.let { listener.onIcon(it.first, it.second) }
                     else Frame.decode(all)?.let { listener.onFrame(it) }
                 }
                 if (chunks.size > 4) chunks.clear()
