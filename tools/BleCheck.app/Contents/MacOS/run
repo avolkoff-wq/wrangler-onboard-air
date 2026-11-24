@@ -1,0 +1,4 @@
+#!/bin/sh
+R="$HOME/Projects/wrangler-onboard-air"
+"$R/tools/.venv/bin/python" -u "$R/tools/ble_check.py" $(cat "$R/tools/.ble_args" 2>/dev/null) > "$R/logs/ble_check_20261124.txt" 2>&1
+echo "exit=$?" >> "$R/logs/ble_check_20261124.txt"

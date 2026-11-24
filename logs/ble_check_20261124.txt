@@ -1,0 +1,12 @@
+by service: [BLEDevice(934988E3-8FCA-067F-8CD1-66C899419390, WranglerAir)]
+found WranglerAir
+connected, services: ['7a1f0001-5c0e-4b6a-9d2f-57a1e5a1c0de']
+read 36 v1 screen=15 menu=21 preset=6 state=0 err=0 arm=0 flags=0000100 bar=0.010 target=0.50 seq=1443 adc_fail=0
+notifies in 6 s: 22
+last v1 screen=15 menu=21 preset=6 state=0 err=0 arm=0 flags=0000100 bar=0.009 target=0.50 seq=1616 adc_fail=0
+write 2 ok (already bonded)
+before v1 screen=15 menu=21 preset=6 state=0 err=0 arm=0 flags=0000100 bar=0.009 target=0.50 seq=2068 adc_fail=0
+write 2 ok
+write 1 ok
+after  v1 screen=15 menu=21 preset=6 state=0 err=0 arm=0 flags=0000100 bar=0.009 target=0.50 seq=2154 adc_fail=0
+exit=0

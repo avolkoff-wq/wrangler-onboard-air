@@ -18,12 +18,27 @@ async def main():
         await asyncio.sleep(6)
         print("notifies in 6 s:", len(n)); 
         if n: print("last", dec(n[-1]))
-        if "write" in sys.argv:
-            for code in [int(x) for x in sys.argv[sys.argv.index("write")+1:]]:
+        codes = [int(x) for x in sys.argv[sys.argv.index("write")+1:]] if "write" in sys.argv else []
+        paired = True
+        if codes:
+            try:
+                await c.write_gatt_char(IN, bytes([codes[0]]), response=True); print("write", codes[0], "ok (already bonded)"); codes = codes[1:]
+            except Exception as e:
+                paired = False
+                print("write refused:", str(e)[:80], "-> type the PIN on the Mac now, waiting 40 s on this link")
+                await asyncio.sleep(40)
+    if codes:   # a fresh link after the pairing: the bond must give an encrypted link without a PIN
+        await asyncio.sleep(2)
+        async with BleakClient(d) as c:
+            n = []
+            await c.start_notify(ST, lambda h, data: n.append(bytes(data)))
+            await asyncio.sleep(1.5)
+            if n: print("before", dec(n[-1]))
+            for code in codes:
                 try:
                     await c.write_gatt_char(IN, bytes([code]), response=True); print("write", code, "ok")
-                except Exception as e: print("write", code, "refused:", type(e).__name__, str(e)[:120])
+                except Exception as e: print("write", code, "refused:", type(e).__name__, str(e)[:100])
                 await asyncio.sleep(1.0)
-            await asyncio.sleep(1); 
-            if n: print("after", dec(n[-1]))
+            await asyncio.sleep(1)
+            if n: print("after ", dec(n[-1]))
 asyncio.run(main())

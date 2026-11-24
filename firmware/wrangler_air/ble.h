@@ -30,6 +30,7 @@ inline uint32_t pin = 0, pairUntil = 0;
 // set in the host task, logged in loop()
 inline volatile bool evConn = false, evDisc = false, evPaired = false, evDenied = false;
 inline volatile uint32_t inputs = 0;      // accepted phone inputs, for `status`
+inline volatile int discReason = 0, authInfo = 0;   // for the log: NimBLE disconnect reason; enc | auth << 1 | bonded << 2 | key size << 4
 
 inline bool pairing() { return pairUntil && (int32_t)(pairUntil - millis()) > 0; }
 inline uint32_t pairLeftMs() { return pairing() ? pairUntil - millis() : 0; }
@@ -51,9 +52,10 @@ inline size_t pack(const UiSnapshot& u, uint8_t* b) {
 
 class ServerCb : public NimBLEServerCallbacks {
   void onConnect(NimBLEServer*, NimBLEConnInfo&) override { evConn = true; }
-  void onDisconnect(NimBLEServer*, NimBLEConnInfo&, int) override { evDisc = true; }
+  void onDisconnect(NimBLEServer*, NimBLEConnInfo&, int reason) override { discReason = reason; evDisc = true; }
   uint32_t onPassKeyDisplay() override { return pairing() ? pin : (esp_random() % 1000000); }   // no window: nobody knows it
   void onAuthenticationComplete(NimBLEConnInfo& ci) override {
+    authInfo = (ci.isEncrypted() ? 1 : 0) | (ci.isAuthenticated() ? 2 : 0) | (ci.isBonded() ? 4 : 0) | (ci.getSecKeySize() << 4);
     if (ci.isEncrypted() && ci.isAuthenticated()) { if (pairing()) { evPaired = true; pairUntil = 0; } }
     else evDenied = true;
   }
@@ -119,9 +121,9 @@ inline void forgetAll() {
 inline void update(const UiSnapshot& u) {
   if (!on) return;
   if (evConn)   { evConn = false;   wlog::ev("BT_CONNECT", wlog::kv("n", String(connected()))); }
-  if (evDisc)   { evDisc = false;   wlog::ev("BT_DISCONNECT", wlog::kv("n", String(connected()))); }
-  if (evPaired) { evPaired = false; wlog::ev("BT_PAIRED", wlog::kv("bonds", String(NimBLEDevice::getNumBonds()))); }
-  if (evDenied) { evDenied = false; wlog::ev("BT_DENIED", ""); }
+  if (evDisc)   { evDisc = false;   wlog::ev("BT_DISCONNECT", wlog::kv("n", String(connected())) + wlog::kv("reason", String((int)discReason, HEX))); }
+  if (evPaired) { evPaired = false; wlog::ev("BT_PAIRED", wlog::kv("bonds", String(NimBLEDevice::getNumBonds())) + wlog::kv("auth", String((int)authInfo, HEX))); }
+  if (evDenied) { evDenied = false; wlog::ev("BT_DENIED", wlog::kv("auth", String((int)authInfo, HEX))); }
   if (pairUntil && !pairing()) pairUntil = 0;
   static uint32_t last = 0; static uint8_t prev[36] = {0};
   uint8_t b[36]; pack(u, b);

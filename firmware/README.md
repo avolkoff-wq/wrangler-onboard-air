@@ -125,7 +125,7 @@
 - Телефон шлёт те же события, что ручка: влево, вправо, нажатие, среднее нажатие, удержание. Всё состояние экрана, меню и защиты остаются в DinMeter; обрыв связи на работу не влияет.
 - Пока телефон на связи, на главном экране слева вверху синяя метка BT.
 - Wi-Fi UPDATE на время сеанса выключает BLE.
-- Формат пакета и UUID: `wrangler_air/ble.h` и docs/decisions.md (0.7.0). Проверка с Mac из Terminal: `python3 tools/ble_check.py` (нужен `pip install bleak`), с телефона: nRF Connect.
+- Формат пакета и UUID: `wrangler_air/ble.h` и docs/decisions.md (0.7.0). Проверка с Mac: `open -W tools/BleCheck.app; cat logs/ble_check_*.txt` (аргументы в `tools/.ble_args`, например `write 2 2 1`; Python с bleak в `tools/.venv`). Просто из Terminal не работает: macOS завершает скрипт без описания доступа к Bluetooth. С телефона: nRF Connect. 24.11 с Mac проверено: чтение, уведомления, привязка по PIN, ввод.
 - Приложения для Android пока нет. STATE несёт только общий снимок экрана; для меню и редакторов пакет будет расширен вместе с приложением.
 
 ## Спецификация
