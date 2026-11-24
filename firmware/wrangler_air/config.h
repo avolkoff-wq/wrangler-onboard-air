@@ -7,7 +7,7 @@
 //   VALVE (deflate valve fitted, schematic C), DEMO (virtual tyres for the desk, never saved, off at every power-up).
 // The USB serial log, LIVE stream and commands are always on.
 #define BENCH_USB 1
-#define FW_VERSION "0.7.6"
+#define FW_VERSION "0.7.7"
 inline bool g_valve = true;     // menu VALVE, saved (Settings::valve)
 inline bool g_demo  = false;    // menu DEMO, RAM only
 inline float g_fakeV = -1;      // USB "fake <bar>": pin voltage the sensor pretends to read (< 0 = off), RAM only

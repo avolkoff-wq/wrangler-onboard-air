@@ -25,6 +25,7 @@ constexpr int MAXI = 56, MAXT = 40;
 struct Item { uint8_t kind, aux, datum, len; int16_t x, y; uint8_t w, h; uint16_t col; char t[MAXT]; };
 
 inline bool on = false;          // record only while a phone is connected (set by ble.h)
+inline bool force = false;       // USB `dl`: record without a phone, for the bench layout check
 inline int mute = 0;             // > 0 inside a preset icon: its own strokes are not recorded
 inline Item cur[MAXI]; inline int nCur = 0; inline uint16_t bgCur = 0;
 inline Item ready[MAXI]; inline int nReady = 0; inline uint16_t bgReady = 0; inline uint8_t W = 0, H = 0;

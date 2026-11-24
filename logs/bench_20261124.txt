@@ -5966,3 +5966,29 @@
 23:12:43.074 > fake off
 23:12:43.178 < # fake off: real sensor
 23:12:44.112 > press
+23:14:31.972 < # Wrangler Air 0.7.7 bench: type help
+23:14:31.972 < 32,2.4,BT,on=1;bonds=2;
+23:14:31.972 < 32,4.1,BT_CONNECT,n=1;
+23:14:32.179 > dl
+23:14:32.282 < # dl: recording on, ask again
+23:14:33.215 > dl
+23:14:33.319 < DL,240,135,11,0
+23:14:33.320 < DLT,156,2,76,48,0,6,0.5
+23:14:33.320 < DLT,232,56,28,18,2,3,bar
+23:14:33.320 < DLT,120,72,222,18,1,3,CUSTOM  1 WHEEL  LOW
+23:14:33.320 < DLT,29,99,81,18,0,3,actual 0.0
+23:14:33.320 < DLT,132,99,79,18,0,3,INFLATE
+23:14:33.320 < DLT,120,117,132,18,1,3,PRESS: START
+23:14:33.320 < DLT,3,2,12,8,0,0,BT
+23:29:35.697 < 32,907.9,BT_CONNECT,n=1;
+23:29:35.906 > ui
+23:29:36.008 < UI,21734,12,2,0,0,0,0,0.012,0.012,2.30,1.853,0.00,0,0,1,0,0,42792,395634
+23:29:36.519 > status
+23:29:36.623 < # fw 0.7.7  preset HIGHWAY  target 2.30 bar  sensor 0.011 bar (0.003 V)  state 0 err 0
+23:29:36.624 < # ADC2 failed samples since the last RUN: 0
+23:29:36.624 < # AUX1 0.00 V  no module  volt check 1  engine confirm 1  valve 1  demo 0
+23:29:36.624 < # tyre 285/70R17  rate 0.0097  kTop 0.0058  offset 0.400  c 0.00  offcap 0.80  tauD 211.8  learned 0/0  cal a 1.0000 b 0.000
+23:29:36.624 < # BT on  bonds 2  connected 1  pairing 0  phone inputs 47
+23:29:36.624 < # compressor 0.15 h  valve 0.08 h  since filter service 0.00 h  boot 32
+23:29:50.230 > ui
+23:29:50.335 < UI,22121,12,2,0,0,0,0,0.015,0.015,2.30,1.853,0.00,0,0,1,0,0,42792,409956

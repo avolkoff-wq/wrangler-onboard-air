@@ -267,7 +267,7 @@ void benchCommand(String c) {
   c.trim(); c.toLowerCase();
   if (!c.length()) return;
   if (c == "help") {
-    Serial.println("# commands: status | log | runs | run <id> | clear | pulse k1 | pulse valve | k1 on|off | valve on|off | fake <bar>|off | io | ui | press | hold | left | right | help");
+    Serial.println("# commands: status | log | runs | run <id> | clear | pulse k1 | pulse valve | k1 on|off | valve on|off | fake <bar>|off | io | ui | dl | press | hold | left | right | help");
     Serial.println("# k1 / valve on: held up to 30 s, never both; fake: the sensor reads the typed pressure (FAKE tag), off at power-up");
   } else if (c == "status") {
     Serial.printf("# fw %s  preset %s  target %.2f bar  sensor %.3f bar (%.3f V)%s  state %d err %d\n", FW_VERSION,
@@ -318,6 +318,15 @@ void benchCommand(String c) {
     Serial.printf("UI,%lu,%d,%d,%d,%d,%d,%d,%.3f,%.3f,%.2f,%.3f,%.2f,%d,%d,%d,%d,%d,%lu,%lu\n", (unsigned long)u.seq, u.screen, u.menuPos,
                   u.preset, u.state, u.err, u.armStage, u.bar, u.est, u.target, u.staticBar, u.aux1, u.k1, u.valve, u.noAir,
                   u.inBand, u.offTarget, (unsigned long)u.runMs, (unsigned long)u.phaseMs);
+  } else if (c == "dl") {   // the screen as drawn: every text with its box, for the bench layout check (tools/bench_auto.py)
+    if (!dl::force) { dl::force = true; Serial.println("# dl: recording on, ask again"); return; }
+    Serial.printf("DL,%d,%d,%d,%d\n", dl::W, dl::H, dl::nReady, (int)screen);
+    for (int i = 0; i < dl::nReady; i++) {
+      const dl::Item& it = dl::ready[i];
+      if (it.kind != dl::TEXT) continue;
+      char t[dl::MAXT + 1]; memcpy(t, it.t, it.len); t[it.len] = 0;
+      Serial.printf("DLT,%d,%d,%d,%d,%d,%d,%s\n", it.x, it.y, it.w, it.h, it.datum, it.aux, t);
+    }
   } else if (c == "press" || c == "hold" || c == "left" || c == "right") {   // the phone path, typed: same queue as the knob
     input::send(c == "left" ? -1 : c == "right" ? 1 : 0, c == "press" ? input::Btn::SHORT : c == "hold" ? input::Btn::LONG : input::Btn::NONE, input::Src::USB);
   } else if (c == "k1 on" || c == "valve on") {
@@ -547,6 +556,9 @@ void loop() {
   if (b == input::Btn::BACK) {
     if (screen == Screen::MENU && menuGroup >= 0) { menuPos = 1 + menuGroup; menuGroup = -1; b = input::Btn::NONE; }
     else if (screen == Screen::MAIN) b = input::Btn::NONE;
+    // 0.7.7, owner on the phone: "I cannot leave FILTERS CLEANED". On the two HOURS screens a hold is not the way back:
+    // it opens the question and then resets the service counter, so the back key looped between them. A press there.
+    else if (screen == Screen::HOURS || screen == Screen::HOURS_CONF) b = input::Btn::SHORT;
     else b = input::Btn::LONG;
   }
   // input feedback (0.6.2): tick on a turn, click on a press, a lower tone on a hold, a three-note call when the hold opens

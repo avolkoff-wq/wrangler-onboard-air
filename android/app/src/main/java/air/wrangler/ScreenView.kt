@@ -14,15 +14,19 @@ import kotlin.math.abs
 import kotlin.math.min
 
 /**
- * Draws the DinMeter screen from its display list, scaled to fit, same layout and colours:
- *  - text is fitted into the box the firmware measured (width, font height), so it lands where it does on the device;
- *  - the big numbers (Font7 on the DinMeter) are drawn as 7-segment digits;
- *  - the preset icon is the DinMeter's own vector strokes (sent once, cached by key) and the same SUV bitmap.
- * A horizontal swipe across the screen turns the knob, one step per 40 dp.
+ * The DinMeter's service screens (editors, calibration, LEARN, sensor, hours, Bluetooth, Wi-Fi ...) in the app's own layout
+ * (owner, 24.11: "align the fonts of every sub-item"): the display list of the DinMeter is read as content, not as a picture.
+ *  - a screen with a selection bar is a list: the same rows, switches and highlight as the menu (MenuView), a tap selects;
+ *  - any other screen is a sheet: large title, lines in three fixed sizes (value / text / note), the hint at the bottom.
+ * One type, one set of sizes and one spacing for every screen, whatever fonts the 240 x 135 display had to use.
+ * A screen with graphics this view does not know is still drawn as the scaled picture of the DinMeter screen (mirror()).
+ * A horizontal swipe turns the knob, one step per 40 dp.
  */
-class ScreenView(ctx: Context, private val onTurn: (Int) -> Unit) : View(ctx) {
+class ScreenView(ctx: Context, private val onTurn: (Int) -> Unit, private val send: (Int) -> Unit) : View(ctx) {
     var frame: Frame? = null
-        set(v) { field = v; invalidate() }
+        set(v) { field = v; sheet = v?.let { parse(it) }; invalidate() }
+    var screenId = -1
+        set(v) { if (field != v) { field = v; sheet = frame?.let { parse(it) }; invalidate() } }
     var offline = true
         set(v) { if (field != v) { field = v; invalidate() } }
     private val icons = HashMap<Int, List<Frame.IconItem>>()
@@ -49,6 +53,295 @@ class ScreenView(ctx: Context, private val onTurn: (Int) -> Unit) : View(ctx) {
     override fun onDraw(c: Canvas) {
         c.drawColor(Color.BLACK)
         val f = frame
+        val sh = sheet
+        if (f != null && sh != null) {
+            drawSheet(c, sh)
+            if (offline) { p.color = 0xAA000000.toInt(); p.style = Paint.Style.FILL; c.drawRect(0f, 0f, width.toFloat(), height.toFloat(), p) }
+            return
+        }
+        mirror(c, f)
+    }
+
+    // ================= the service screens in the app's layout =================
+    private class Row(val label: String, val value: String, val kind: Int, val color: Int, val valueColor: Int, val selected: Boolean)   // kind as in MenuList.Row
+    private class Line(val text: String, val cls: Int, val color: Int, val cursor: Int = -1)   // cls: 2 value, 1 text, 0 note
+    private class Sheet(val title: String, val rows: List<Row>?, val lines: List<Line>, val hint: String, val hintColor: Int, val top: String, val tag: String)
+    private var sheet: Sheet? = null
+
+    private val dp = resources.displayMetrics.density
+    private val jeep = Typeface.create(Typeface.create("sans-serif-condensed", Typeface.BOLD), 800, false)
+    private val AMBER = 0xFFFFB020.toInt(); private val CARD = 0xFF1C1C1E.toInt(); private val SEP = 0xFF38383A.toInt()
+    private val GREY = 0xFF8E8E93.toInt(); private val SEL = 0xFF2C2C2E.toInt(); private val GREEN = 0xFF30D158.toInt()
+    private val RED = 0xFFFF453A.toInt(); private val WHITE = 0xFFF5F5F7.toInt(); private val BLUE = 0xFF64D2FF.toInt()
+    private val navH get() = 44 * dp
+    private val titleH get() = 52 * dp
+    private val rowH get() = 52 * dp
+    private val side get() = 16 * dp
+    private fun listTop() = navH + titleH + 8 * dp
+
+    private val TITLES = mapOf(2 to "SETTING", 3 to "CALIBRATE GAUGE", 4 to "WI-FI UPDATE", 5 to "VERSION", 6 to "SENSOR LIVE",
+        8 to "LEARN TEST", 9 to "LEARN TEST", 10 to "LEARN TEST", 11 to "COMPRESSOR HOURS", 12 to "COMPRESSOR HOURS",
+        13 to "OUTPUT TEST", 14 to "WI-FI PASSWORD", 15 to "BLUETOOTH")
+
+    /** the device palette as the app's: white, grey notes, amber warnings, green / red results */
+    private fun tone(col: Int): Int {
+        val r0 = Color.red(col); val g = Color.green(col); val b = Color.blue(col)
+        return when {
+            r0 > 200 && g < 90 && b < 90 -> RED
+            r0 < 90 && g > 180 && b < 90 -> GREEN
+            r0 > 200 && g in 120..235 && b < 90 -> AMBER                       // orange, yellow
+            r0 in 100..170 && g in 180..230 && b > 215 -> BLUE                 // sky blue: the valve
+            abs(r0 - g) < 24 && abs(g - b) < 24 && r0 < 225 -> GREY            // greys
+            else -> WHITE                                                      // white, cyan titles, lime values
+        }
+    }
+    private fun isCyan(col: Int) = Color.red(col) < 60 && Color.green(col) > 200 && Color.blue(col) > 200
+    private fun isSelBar(col: Int) = Color.red(col) < 40 && Color.green(col) in 80..140 && Color.blue(col) < 40
+    private fun isMagenta(col: Int) = Color.red(col) > 200 && Color.green(col) < 60 && Color.blue(col) > 200
+
+    /** the display list as content; null = a screen this layout does not know (drawn as the mirror) */
+    private fun parse(f: Frame): Sheet? {
+        if (screenId !in TITLES || f.w == 0 || f.h == 0) return null
+        var tag = ""
+        var sel: Frame.Item? = null
+        var cursorRect: Frame.Item? = null
+        val texts = ArrayList<Frame.Item>()
+        for (it in f.items) when (it.kind) {
+            Frame.TEXT -> {
+                if (it.text.isBlank()) continue
+                if (it.aux <= 1 && it.y <= 2 && it.text in setOf("BT", "DEMO", "FAKE")) { if (it.text != "BT") tag = it.text; continue }
+                texts.add(it)
+            }
+            Frame.FILL_RRECT -> if (isSelBar(it.color)) sel = it else if (it.y > 0) return null
+            Frame.FILL_RECT -> when {
+                it.color == Color.BLACK || isMagenta(it.color) -> {}
+                it.h <= 3 && it.w <= 24 -> cursorRect = it                      // the character cursor of WIFI PASSWORD
+                else -> return null
+            }
+            else -> return null
+        }
+        fun centred(it: Frame.Item) = it.datum and 3 == 1
+        // the hint: the bold caps line at the very bottom, or the small wrapped fonts
+        val hints = texts.filter { centred(it) && it.datum and 12 == 0 && it.text.contains(':') &&
+                ((it.y >= f.h - 19 && it.text == it.text.uppercase()) || (it.aux <= 1 && it.y >= f.h - 50)) }
+        val hint = hints.joinToString("  ") { it.text.uppercase().trim() }
+        val hintColor = hints.firstOrNull()?.let { tone(it.color) } ?: GREY
+        val rest = texts.filter { it !in hints }.sortedBy { it.y }
+        val top = rest.filter { it.datum == 0 && it.x <= 4 && it.y < 40 && it.aux == 2 }
+        val body = rest.filter { it !in top }
+        val left = body.filter { it.datum == 4 }                                // middle_left: list rows
+        if (left.isNotEmpty()) {
+            val right = body.filter { it.datum == 6 }
+            val rows = left.map { t ->
+                var s = t.text.trim(); var kind = 0
+                if (s.startsWith("[x] ")) { kind = 4; s = s.substring(4) } else if (s.startsWith("[ ] ")) { kind = 5; s = s.substring(4) }
+                if (s.startsWith("< ")) s = s.substring(2)
+                if (s == "BACK") kind = 2
+                if (s == "PRESS AGAIN") kind = 6
+                val cut = s.indexOf("  ")
+                var value = if (cut > 0) s.substring(cut).trim() else ""
+                if (cut > 0) s = s.substring(0, cut)
+                var vc = GREY
+                right.firstOrNull { abs(it.y - t.y) <= 3 }?.let { value = it.text.trim(); vc = tone(it.color) }
+                Row(s, value, kind, tone(t.color), vc, sel != null && abs(sel.y + sel.h / 2 - t.y) <= 4)
+            }
+            val notes = body.filter { it !in left && it !in right }.map { Line(it.text.trim(), if (tone(it.color) == GREY) 0 else 1, tone(it.color)) }
+            return Sheet(TITLES[screenId] ?: "", rows, notes, hint, hintColor, "", tag)
+        }
+        var title = TITLES[screenId] ?: ""
+        val lines = ArrayList<Line>()
+        for ((k, it) in body.withIndex()) {
+            if (k == 0 && isCyan(it.color) && it.aux == 3) { title = it.text.trim(); continue }
+            val cls = if (it.aux >= 4) 2 else if (it.aux == 3) 1 else 0
+            var cur = -1
+            val cr = cursorRect
+            if (cr != null && cls == 2 && cr.w > 0 && cr.y > it.y) cur = Math.round((cr.x - (it.x - it.w / 2f)) / cr.w)
+            lines.add(Line(it.text.trim(), cls, if (cls == 0 && tone(it.color) == WHITE) GREY else tone(it.color), cur))
+        }
+        return Sheet(title, null, lines, hint, hintColor, top.joinToString(" ") { it.text.trim() }, tag)
+    }
+
+    /** caps in the Jeep type at one size; a line too wide is squeezed a little, then set smaller */
+    private fun fit(t: String, size: Float, maxW: Float): Float {
+        p.typeface = jeep; p.textSize = size; p.textScaleX = 1f
+        val w = p.measureText(t)
+        if (w > maxW && w > 0) { val k = maxW / w; if (k >= 0.85f) p.textScaleX = k else { p.textScaleX = 0.85f; p.textSize = size * k / 0.85f } }
+        return p.measureText(t)
+    }
+
+    private fun drawSheet(c: Canvas, sh: Sheet) {
+        val w = width.toFloat(); val h = height.toFloat()
+        p.style = Paint.Style.FILL; p.textAlign = Paint.Align.LEFT; p.typeface = jeep
+        // nav bar: one level back (the DinMeter's own way back from this screen)
+        p.color = AMBER; p.letterSpacing = 0f; p.textSize = 30 * dp; p.textScaleX = 1f
+        c.drawText("\u2039", side - 4 * dp, navH * 0.78f, p)
+        p.textSize = 17 * dp; p.letterSpacing = 0.08f
+        c.drawText("BACK", side + 14 * dp, navH * 0.66f, p)
+        if (sh.tag.isNotEmpty()) {                                              // DEMO / FAKE: never mistaken for real tyres
+            p.textSize = 12 * dp; p.letterSpacing = 0.12f
+            val tw = p.measureText(sh.tag)
+            r.set(w - side - tw - 20 * dp, navH * 0.5f - 12 * dp, w - side, navH * 0.5f + 12 * dp)
+            p.color = 0x33FF2D92; c.drawRoundRect(r, 12 * dp, 12 * dp, p)
+            p.color = 0xFFFF6EB4.toInt(); c.drawText(sh.tag, r.left + 10 * dp, r.centerY() + 4.3f * dp, p)
+        }
+        // large title, the same as the menu's
+        p.color = Color.WHITE; p.letterSpacing = 0.08f
+        fit(sh.title.uppercase(), 28 * dp, w - 2 * side)
+        c.drawText(sh.title.uppercase(), side, navH + titleH * 0.75f, p)
+        p.textScaleX = 1f; p.letterSpacing = 0.06f
+        if (sh.rows != null) drawList(c, sh, w) else drawLinesCard(c, sh, w, h)
+        p.letterSpacing = 0f; p.textScaleX = 1f
+    }
+
+    private fun shown(sh: Sheet) = sh.rows!!.withIndex().filter { it.value.kind != 2 }
+
+    private fun drawList(c: Canvas, sh: Sheet, w: Float) {
+        val rows = shown(sh)
+        val top0 = listTop()
+        r.set(side, top0, w - side, top0 + rows.size * rowH)
+        p.color = CARD; c.drawRoundRect(r, 16 * dp, 16 * dp, p)
+        rows.forEachIndexed { k, (_, row) ->
+            val y = top0 + k * rowH
+            if (row.selected) {
+                c.save(); c.clipRect(side, y, w - side, y + rowH)
+                r.set(side, top0, w - side, top0 + rows.size * rowH)
+                p.color = SEL; c.drawRoundRect(r, 16 * dp, 16 * dp, p)
+                c.restore()
+                p.color = AMBER; c.drawRect(side, y + 10 * dp, side + 3 * dp, y + rowH - 10 * dp, p)
+            }
+            if (k > 0) { p.color = SEP; c.drawRect(side + 16 * dp, y, w - side, y + 0.7f * dp, p) }
+            val ty = y + rowH / 2 + 6 * dp
+            val right = w - side - 16 * dp
+            val roomRight = if (row.kind == 4 || row.kind == 5) right - 51 * dp - 12 * dp else right
+            p.letterSpacing = 0.06f
+            p.color = if (row.kind == 6) RED else row.color
+            val label = if (row.kind == 6) "PRESS AGAIN TO CONFIRM" else row.label.uppercase()
+            val lw = fit(label, 17 * dp, roomRight - side - 16 * dp)
+            c.drawText(label, side + 16 * dp, ty, p)
+            p.textScaleX = 1f
+            if (row.value.isNotEmpty()) {
+                val v = row.value.uppercase()
+                p.color = row.valueColor
+                if (row.kind == 4 || row.kind == 5) {                            // a switch with a note: the note follows the label, smaller
+                    fit(v, 13 * dp, roomRight - (side + 16 * dp + lw + 12 * dp))
+                    c.drawText(v, side + 16 * dp + lw + 12 * dp, ty - 0.5f * dp, p)
+                } else {
+                    val vw = fit(v, 17 * dp, right - (side + 16 * dp + lw + 12 * dp))
+                    c.drawText(v, right - vw, ty, p)
+                }
+                p.textScaleX = 1f
+            }
+            if (row.kind == 4 || row.kind == 5) toggle(c, right, y + rowH / 2, row.kind == 4)
+        }
+        // what the DinMeter shows under its list: live readings, as the footer of the card
+        var y = top0 + rows.size * rowH + 30 * dp
+        for (l in sh.lines) {
+            p.color = l.color
+            fit(l.text.uppercase(), 15 * dp, w - 2 * side - 32 * dp)
+            c.drawText(l.text.uppercase(), side + 16 * dp, y, p)
+            p.textScaleX = 1f
+            y += 24 * dp
+        }
+    }
+
+    private fun toggle(c: Canvas, right: Float, cy: Float, on: Boolean) {
+        val tw = 51 * dp; val th = 31 * dp
+        r.set(right - tw, cy - th / 2, right, cy + th / 2)
+        p.color = if (on) GREEN else 0xFF39393D.toInt(); c.drawRoundRect(r, th / 2, th / 2, p)
+        p.color = Color.WHITE
+        c.drawCircle(if (on) right - th / 2 else right - tw + th / 2, cy, th / 2 - 2 * dp, p)
+    }
+
+    private val SIZE = floatArrayOf(15f, 19f, 56f)       // note, text, value (dp): the only sizes a sheet uses
+    private fun drawLinesCard(c: Canvas, sh: Sheet, w: Float, h: Float) {
+        val top0 = listTop(); val bottom = h - 8 * dp
+        r.set(side, top0, w - side, bottom)
+        p.color = CARD; c.drawRoundRect(r, 16 * dp, 16 * dp, p)
+        val inner = w - 2 * side - 32 * dp
+        var areaTop = top0 + 20 * dp; var areaBottom = bottom - 20 * dp
+        if (sh.top.isNotEmpty()) {                                              // the running time of a calibration
+            p.color = GREY; p.letterSpacing = 0.1f
+            fit(sh.top.uppercase(), 13 * dp, inner)
+            c.drawText(sh.top.uppercase(), side + 16 * dp, top0 + 26 * dp, p)
+            areaTop = top0 + 38 * dp
+        }
+        if (sh.hint.isNotEmpty()) {
+            val t = sh.hint.replace("  ", "   \u00B7   ")
+            p.color = if (sh.hintColor == RED) RED else GREY; p.letterSpacing = 0.1f
+            val tw = fit(t, 13 * dp, inner)
+            c.drawText(t, w / 2 - tw / 2, bottom - 18 * dp, p)
+            p.color = SEP; c.drawRect(side + 16 * dp, bottom - 44 * dp, w - side - 16 * dp, bottom - 44 * dp + 0.7f * dp, p)
+            areaBottom = bottom - 58 * dp
+        }
+        p.textScaleX = 1f; p.letterSpacing = 0.06f
+        val ls = sh.lines
+        if (ls.isEmpty()) return
+        // the block of lines: cap heights and fixed gaps, centred in the card; made smaller as a whole if it is too tall
+        fun cap(l: Line) = SIZE[l.cls] * dp * 0.72f
+        fun gap(a: Line, b: Line) = (if (a.cls == 2 || b.cls == 2) 28f else if (a.cls == 0 && b.cls == 0) 13f else 17f) * dp
+        var total = 0f
+        for (k in ls.indices) { total += cap(ls[k]); if (k > 0) total += gap(ls[k - 1], ls[k]) }
+        val z = min(1f, (areaBottom - areaTop) / total)
+        var y = (areaTop + areaBottom) / 2 - total * z / 2
+        for (k in ls.indices) {
+            val l = ls[k]
+            if (k > 0) y += gap(ls[k - 1], l) * z
+            y += cap(l) * z
+            val t = l.text.uppercase()
+            p.color = l.color
+            p.letterSpacing = if (l.cls == 2) 0.02f else 0.06f
+            if (l.cursor >= 0 && t.isNotEmpty()) {                               // an editor of characters: fixed cells, the cursor under one
+                p.textSize = SIZE[2] * dp * z; p.textScaleX = 1f; p.letterSpacing = 0f
+                val cell = min(p.textSize * 0.72f, inner / t.length)
+                if (cell < p.textSize * 0.72f) p.textSize = cell / 0.72f
+                val x0 = w / 2 - cell * t.length / 2
+                for ((i, ch) in t.withIndex()) {
+                    val cw = p.measureText(ch.toString())
+                    p.color = l.color; c.drawText(ch.toString(), x0 + i * cell + (cell - cw) / 2, y, p)
+                    if (i == l.cursor) { p.color = AMBER; c.drawRect(x0 + i * cell + 3 * dp, y + 8 * dp, x0 + (i + 1) * cell - 3 * dp, y + 11 * dp, p) }
+                }
+                y += 6 * dp
+            } else {
+                val tw = fit(t, SIZE[l.cls] * dp * z, inner)
+                c.drawText(t, w / 2 - tw / 2, y, p)
+            }
+            p.textScaleX = 1f
+        }
+    }
+
+    // ---------- touch: the back button, a tap on a row, a horizontal swipe = the knob ----------
+    private var downX = 0f; private var downY = 0f; private var turned = 0; private var moved = false
+    override fun onTouchEvent(e: MotionEvent): Boolean {
+        when (e.actionMasked) {
+            MotionEvent.ACTION_DOWN -> { downX = e.x; downY = e.y; turned = 0; moved = false }
+            MotionEvent.ACTION_MOVE -> {
+                if (abs(e.x - downX) > 12 * dp || abs(e.y - downY) > 12 * dp) moved = true
+                if (sheet?.rows == null && abs(e.x - downX) > abs(e.y - downY)) {
+                    val steps = ((e.x - downX) / (40 * dp)).toInt()
+                    if (steps != turned) { onTurn(if (steps > turned) 1 else -1); turned += if (steps > turned) 1 else -1 }
+                }
+            }
+            MotionEvent.ACTION_UP -> if (!moved) tap(e.x, e.y)
+        }
+        return true
+    }
+    private fun tap(x: Float, y: Float) {
+        val sh = sheet ?: return
+        if (y < navH + 6 * dp) { if (x < 130 * dp) { send(Ble.BACK); haptic() }; return }
+        val all = sh.rows ?: return
+        val rows = shown(sh)
+        val k = ((y - listTop()) / rowH).toInt()
+        if (y < listTop() || k !in rows.indices) return
+        val cur = all.indexOfFirst { it.selected }
+        if (cur < 0) return
+        val d = rows[k].index - cur
+        repeat(abs(d)) { send(if (d > 0) Ble.RIGHT else Ble.LEFT) }
+        send(Ble.PRESS); haptic()
+    }
+    private fun haptic() = performHapticFeedback(android.view.HapticFeedbackConstants.CONFIRM)
+
+    // ================= the scaled picture of the DinMeter screen (screens the layout above does not know) =================
+    private fun mirror(c: Canvas, f: Frame?) {
         if (f == null || f.w == 0 || f.h == 0) {
             p.color = Color.GRAY; p.textSize = 16 * resources.displayMetrics.density; p.typeface = regular
             p.textAlign = Paint.Align.CENTER
@@ -59,7 +352,6 @@ class ScreenView(ctx: Context, private val onTurn: (Int) -> Unit) : View(ctx) {
         val s = min(width.toFloat() / f.w, height.toFloat() / f.h)
         val ox = (width - f.w * s) / 2; val oy = (height - f.h * s) / 2
         // rounded "glass" behind the screen, like the device
-        val dp = resources.displayMetrics.density
         r.set(ox - 8 * dp, oy - 8 * dp, ox + f.w * s + 8 * dp, oy + f.h * s + 8 * dp)
         p.color = 0xFF101012.toInt(); c.drawRoundRect(r, 24 * dp, 24 * dp, p)                       // the same card as the scene
         p.style = Paint.Style.STROKE; p.strokeWidth = dp; p.color = 0x14FFFFFF; c.drawRoundRect(r, 24 * dp, 24 * dp, p); p.style = Paint.Style.FILL

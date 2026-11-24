@@ -26,6 +26,9 @@ import kotlin.math.sin
 class KnobView(ctx: Context, private val onStep: (Int) -> Unit, private val onButton: (Int) -> Unit) : View(ctx) {
     var label = "PRESS"
         set(v) { if (field != v) { field = v; invalidate() } }
+    /** the second line: what a hold does on this screen ("HOLD: MENU", "HOLD: BACK", "" = nothing) */
+    var sub = "HOLD: MENU"
+        set(v) { if (field != v) { field = v; invalidate() } }
     var accent = 0xFF30D158.toInt()
         set(v) { if (field != v) { field = v; invalidate() } }
     var enabledLink = false
@@ -55,27 +58,13 @@ class KnobView(ctx: Context, private val onStep: (Int) -> Unit, private val onBu
     // drawn like the Wrangler JL climate-control knob (owner): a scale arc on the dash, a black rubber grip with fine ribs,
     // a thin chrome bezel, a matte black face with a pointer that turns; the face is the button
     private val jeepFont = Typeface.create(Typeface.create("sans-serif-condensed", Typeface.BOLD), 800, false)
-    // owner: military style, the button is START / MENU. An olive-drab panel with four screws, engraved preset marks
-    // with stencil codes, a heavy steel ring with a diamond knurl, a matte olive face with a raised pointer fin.
+    // owner: military style, the button is START / MENU. Engraved preset marks with stencil codes, a heavy steel ring
+    // with straight knurling, a matte olive face with a raised pointer fin. No panel plate behind it (owner).
     private val CODES = arrayOf("CST", "RCV", "SND", "RCK", "TRL", "GRV", "RGH", "HWY")   // dial order, clockwise
     override fun onDraw(c: Canvas) {
         val R = rad; val x = cx; val y = cy
         val ring = R * 0.74f; val ringIn = R * 0.6f; val face = R * 0.58f
-        // panel plate
-        val pl = R * 1.0f
-        r.set(x - pl, y - pl, x + pl, y + pl)
-        p.color = Color.BLACK
-        p.shader = LinearGradient(x, y - pl, x, y + pl, 0xFF4A4F3A.toInt(), 0xFF2C2F23.toInt(), Shader.TileMode.CLAMP)
-        c.drawRoundRect(r, R * 0.1f, R * 0.1f, p); p.shader = null
-        p.style = Paint.Style.STROKE; p.strokeWidth = 1.5f * dp; p.color = 0xFF1C1E16.toInt(); c.drawRoundRect(r, R * 0.1f, R * 0.1f, p)
-        p.style = Paint.Style.FILL
-        for ((sx, sy) in listOf(-1f to -1f, 1f to -1f, -1f to 1f, 1f to 1f)) {   // screws with a slot
-            val qx = x + sx * pl * 0.86f; val qy = y + sy * pl * 0.86f; val qr = R * 0.045f
-            p.color = Color.BLACK
-            p.shader = RadialGradient(qx - qr * 0.3f, qy - qr * 0.3f, qr * 1.3f, 0xFF9A9D90.toInt(), 0xFF4C4E45.toInt(), Shader.TileMode.CLAMP)
-            c.drawCircle(qx, qy, qr, p); p.shader = null
-            p.color = 0xFF2A2B26.toInt(); c.save(); c.rotate(35f + sx * 20f, qx, qy); c.drawRect(qx - qr * 0.8f, qy - qr * 0.12f, qx + qr * 0.8f, qy + qr * 0.12f, p); c.restore()
-        }
+        // no panel plate (owner: remove the square plate): the knob and its marks sit on the black background
         // engraved preset marks and stencil codes
         val det = if (preset >= 0) (7 - preset) % 8 else -1
         p.typeface = jeepFont; p.textSize = R * 0.085f; p.letterSpacing = 0.1f
@@ -155,12 +144,13 @@ class KnobView(ctx: Context, private val onStep: (Int) -> Unit, private val onBu
         p.typeface = jeepFont; p.letterSpacing = 0.16f; p.textSize = fr * 0.16f
         p.color = if (enabledLink) 0xFFE8E6D8.toInt() else 0xFF808070.toInt()
         p.style = Paint.Style.FILL_AND_STROKE; p.strokeWidth = p.textSize * 0.03f
-        val l1 = label; val l2 = "MENU"   // the knob says what a press does now (START, STOP, OK, NEXT, SELECT)
+        val l1 = label                    // the knob says what a press does now (START, STOP, OK, NEXT, SELECT)
         c.drawText(l1, x - p.measureText(l1) / 2, y + fr * 0.33f, p)
         p.textSize = fr * 0.11f; p.strokeWidth = p.textSize * 0.03f
         val held = pressed && SystemClock.uptimeMillis() - downAt > 300 && !holdSent
         p.color = if (held) 0xFFFFB020.toInt() else if (enabledLink) 0xFFBFBDAA.toInt() else 0xFF808070.toInt()
-        c.drawText("HOLD: $l2", x - p.measureText("HOLD: $l2") / 2, y + fr * 0.52f, p)
+        if (p.measureText(sub) > fr * 1.5f) p.textSize *= fr * 1.5f / p.measureText(sub)
+        c.drawText(sub, x - p.measureText(sub) / 2, y + fr * 0.52f, p)
         p.style = Paint.Style.FILL; p.letterSpacing = 0f
         // centre pivot
         p.color = 0xFF1E2016.toInt(); c.drawCircle(x, y, fr * 0.1f, p)

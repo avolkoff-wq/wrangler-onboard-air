@@ -47,11 +47,12 @@ class MainActivity : Activity(), Ble.Listener {
     override fun onCreate(b: Bundle?) {
         super.onCreate(b)
         window.statusBarColor = Color.BLACK; window.navigationBarColor = Color.BLACK
+        window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)   // the screen stays on while the app is open
         val dp = resources.displayMetrics.density
         val land = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
         home = HomeView(this) { send(if (it < 0) Ble.LEFT else Ble.RIGHT) }
-        mirror = ScreenView(this) { send(if (it < 0) Ble.LEFT else Ble.RIGHT) }
+        mirror = ScreenView(this, { send(if (it < 0) Ble.LEFT else Ble.RIGHT) }, { send(it) })
         menuView = MenuView(this) { send(it) }
         knob = KnobView(this, { send(if (it < 0) Ble.LEFT else Ble.RIGHT) }, { send(it) })
 
@@ -67,9 +68,7 @@ class MainActivity : Activity(), Ble.Listener {
         }
         val stage = FrameLayout(this).apply {
             addView(home, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
-            addView(mirror, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT).apply {
-                val m = (12 * dp).toInt(); setMargins(m, m, m, m)
-            })
+            addView(mirror, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
             addView(menuView, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
         }
         val left = LinearLayout(this).apply {
@@ -153,6 +152,12 @@ class MainActivity : Activity(), Ble.Listener {
             s.armStage > 0 -> "START"
             else -> "START"
         }
+        knob.sub = when {
+            s == null || s.screen == 0 -> "HOLD: MENU"
+            s.screen == 7 -> if (s.customStep == 0) "HOLD: CANCEL" else "HOLD: BACK"
+            onMenu -> "HOLD: EXIT"
+            else -> hintHold()
+        }
         knob.accent = when {            // pointer and lit code: white idle, amber armed / running, red on an error
             s == null -> 0xFF636366.toInt()
             s.state == 8 || s.armStage == 2 -> HomeView.RED
@@ -173,12 +178,17 @@ class MainActivity : Activity(), Ble.Listener {
         }
     }
     private var iconAsked = 0L
-    /** "PRESS: BACK  HOLD: ..." in the mirrored screen's hint -> BACK */
+    /** the groups of the service screen's hint: "PRESS: BACK  HOLD: FILTERS CLEANED" -> [PRESS: BACK, HOLD: FILTERS CLEANED] */
+    private fun hintGroups(): List<String> =
+        Link.frame?.items.orEmpty().filter { it.kind == Frame.TEXT && it.text.contains(':') && (it.datum and 3) == 1 }
+            .flatMap { it.text.uppercase().split("  ") }.map { it.trim() }.filter { it.contains(':') }
+    /** what a press does there: PRESS: BACK -> BACK, PRESS AGAIN: CONFIRM -> CONFIRM, TURN + PRESS: NEXT -> NEXT */
     private fun hintVerb(): String? {
-        val t = Link.frame?.items?.firstOrNull { it.kind == Frame.TEXT && it.text.uppercase().startsWith("PRESS:") } ?: return null
-        val v = t.text.uppercase().substringAfter(":").trim().substringBefore("  ").trim()
-        return v.take(9).ifEmpty { null }
+        val g = hintGroups().firstOrNull { it.startsWith("PRESS:") || it.startsWith("PRESS AGAIN:") || it.startsWith("TURN + PRESS:") } ?: return null
+        return g.substringAfter(":").trim().take(9).ifEmpty { null }
     }
+    /** what a hold does there, as written on the DinMeter ("HOLD: BACK", "HOLD 2 S: RESET SERVICE"); "" when a hold does nothing */
+    private fun hintHold(): String = hintGroups().firstOrNull { it.startsWith("HOLD") } ?: ""
 
     // the phone back key: on a DinMeter menu or service screen one level up there; on the main screen to the background
     // (the link stays, the app is not closed)
@@ -195,7 +205,7 @@ class MainActivity : Activity(), Ble.Listener {
     override fun onState(s: Ble.State) = runOnUiThread {
         // the DinMeter's sounds on the phone too: play what it just started (not the one that was current when we connected)
         if (s.sndSeq >= 0) { if (sndSeq >= 0 && s.sndSeq != sndSeq) Sounds.play(s.sndId); sndSeq = s.sndSeq }
-        home.state = s; refresh()
+        home.state = s; mirror.screenId = s.screen; refresh()
     }
     override fun onFrame(f: Frame) = runOnUiThread { mirror.frame = f; refresh() }
     override fun onIcon(key: Int, strokes: List<Frame.IconItem>) = runOnUiThread { mirror.putIcon(key, strokes); refresh() }

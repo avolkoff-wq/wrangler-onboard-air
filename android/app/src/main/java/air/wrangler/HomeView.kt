@@ -156,7 +156,7 @@ class HomeView(ctx: Context, private val onTurn: (Int) -> Unit = {}) : View(ctx)
         for (k in 0 until n) { p.color = if (k == s.preset) Color.WHITE else 0xFF48484A.toInt(); c.drawCircle(dx0 + k * gap, y, 3 * dp, p) }
         if (s.screen == 7) { drawCustomEdit(c, s, w, y); return }
         // name: owner wants it big and heavy, Jeep style
-        y += 44 * dp
+        y += 44 * dp + centre(y, 30f, 38f)      // owner: the text block sits midway between the picture and the knob
         val name = PRESETS.getOrElse(s.preset) { "Preset" }.uppercase()
         p.letterSpacing = 0.08f
         heavy { centeredF(c, name, y, 34f, if (s.target < 0.8f) ORANGE else 0xFFF5F5F7.toInt()) }
@@ -193,7 +193,7 @@ class HomeView(ctx: Context, private val onTurn: (Int) -> Unit = {}) : View(ctx)
     }
     /** the CUSTOM editor (DinMeter screen CUSTOM): step 0 the pressure in 0.1 bar, step 1 the wheels on the line */
     private fun drawCustomEdit(c: Canvas, s: Ble.State, w: Float, y0: Float) {
-        var y = y0 + 44 * dp
+        var y = y0 + 44 * dp + centre(y0, 24f, 62f)
         p.letterSpacing = 0.08f
         heavy { centeredF(c, if (s.customStep == 0) "CUSTOM PRESSURE" else "WHEELS ON THE LINE", y, 26f, 0xFF64D2FF.toInt()) }
         p.letterSpacing = 0f
@@ -215,6 +215,14 @@ class HomeView(ctx: Context, private val onTurn: (Int) -> Unit = {}) : View(ctx)
         p.letterSpacing = 0.1f
         centeredF(c, if (s.customStep == 0) "TURN: 0.1 BAR  ·  PRESS: NEXT  ·  HOLD: CANCEL" else "TURN: WHEELS  ·  PRESS: OK  ·  HOLD: BACK", y, 13f, GREY)
         p.letterSpacing = 0f
+    }
+    /** how far to move the text block down so it sits midway between the dots line and the bottom of this view (the knob
+     *  starts there): the block = the title's cap height, the big number and what follows it (dp) */
+    private fun centre(dotsY: Float, titleSp: Float, tailDp: Float): Float {
+        val numSize = min(height * 0.18f, width * 0.40f)
+        val block = titleSp * 0.72f * dp + numSize * 0.92f + tailDp * dp
+        val natural = 44 * dp - titleSp * 0.72f * dp          // the gap the layout leaves above the title without centring
+        return (((height - dotsY) - block) / 2 - natural).coerceAtLeast(0f)
     }
     /** a heavier weight than Roboto Condensed Bold has: fill and a thin stroke of the same colour (advisor) */
     private inline fun heavy(f: () -> Unit) {
@@ -242,7 +250,8 @@ class HomeView(ctx: Context, private val onTurn: (Int) -> Unit = {}) : View(ctx)
         // the same card as idle (the Jeep drives), then the phase, the live value and a progress capsule (owner: one style)
         val goal = target(s)
         ringShown += (goal - ringShown) * 0.15f
-        var y = drawCard(c, s, w, h, null, running = true, progress = ringShown, accent = accent) + 60 * dp      // the same line as the preset name on the idle screen
+        var y = drawCard(c, s, w, h, null, running = true, progress = ringShown, accent = accent) + 16 * dp
+        y += 44 * dp + centre(y, 22f, 88f)      // the same line as the preset name on the idle screen
         p.letterSpacing = 0.14f
         heavy { centeredF(c, phase(s.state).uppercase() + "  ·  " + mmss(s.runMs), y, 22f, accent) }
         p.letterSpacing = 0f
@@ -279,7 +288,8 @@ class HomeView(ctx: Context, private val onTurn: (Int) -> Unit = {}) : View(ctx)
         // the same card with a light red wash (the Jeep stays grey), the title on the name line, the live line pressure on
         // the same baseline and size as the idle number, then one line of explanation and the hint
         val (title, sub) = error(s.err)
-        var y = drawCard(c, s, w, h, 0x4DFF2A1F) + 60 * dp
+        var y = drawCard(c, s, w, h, 0x4DFF2A1F) + 16 * dp
+        y += 44 * dp + centre(y, 30f, 58f)
         p.letterSpacing = 0.08f
         heavy { centeredF(c, title.uppercase(), y, 30f, RED) }
         p.letterSpacing = 0f

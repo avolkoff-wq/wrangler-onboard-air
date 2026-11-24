@@ -190,7 +190,7 @@ inline void sendScreen() {
   queueBlob(buf, n); pumpOut();
 }
 inline void update(const UiSnapshot& u) {
-  dl::on = on && connected() > 0;
+  dl::on = dl::force || (on && connected() > 0);
   if (!on) return;
   sendScreen();
   if (evConn)   { evConn = false;   wlog::ev("BT_CONNECT", wlog::kv("n", String(connected()))); }

@@ -106,7 +106,7 @@ void drawIdle(bool edit) {
                nowT = String("actual ") + fmt(max(0.0f, now));
   const String valS = wsel ? String(nw) : String(fmt(bar)), unitS = wsel ? (nw == 1 ? "wheel" : "wheels") : unitName();
   // "now x.x", triangle, word; one line centred at y, or two lines (portrait)
-  auto dirLine = [&](int y, bool twoLines) {
+  auto dirLine = [&](int y, bool twoLines, bool second = true) {
     canvas.setFont(F_TEXT);
     const bool tri = dir == D_UP || dir == D_DOWN;
     const int th = 11, tw = 12, gap = 6;
@@ -123,14 +123,14 @@ void drawIdle(bool edit) {
       const int x = (W() - (w1 + gap + w2)) / 2;
       textAt(nowT, x, y, F_TEXT, dc, top_left); part2(x + w1 + gap, y);
     } else {
-      textAt(nowT, W() / 2, y, F_TEXT, dc, top_center); part2((W() - w2) / 2, y + 17);
+      textAt(nowT, W() / 2, y, F_TEXT, dc, top_center); if (second) part2((W() - w2) / 2, y + 17);
     }
   };
   const bool hint = dir == D_UP || dir == D_DOWN;                      // "press to start" only when a start would do something
   auto idleHint = [&]() {
     if (edit) { drawHint(wsel ? "press: OK  hold: back  turn: wheels" : "press: next  hold: cancel  turn: 0.1"); return; }
     if (armed && !dead) {   // ARMED: white hint, a bar running out over ARM_MS under it
-      drawHint(armStage == 2 ? "PRESS AGAIN: CONFIRM  turn: cancel" : "PRESS AGAIN: START  turn: cancel", armStage == 2 ? TFT_RED : TFT_WHITE, H() - 4);
+      drawHint(armStage == 2 ? (portrait() ? "PRESS: CONFIRM  turn: cancel" : "PRESS AGAIN: CONFIRM  turn: cancel") : "PRESS AGAIN: START  turn: cancel", armStage == 2 ? TFT_RED : TFT_WHITE, H() - 4);
       const float left = 1.0f - constrain((float)(millis() - armT) / ARM_MS, 0.0f, 1.0f);
       dlFillRect(20, H() - 3, (int)((W() - 40) * left), 3, TFT_WHITE);
       return;
@@ -170,8 +170,7 @@ void drawIdle(bool edit) {
         textAt("CONNECT", W() / 2, 173, F_TEXT, C_LGREY, top_center);
         textAt("SYSTEM", W() / 2, 190, F_TEXT, C_LGREY, top_center);
       } else if (armed && dir == D_UP && *engText(engine())) {   // compressor ahead: engine off / unknown
-        dirLine(173, true);
-        dlFillRect(0, 189, W(), 17, TFT_BLACK);
+        dirLine(173, true, false);   // 0.7.7: the engine line takes the place of the direction word (was painted over it)
         textAt(engText(engine()), W() / 2, 190, F_TEXT, engColor(engine()), top_center);
       } else dirLine(173, true);
     }
@@ -337,6 +336,14 @@ size_t menuBlob(uint8_t* b, size_t cap) {
   return n;
 }
 
+// the widest font a list row fits in: bold, regular, then the 16 px one (portrait is 135 px wide). Leaves it selected.
+Font rowFont(const String& t, int maxW) {
+  Font f = F_TEXT; canvas.setFont(f);
+  if (canvas.textWidth(t) > maxW) { f = F_SMALL; canvas.setFont(f); }
+  if (canvas.textWidth(t) > maxW) { f = &fonts::Font2; canvas.setFont(f); }
+  return f;
+}
+
 void drawMenu() {
   dlClear(TFT_BLACK);
   const int ht = drawHint("press: select  hold: exit  turn: scroll");
@@ -346,22 +353,40 @@ void drawMenu() {
     textAt(String(GROUPS[menuGroup].name), 8, 2, &fonts::Font2, C_LGREY, top_left);
     top = 19;
   }
-  const int n = menuLen(), rowH = 26, vis = max(1, (ht - top - 2) / rowH);
-  const int first = constrain(menuPos - vis / 2, 0, max(0, n - vis));
-  for (int k = 0; k < vis && first + k < n; k++) {
-    const int pos = first + k;
-    const int y = top + rowH / 2 + k * rowH;
-    if (pos == menuPos) dlFillRRect(3, y - 11, W() - 6, 22, 4, TFT_DARKGREEN);
+  // 0.7.7, bench: in portrait "[x] STUCK VALVE ALARM" ran off the 135 px screen even in the 16 px font. Such a row now
+  // takes two lines (38 px instead of 26); the window is then counted in pixels around the cursor
+  const int n = min(menuLen(), 16), rowH = 26, rowH2 = 38, maxW = W() - 14, avail = ht - top - 2;
+  struct R { String a, b; Font f; uint16_t col; int h; } rows[16];
+  bool tall = false;
+  for (int pos = 0; pos < n; pos++) {
     String label, value; uint8_t kind; menuRow(pos, label, value, kind);
     String t = kind == 2 ? String("< BACK") : kind == 1 ? label + " >" : kind == 4 ? "[x] " + label : kind == 5 ? "[ ] " + label : label;
     if (value.length()) t += ": " + value;
-    const uint16_t col = kind == 2 || kind == 3 ? C_LGREY : TFT_WHITE;
-    // the bold font if it fits, else the regular one, else the 16 px one (portrait is 135 px wide)
-    Font f = F_TEXT; canvas.setFont(f);
-    if (canvas.textWidth(t) > W() - 14) { f = F_SMALL; canvas.setFont(f); }
-    if (canvas.textWidth(t) > W() - 14) { f = &fonts::Font2; canvas.setFont(f); }
-    canvas.setTextColor(col); canvas.setTextDatum(middle_left);
-    dlString(t, 8, y);
+    R& r = rows[pos];
+    r.col = kind == 2 || kind == 3 ? C_LGREY : TFT_WHITE; r.f = rowFont(t, maxW); r.a = t; r.b = ""; r.h = rowH;
+    if (canvas.textWidth(t) > maxW) {
+      String parts[2]; const int k = wrapText(t, maxW, parts, 2);
+      r.a = parts[0]; if (k > 1) { r.b = parts[1]; r.h = rowH2; tall = true; }
+    }
+  }
+  int first;
+  if (!tall) { const int vis = max(1, avail / rowH); first = constrain(menuPos - vis / 2, 0, max(0, n - vis)); }
+  else {
+    auto span = [&](int a, int b) { int sum = 0; for (int k = a; k <= b && k < n; k++) sum += rows[k].h; return sum; };
+    first = min(menuPos, n - 1);
+    while (first > 0 && span(first - 1, menuPos) - rows[menuPos].h / 2 <= avail / 2) first--;   // the cursor near the middle
+    while (first > 0 && span(first - 1, n - 1) <= avail) first--;                               // no empty rows at the end
+    while (first < menuPos && span(first, menuPos) > avail) first++;
+  }
+  int y0 = top;
+  for (int pos = first; pos < n && y0 + rows[pos].h <= top + avail + 2; pos++) {
+    const R& r = rows[pos];
+    const int y = y0 + r.h / 2;
+    if (pos == menuPos) dlFillRRect(3, y - r.h / 2 + 2, W() - 6, r.h - 4, 4, TFT_DARKGREEN);
+    canvas.setFont(r.f); canvas.setTextColor(r.col); canvas.setTextDatum(middle_left);
+    if (r.b.length()) { dlString(r.a, 8, y - 8); dlString(r.b, 8, y + 8); }
+    else dlString(r.a, 8, y);
+    y0 += r.h;
   }
   push();
 }
@@ -376,16 +401,19 @@ void drawBt() {
     push(); return;
   }
   const int ht = drawHint("press: select  hold: back  turn: scroll");
-  canvas.setFont(portrait() ? F_SMALL : F_TEXT); canvas.setTextDatum(middle_left);
   const int rowH = portrait() ? 28 : 23;
   for (int i = 0; i < 4; i++) {
     const int y = 2 + rowH / 2 + i * rowH;
     if (i == btPos) dlFillRRect(3, y - 10, W() - 6, 20, 4, TFT_DARKGREEN);
-    canvas.setTextColor(i && i < 3 && !ble::on ? C_GREY : TFT_WHITE);
     String t = i == 0 ? String(settings.bt ? "[x] " : "[ ] ") + "BT ON" : i == 1 ? "PAIR A PHONE"
              : i == 2 ? (btForgetArm && millis() - btForgetArm < 3000 ? "PRESS AGAIN" : "FORGET ALL") : "BACK";
-    if (i == 0 && ble::on) t += String("  ") + String(ble::bonds()) + (portrait() ? "/" : " PAIRED, ") + String(ble::connected()) + (portrait() ? "" : " ON LINE");
+    rowFont(t, W() - 14);
+    canvas.setTextColor(i && i < 3 && !ble::on ? C_GREY : TFT_WHITE); canvas.setTextDatum(middle_left);
     dlString(t, 8, y);
+    if (i == 0 && ble::on) {   // 0.7.7, bench: "[x] BT ON  2 PAIRED, 1 ON LINE" was 255 px on the 240 px screen. Paired / connected at the right, small
+      canvas.setFont(&fonts::Font2); canvas.setTextColor(C_LGREY); canvas.setTextDatum(middle_right);
+      dlString(String(ble::bonds()) + (portrait() ? "/" : " PAIRED, ") + String(ble::connected()) + (portrait() ? "" : " LIVE"), W() - 8, y);
+    }
   }
   (void)ht;
   push();
@@ -395,13 +423,14 @@ void drawBt() {
 void drawLearnPick() {
   dlClear(TFT_BLACK);
   drawHint("press: select  hold: back  turn: scroll");
-  canvas.setFont(portrait() ? F_SMALL : F_TEXT); canvas.setTextDatum(middle_left);
   for (int i = 0; i < LEARN_N; i++) {
     const int y = 16 + i * 30;
     if (i == learnPos) dlFillRRect(3, y - 11, W() - 6, 22, 4, TFT_DARKGREEN);
     const Mode m = learnItem(i);
-    canvas.setTextColor(TFT_WHITE);
-    dlString(m == Mode::INF ? "LEARN INFLATE" : m == Mode::DEF ? "LEARN DEFLATE" : "BACK", 8, y);
+    const String t = m == Mode::INF ? "LEARN INFLATE" : m == Mode::DEF ? "LEARN DEFLATE" : "BACK";
+    rowFont(t, W() - 14);   // 0.7.7, bench: the regular 9 pt font ran off the portrait screen
+    canvas.setTextColor(TFT_WHITE); canvas.setTextDatum(middle_left);
+    dlString(t, 8, y);
   }
   push();
 }
@@ -412,7 +441,7 @@ void drawLearnConf() {
               {def ? "valve " + String(LEARN_DEF_MS / 1000) + " s." : "compressor " + String(CAL_PULSE_MS / 1000) + " s.", F_TEXT, TFT_WHITE},
               {def ? "" : engText(engine()), F_TEXT, engColor(engine())},
               {"Measure, pulse, measure.", F_SMALL, C_LGREY} }, 0, H() - 18);
-  drawHint(learnArm ? "PRESS AGAIN: CONFIRM  hold: back" : "press: start  hold: back", learnArm ? TFT_RED : C_LGREY);
+  drawHint(learnArm ? (portrait() ? "PRESS: CONFIRM  hold: back" : "PRESS AGAIN: CONFIRM  hold: back") : "press: start  hold: back", learnArm ? TFT_RED : C_LGREY);
   push();
 }
 
@@ -462,7 +491,7 @@ void drawCal() {
       // the next press starts the compressor: same engine line and confirmation as LEARN INFLATE (ENGINE CONFIRM)
       drawLines({ {"CAL 1/4", F_TEXT, TFT_WHITE}, {"hose open to air", F_TEXT, TFT_WHITE},
                   {engText(engine()), F_TEXT, engColor(engine())} }, top, H() - 18);
-      drawHint(calEngArm ? "PRESS AGAIN: CONFIRM  hold: abort" : "press: next  hold: abort", calEngArm ? TFT_RED : C_LGREY); break;
+      drawHint(calEngArm ? (portrait() ? "PRESS: CONFIRM  hold: abort" : "PRESS AGAIN: CONFIRM  hold: abort") : "press: next  hold: abort", calEngArm ? TFT_RED : C_LGREY); break;
     case CState::PUMPING:
       drawLines({ {n + ": pumping to ~" + String(cal.points[i], 0), F_TEXT, TFT_WHITE},
                   {mmss(cal.phaseMs()), F_LARGE, TFT_ORANGE, F_MID} }, top, H() - 18);
@@ -502,38 +531,42 @@ void drawOta() {
   push();
 }
 
+// 0.7.7, bench: eight 18 px lines on a 135 px screen, the last three were below the edge in both orientations.
+// The values in the 16 px font, grouped into five lines (portrait wraps them, it has the height)
 void drawVersion() {
   dlClear(TFT_BLACK);
+  const Font f = &fonts::Font2;
   drawLines({ {"Wrangler Air " FW_VERSION, F_TEXT, TFT_WHITE},
-              {"off " + String(settings.offset, 2) + "  c " + String(settings.c, 1) + (settings.offAuto ? " AUTO" : " MAN") + "  max " + String(settings.offCap(), 2), F_SMALL, TFT_LIGHTGREY},
-              {"rate " + String(settings.rate, 3) + "  top " + String(settings.kTop, 3), F_SMALL, TFT_LIGHTGREY},
-              {"bias " + String(settings.bias, 2) + "  dev " + String(settings.dev, 2), F_SMALL, TFT_LIGHTGREY},
-              {"settle " + String(settings.settleLearn, 1) + "s  starts " + String(pump.starts()), F_SMALL, TFT_LIGHTGREY},
-              {String(TYRES[settings.tyre].name) + "  air " + String(settings.airL(), 0) + " L", F_SMALL, TFT_LIGHTGREY},
-              {DEFLATE ? "tauD " + String(settings.tauD, 0) + "s " + (settings.learnedD ? "learned" : "model") : "", F_SMALL, TFT_LIGHTGREY},
-              {settings.learned ? "learned" : "not learned yet", F_SMALL, TFT_LIGHTGREY} }, 0, H() - 16);
+              {"off " + String(settings.offset, 2) + "  c " + String(settings.c, 1) + (settings.offAuto ? " AUTO" : " MAN") + "  max " + String(settings.offCap(), 2), f, TFT_LIGHTGREY},
+              {"rate " + String(settings.rate, 3) + "  top " + String(settings.kTop, 3) + "  bias " + String(settings.bias, 2), f, TFT_LIGHTGREY},
+              {"dev " + String(settings.dev, 2) + "  settle " + String(settings.settleLearn, 1) + "s  starts " + String(pump.starts()), f, TFT_LIGHTGREY},
+              {String(TYRES[settings.tyre].name) + "  air " + String(settings.airL(), 0) + " L", f, TFT_LIGHTGREY},
+              {String(settings.learned ? "learned" : "not learned yet") + (DEFLATE ? "  tauD " + String(settings.tauD, 0) + "s " + (settings.learnedD ? "learned" : "model") : String("")), f, TFT_LIGHTGREY} }, 0, H() - 18);
   drawHint("press: back");
   push();
 }
 void drawOutTest() {
   dlClear(TFT_BLACK);
   drawHint("press: on / off  hold: back  turn: choose");
-  canvas.setFont(portrait() ? F_SMALL : F_TEXT); canvas.setTextDatum(middle_left);
   for (int i = 0; i < OUT_N; i++) {
     const int y = 12 + i * 24;
     if (i == outPos) dlFillRRect(3, y - 11, W() - 6, 22, 4, TFT_DARKGREEN);
-    canvas.setTextColor(TFT_WHITE);
     const bool on = i < OUT_N - 1 && pump.pulsing() && pump.pulseIsValve() == (i == 1);
-    dlString(i == OUT_N - 1 ? "BACK" : i == 0 ? "COMPRESSOR" : "DEFLATE VALVE", 8, y);
+    // 0.7.7, bench: portrait rows ran off the screen. The 16 px font there, and VALVE alone leaves room for "ON 30s"
+    const String t = i == OUT_N - 1 ? "BACK" : i == 0 ? "COMPRESSOR" : portrait() ? "VALVE" : "DEFLATE VALVE";
+    rowFont(t, W() - 14 - (portrait() ? 46 : 0));
+    canvas.setTextColor(TFT_WHITE); canvas.setTextDatum(middle_left);
+    dlString(t, 8, y);
     if (on) { canvas.setTextDatum(middle_right); canvas.setTextColor(i == 1 ? TFT_SKYBLUE : TFT_ORANGE);
               dlString(String("ON ") + String((pump.pulseLeft() + 999) / 1000) + "s", W() - 8, y); canvas.setTextDatum(middle_left); }
   }
   const int y0 = 8 + OUT_N * 24;
   const float vg = sensor.vG1();
   (void)vg;   // 0.7.2, owner: words, no pin names
-  textAt(sensor.fault() ? String("SENSOR FAULT") : String("pressure ") + fmt(sensor.bar(settings.calA, settings.calB)) + " " + unitName(),
-         W() / 2, y0, F_TEXT, sensor.fault() ? TFT_RED : TFT_GREENYELLOW, top_center, F_SMALL, W() - 4);
-  textAt(supply.fitted() ? String("AUX1 power ") + String(supply.volts(), 1) + " V" : String("AUX1 power: no reading"), W() / 2, y0 + 18, F_TEXT, C_LGREY, top_center, F_SMALL, W() - 4);
+  const String pt = sensor.fault() ? String("SENSOR FAULT") : String("pressure ") + fmt(sensor.bar(settings.calA, settings.calB)) + " " + unitName();
+  const String at = supply.fitted() ? String("AUX1 power ") + String(supply.volts(), 1) + " V" : String(portrait() ? "AUX1: no reading" : "AUX1 power: no reading");
+  textAt(pt, W() / 2, y0, rowFont(pt, W() - 4), sensor.fault() ? TFT_RED : TFT_GREENYELLOW, top_center);
+  textAt(at, W() / 2, y0 + 18, rowFont(at, W() - 4), C_LGREY, top_center);
   push();
 }
 void drawHours(bool confirm) {
