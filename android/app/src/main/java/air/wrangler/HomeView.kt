@@ -131,12 +131,12 @@ class HomeView(ctx: Context, private val onTurn: (Int) -> Unit = {}) : View(ctx)
         val top = 4 * dp
         c.save()
         r.set(m, top, m + cw, top + ch)
-        val clip = android.graphics.Path().apply { addRoundRect(r, 28 * dp, 28 * dp, android.graphics.Path.Direction.CW) }
+        val clip = android.graphics.Path().apply { addRoundRect(r, 24 * dp, 24 * dp, android.graphics.Path.Direction.CW) }
         c.clipPath(clip); c.translate(m, top)
         SceneArt.draw(c, s.preset, cw, ch, time = (android.os.SystemClock.uptimeMillis() % 3_600_000L) / 1000f)
         c.restore()
         p.style = Paint.Style.STROKE; p.strokeWidth = 1 * dp; p.color = 0x1AFFFFFF
-        r.set(m, top, m + cw, top + ch); c.drawRoundRect(r, 28 * dp, 28 * dp, p); p.style = Paint.Style.FILL
+        r.set(m, top, m + cw, top + ch); c.drawRoundRect(r, 24 * dp, 24 * dp, p); p.style = Paint.Style.FILL
         if (online) {   // link capsule, top left in the card
             p.typeface = medium; p.textSize = 12 * dp
             val lt = "Connected"; val lw = p.measureText(lt)
@@ -242,7 +242,7 @@ class HomeView(ctx: Context, private val onTurn: (Int) -> Unit = {}) : View(ctx)
         // the same card as idle (the Jeep drives), then the phase, the live value and a progress capsule (owner: one style)
         val goal = target(s)
         ringShown += (goal - ringShown) * 0.15f
-        var y = drawCard(c, s, w, h, null) + 44 * dp
+        var y = drawCard(c, s, w, h, null) + 60 * dp      // the same line as the preset name on the idle screen
         p.letterSpacing = 0.14f
         heavy { centeredF(c, phase(s.state).uppercase() + "  ·  " + mmss(s.runMs), y, 22f, accent) }
         p.letterSpacing = 0f
@@ -251,17 +251,19 @@ class HomeView(ctx: Context, private val onTurn: (Int) -> Unit = {}) : View(ctx)
         val numSize = min(h * 0.18f, w * 0.40f)
         y += numSize * 0.92f
         p.typeface = jeepFont; p.textSize = numSize; p.color = 0xFFF5F5F7.toInt(); p.textScaleX = 0.9f
-        val num = (if (est) "~" else "") + "%.2f".format(v)
+        val num = "%.2f".format(v)
         val nw = p.measureText(num)
         val pu = Paint(p).apply { textSize = numSize * 0.22f; color = GREY; letterSpacing = 0.08f; textScaleX = 1f; style = Paint.Style.FILL }
         val x0 = (w - nw - 8 * dp - pu.measureText("BAR")) / 2
         heavy { c.drawText(num, x0, y, p) }
         p.textScaleX = 1f
         c.drawText("BAR", x0 + nw + 8 * dp, y, pu)
+        if (est) c.drawText("EST", x0 + nw + 8 * dp, y - numSize * 0.3f, pu)      // the tyre estimate while pumping
         // progress capsule from the start pressure to the target, the two numbers at its ends
         y += 26 * dp
-        val bx0 = 32 * dp; val bx1 = w - 32 * dp; val bh = 10 * dp
+        val bx0 = 32 * dp; val bx1 = w - 32 * dp; val bh = 6 * dp
         r.set(bx0, y, bx1, y + bh); p.color = 0xFF2C2C2E.toInt(); c.drawRoundRect(r, bh / 2, bh / 2, p)
+        p.color = 0xFFF5F5F7.toInt(); c.drawRect(bx1 - 2 * dp, y - 3 * dp, bx1, y + bh + 3 * dp, p)   // the target tick
         r.set(bx0, y, bx0 + (bx1 - bx0) * ringShown.coerceIn(0.02f, 1f), y + bh); p.color = accent; c.drawRoundRect(r, bh / 2, bh / 2, p)
         y += bh + 22 * dp
         p.typeface = jeepFont; p.textSize = 14 * dp; p.color = GREY; p.letterSpacing = 0.08f
@@ -274,31 +276,26 @@ class HomeView(ctx: Context, private val onTurn: (Int) -> Unit = {}) : View(ctx)
 
     // ---------- error ----------
     private fun drawError(c: Canvas, s: Ble.State, w: Float, h: Float) {
-        // same card, tinted red, then what happened in the Jeep type, and the live line pressure (owner: one style)
+        // the same card with a light red wash (the Jeep stays grey), the title on the name line, the live line pressure on
+        // the same baseline and size as the idle number, then one line of explanation and the hint
         val (title, sub) = error(s.err)
-        var y = drawCard(c, s, w, h, 0x55FF2A1F) + 46 * dp
+        var y = drawCard(c, s, w, h, 0x4DFF2A1F) + 60 * dp
         p.letterSpacing = 0.08f
         heavy { centeredF(c, title.uppercase(), y, 30f, RED) }
-        p.letterSpacing = 0.06f
-        y += 26 * dp
-        p.typeface = jeepFont; p.textSize = 15 * dp; p.color = 0xFFFFB4AE.toInt()
-        val words = sub.uppercase().split(" "); var line = ""
-        for (wd in words) {
-            val cand = if (line.isEmpty()) wd else "$line $wd"
-            if (p.measureText(cand) > w - 48 * dp && line.isNotEmpty()) { c.drawText(line, (w - p.measureText(line)) / 2, y, p); y += 20 * dp; line = wd } else line = cand
-        }
-        if (line.isNotEmpty()) c.drawText(line, (w - p.measureText(line)) / 2, y, p)
         p.letterSpacing = 0f
-        val numSize = min(h * 0.15f, w * 0.34f)
-        y += numSize * 1.0f
+        val numSize = min(h * 0.18f, w * 0.40f)
+        y += numSize * 0.92f
         p.typeface = jeepFont; p.textSize = numSize; p.color = 0xFFF5F5F7.toInt(); p.textScaleX = 0.9f
         val num = "%.2f".format(s.bar); val nw = p.measureText(num)
         val pu = Paint(p).apply { textSize = numSize * 0.22f; color = GREY; letterSpacing = 0.08f; textScaleX = 1f; style = Paint.Style.FILL }
         val x0 = (w - nw - 8 * dp - pu.measureText("BAR")) / 2
         heavy { c.drawText(num, x0, y, p) }
         p.textScaleX = 1f; c.drawText("BAR", x0 + nw + 8 * dp, y, pu)
-        y += 26 * dp
-        p.letterSpacing = 0.1f; centeredF(c, "IN THE LINE NOW  ·  PRESS: OK", y, 13f, GREY); p.letterSpacing = 0f
+        c.drawText("NOW", x0 + nw + 8 * dp, y - numSize * 0.3f, pu)
+        y += 30 * dp
+        p.letterSpacing = 0.06f; centeredF(c, sub.uppercase(), y, 13f, 0xFFFFB4AE.toInt())
+        y += 24 * dp
+        p.letterSpacing = 0.1f; centeredF(c, "PRESS: OK", y, 13f, GREY); p.letterSpacing = 0f
     }
 
     // ---------- text helpers ----------

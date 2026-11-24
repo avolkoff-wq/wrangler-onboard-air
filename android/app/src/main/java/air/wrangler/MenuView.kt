@@ -59,11 +59,12 @@ class MenuView(ctx: Context, private val send: (Int) -> Unit) : View(ctx) {
 
     private val dp = resources.displayMetrics.density
     private val p = Paint(Paint.ANTI_ALIAS_FLAG)
-    private val bold = Typeface.create("sans-serif", Typeface.BOLD)
-    private val regular = Typeface.create("sans-serif", Typeface.NORMAL)
-    private val medium = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+    // one style with the main screen (owner, advisor round 2): the condensed Jeep type in caps, amber as the only accent
+    private val bold = Typeface.create(Typeface.create("sans-serif-condensed", Typeface.BOLD), 800, false)
+    private val regular = bold
+    private val medium = bold
     private val r = RectF()
-    private val BLUE = 0xFF0A84FF.toInt(); private val CARD = 0xFF1C1C1E.toInt(); private val SEP = 0xFF38383A.toInt()
+    private val BLUE = 0xFFFFB020.toInt();   /* the accent: amber */ private val CARD = 0xFF1C1C1E.toInt(); private val SEP = 0xFF38383A.toInt()
     private val GREY = 0xFF8E8E93.toInt(); private val SEL = 0xFF2C2C2E.toInt(); private val GREEN = 0xFF30D158.toInt()
     private val RED = 0xFFFF453A.toInt()
 
@@ -105,26 +106,27 @@ class MenuView(ctx: Context, private val send: (Int) -> Unit) : View(ctx) {
             p.typeface = regular; p.textSize = 30 * dp
             c.drawText("‹", side - 4 * dp, navH * 0.78f, p)
             p.textSize = 17 * dp
-            c.drawText("Menu", side + 14 * dp, navH * 0.66f, p)
+            p.letterSpacing = 0.08f; c.drawText("MENU", side + 14 * dp, navH * 0.66f, p)
         }
         p.typeface = medium; p.textSize = 17 * dp
-        c.drawText("Done", w - side - p.measureText("Done"), navH * 0.66f, p)
+        p.letterSpacing = 0.08f; c.drawText("DONE", w - side - p.measureText("DONE"), navH * 0.66f, p)
         // large title
-        p.typeface = bold; p.textSize = 32 * dp; p.color = Color.WHITE
-        c.drawText(if (m.group < 0) "Settings" else MenuList.nice(m.title), side, navH + titleH * 0.75f, p)
+        p.typeface = bold; p.textSize = 28 * dp; p.color = Color.WHITE; p.letterSpacing = 0.08f
+        c.drawText(if (m.group < 0) "SETTINGS" else m.title.uppercase(), side, navH + titleH * 0.75f, p)
+        p.letterSpacing = 0.06f
 
         // rows in one rounded card
         val rows = shown(m)
         val top0 = listTop() - scrollY0
         c.save(); c.clipRect(0f, listTop() - 2 * dp, w, height.toFloat())
         r.set(side, top0, w - side, top0 + rows.size * rowH)
-        p.color = CARD; c.drawRoundRect(r, 12 * dp, 12 * dp, p)
+        p.color = CARD; c.drawRoundRect(r, 16 * dp, 16 * dp, p)
         rows.forEachIndexed { k, (pos, row) ->
             val y = top0 + k * rowH
             if (pos == m.cursor) {   // the DinMeter cursor
                 c.save(); c.clipRect(side, y, w - side, y + rowH)
                 r.set(side, top0, w - side, top0 + rows.size * rowH)
-                p.color = SEL; c.drawRoundRect(r, 12 * dp, 12 * dp, p)
+                p.color = SEL; c.drawRoundRect(r, 16 * dp, 16 * dp, p)
                 c.restore()
                 p.color = BLUE; c.drawRect(side, y + 10 * dp, side + 3 * dp, y + rowH - 10 * dp, p)
             }
@@ -133,7 +135,7 @@ class MenuView(ctx: Context, private val send: (Int) -> Unit) : View(ctx) {
             val labelX = side + 16 * dp
             p.typeface = regular; p.textSize = 17 * dp
             p.color = if (row.kind == 6) RED else Color.WHITE
-            val label = if (row.kind == 6) "Press again to confirm" else MenuList.nice(row.label)
+            val label = if (row.kind == 6) "PRESS AGAIN TO CONFIRM" else row.label.uppercase()
             c.drawText(label, labelX, ty, p)
             val right = w - side - 16 * dp
             when (row.kind) {
@@ -141,7 +143,7 @@ class MenuView(ctx: Context, private val send: (Int) -> Unit) : View(ctx) {
                 4, 5 -> toggle(c, right, y + rowH / 2, row.kind == 4)
                 else -> if (row.value.isNotEmpty()) {
                     p.color = GREY; p.textSize = 17 * dp
-                    val v = MenuList.nice(row.value)
+                    val v = row.value.uppercase().replace("R17", "R17")
                     c.drawText(v, right - p.measureText(v), ty, p)
                 }
             }

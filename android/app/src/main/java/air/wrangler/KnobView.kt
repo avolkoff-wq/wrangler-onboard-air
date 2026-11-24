@@ -83,13 +83,16 @@ class KnobView(ctx: Context, private val onStep: (Int) -> Unit, private val onBu
             val a = Math.toRadians((135 + i * 270.0 / 7)); val ca = cos(a).toFloat(); val sa = sin(a).toFloat()
             val on = i == det
             p.style = Paint.Style.STROKE; p.strokeWidth = (if (on) 3f else 2f) * dp; p.strokeCap = Paint.Cap.BUTT
-            p.color = if (on) 0xFFFFB020.toInt() else 0xFFD8D6C4.toInt()
-            c.drawLine(x + ring * 1.04f * ca, y + ring * 1.04f * sa, x + R * 0.8f * ca, y + R * 0.8f * sa, p)
+            val dim = if (det < 0) 0x59 else 0xFF   // off the main screen the presets are not live
+            p.color = if (on) accentLit() else (dim shl 24) or 0xD8D6C4
+            c.drawLine(x + ring * 1.03f * ca, y + ring * 1.03f * sa, x + R * 0.79f * ca, y + R * 0.79f * sa, p)
             p.style = Paint.Style.FILL
-            val tx = x + R * 0.89f * ca; val ty = y + R * 0.89f * sa + p.textSize * 0.36f
-            if (on) { p.color = 0x40FFB020; c.drawCircle(x + R * 0.89f * ca, y + R * 0.89f * sa, R * 0.08f, p) }
-            p.color = if (on) 0xFFFFB020.toInt() else 0xFFBFBDAA.toInt()
-            c.drawText(CODES[i], tx - p.measureText(CODES[i]) / 2, ty, p)
+            val tx = x + R * 0.905f * ca; val ty = y + R * 0.905f * sa + p.textSize * 0.36f
+            val tw = p.measureText(CODES[i])
+            p.color = 0x99000000.toInt(); c.drawText(CODES[i], tx - tw / 2, ty - 0.7f * dp, p)          // engraved: dark above, light below
+            p.color = 0x33FFFFFF; c.drawText(CODES[i], tx - tw / 2, ty + 0.7f * dp, p)
+            p.color = if (on) accentLit() else (dim shl 24) or 0xC9C7B4
+            c.drawText(CODES[i], tx - tw / 2, ty, p)
         }
         p.letterSpacing = 0f
         // the pointer settles on the preset when the finger is off the knob
@@ -131,7 +134,7 @@ class KnobView(ctx: Context, private val onStep: (Int) -> Unit, private val onBu
         p.color = Color.BLACK
         p.shader = LinearGradient(x - fr * 0.11f, 0f, x + fr * 0.11f, 0f, 0xFF6E7452.toInt(), 0xFF262918.toInt(), Shader.TileMode.CLAMP)
         c.drawPath(path, p); p.shader = null
-        p.color = if (!enabledLink) 0xFF808070.toInt() else if (busy) 0xFFFFB020.toInt() else 0xFFF2F0E4.toInt()
+        p.color = if (!enabledLink) 0xFF808070.toInt() else accent   // white idle, amber armed / running, red error
         c.drawRect(x - fr * 0.018f, y - fr * 0.93f, x + fr * 0.018f, y - fr * 0.5f, p)
         c.restore()
         // hold progress round the face
@@ -162,6 +165,8 @@ class KnobView(ctx: Context, private val onStep: (Int) -> Unit, private val onBu
         p.color = 0xFF7A7E62.toInt(); c.drawCircle(x, y, fr * 0.05f, p)
     }
     private val path = android.graphics.Path()
+    /** the lit colour: amber by default, whatever the activity set (white idle, amber armed / running, red error) */
+    private fun accentLit() = if (accent == 0xFFF5F5F7.toInt()) 0xFFFFB020.toInt() else accent
     private fun mixC(a: Int, b: Int, k: Float): Int {
         fun ch(sh: Int) = (((a shr sh) and 0xFF) * (1 - k) + ((b shr sh) and 0xFF) * k).toInt().coerceIn(0, 255)
         return (0xFF shl 24) or (ch(16) shl 16) or (ch(8) shl 8) or ch(0)

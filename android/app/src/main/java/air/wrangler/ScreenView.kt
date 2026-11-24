@@ -59,10 +59,12 @@ class ScreenView(ctx: Context, private val onTurn: (Int) -> Unit) : View(ctx) {
         val s = min(width.toFloat() / f.w, height.toFloat() / f.h)
         val ox = (width - f.w * s) / 2; val oy = (height - f.h * s) / 2
         // rounded "glass" behind the screen, like the device
-        p.color = 0xFF151515.toInt(); r.set(ox - 6, oy - 6, ox + f.w * s + 6, oy + f.h * s + 6)
-        c.drawRoundRect(r, 18f, 18f, p)
+        val dp = resources.displayMetrics.density
+        r.set(ox - 8 * dp, oy - 8 * dp, ox + f.w * s + 8 * dp, oy + f.h * s + 8 * dp)
+        p.color = 0xFF101012.toInt(); c.drawRoundRect(r, 24 * dp, 24 * dp, p)                       // the same card as the scene
+        p.style = Paint.Style.STROKE; p.strokeWidth = dp; p.color = 0x14FFFFFF; c.drawRoundRect(r, 24 * dp, 24 * dp, p); p.style = Paint.Style.FILL
         c.save(); c.clipRect(ox, oy, ox + f.w * s, oy + f.h * s); c.translate(ox, oy); c.scale(s, s)
-        p.color = f.bg; p.style = Paint.Style.FILL
+        p.color = if (f.bg == Color.BLACK) 0xFF101012.toInt() else f.bg; p.style = Paint.Style.FILL
         c.drawRect(0f, 0f, f.w.toFloat(), f.h.toFloat(), p)
         for (it in f.items) draw(c, it)
         c.restore()
@@ -70,7 +72,7 @@ class ScreenView(ctx: Context, private val onTurn: (Int) -> Unit) : View(ctx) {
     }
 
     private fun draw(c: Canvas, it: Frame.Item) {
-        p.color = it.color; p.style = Paint.Style.FILL; p.strokeCap = Paint.Cap.BUTT
+        p.color = calm(it.color); p.style = Paint.Style.FILL; p.strokeCap = Paint.Cap.BUTT
         val x = it.x.toFloat(); val y = it.y.toFloat(); val w = it.w.toFloat(); val h = it.h.toFloat()
         when (it.kind) {
             Frame.FILL_RECT -> c.drawRect(x, y, x + w, y + h, p)
@@ -101,6 +103,17 @@ class ScreenView(ctx: Context, private val onTurn: (Int) -> Unit) : View(ctx) {
         return RectF(left, top, left + w, top + h)
     }
 
+    /** the device palette mapped to the app's: white titles and values, grey notes, amber for the selection and warnings */
+    private fun calm(col: Int): Int {
+        val r0 = Color.red(col); val g = Color.green(col); val b = Color.blue(col)
+        return when {
+            r0 < 60 && g > 200 && b > 200 -> 0xFFF5F5F7.toInt()             // cyan titles
+            r0 in 120..200 && g > 220 && b < 120 -> 0xFFF5F5F7.toInt()      // lime values
+            r0 > 200 && g in 120..230 && b < 90 -> 0xFFFFB020.toInt()       // orange / yellow
+            r0 < 40 && g in 80..140 && b < 40 -> 0xFF4A3A10.toInt()         // dark green selection bar -> amber tint (text over it stays white)
+            else -> col
+        }
+    }
     private fun text(c: Canvas, it: Frame.Item) {
         if (it.text.isEmpty() || it.h == 0) return
         // one style with the native screens (owner): every DinMeter text in the condensed Jeep type
@@ -109,12 +122,16 @@ class ScreenView(ctx: Context, private val onTurn: (Int) -> Unit) : View(ctx) {
         val fm = p.fontMetrics
         p.textSize = it.h * 100f / (fm.descent - fm.ascent)
         val m = p.fontMetrics
-        val tw = p.measureText(it.text)
-        if (tw > 0 && it.w > 0) p.textScaleX = (it.w / tw).coerceIn(0.7f, 1.4f)
+        // caps in the condensed type, never stretched wider than drawn (the device font is wider than ours)
+        val t = it.text.uppercase()
+        p.letterSpacing = 0.04f
+        val tw = p.measureText(t)
+        if (tw > 0 && it.w > 0) p.textScaleX = (it.w / tw).coerceIn(0.7f, 1.0f)
         val b = box(it)
-        val mw = p.measureText(it.text)
+        val mw = p.measureText(t)
         val left = when (it.datum and 3) { 1 -> b.centerX() - mw / 2; 2 -> b.right - mw; else -> b.left }   // keep the anchor
-        c.drawText(it.text, left, b.top - m.ascent, p)
+        c.drawText(t, left, b.top - m.ascent, p)
+        p.letterSpacing = 0f
         p.textScaleX = 1f
     }
 

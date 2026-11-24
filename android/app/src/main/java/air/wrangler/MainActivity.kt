@@ -57,7 +57,7 @@ class MainActivity : Activity(), Ble.Listener {
 
         // status pill: dot + text
         dot = View(this).apply { background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(0xFF636366.toInt()) } }
-        status = TextView(this).apply { setTextColor(0xFFAEAEB2.toInt()); textSize = 13f; text = Link.status }
+        status = TextView(this).apply { setTextColor(0xFFEBEBF5.toInt()); textSize = 12f; text = Link.status }
         pillView = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL
             setPadding((14 * dp).toInt(), (8 * dp).toInt(), (16 * dp).toInt(), (8 * dp).toInt())
@@ -74,7 +74,7 @@ class MainActivity : Activity(), Ble.Listener {
         }
         val left = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            addView(pillView, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT).apply { gravity = Gravity.CENTER_HORIZONTAL; topMargin = (8 * dp).toInt() })
+            addView(pillView, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT).apply { gravity = Gravity.START; topMargin = (8 * dp).toInt(); marginStart = (28 * dp).toInt() })   // where the card's capsule sits
             addView(stage, LinearLayout.LayoutParams(MATCH_PARENT, 0, 1f))
         }
         val root = LinearLayout(this).apply {
@@ -146,19 +146,18 @@ class MainActivity : Activity(), Ble.Listener {
         knob.label = when {
             s == null -> "PRESS"
             s.screen == 7 -> if (s.customStep == 0) "NEXT" else "OK"
-            !onMain -> "SELECT"  // menus and service screens
+            onMenu -> "SELECT"
+            !onMain -> hintVerb() ?: "SELECT"   // service screens: what the DinMeter's own hint says a press does
             running -> "STOP"
             s.state == 7 || s.state == 8 -> "OK"
             s.armStage > 0 -> "START"
-            s.noAir -> "MENU"
             else -> "START"
         }
-        knob.accent = when {
+        knob.accent = when {            // pointer and lit code: white idle, amber armed / running, red on an error
             s == null -> 0xFF636366.toInt()
-            running -> HomeView.RED
-            s.state == 8 -> HomeView.RED
-            s.armStage == 2 -> HomeView.RED
-            else -> HomeView.GREEN
+            s.state == 8 || s.armStage == 2 -> HomeView.RED
+            running || s.armStage == 1 -> 0xFFFFB020.toInt()
+            else -> 0xFFF5F5F7.toInt()
         }
         (dot.background as GradientDrawable).setColor(if (online) HomeView.GREEN else 0xFF636366.toInt())
         // the link capsule moves into the scene card on the main screen (advisor); the top pill stays for search / errors
@@ -174,6 +173,12 @@ class MainActivity : Activity(), Ble.Listener {
         }
     }
     private var iconAsked = 0L
+    /** "PRESS: BACK  HOLD: ..." in the mirrored screen's hint -> BACK */
+    private fun hintVerb(): String? {
+        val t = Link.frame?.items?.firstOrNull { it.kind == Frame.TEXT && it.text.uppercase().startsWith("PRESS:") } ?: return null
+        val v = t.text.uppercase().substringAfter(":").trim().substringBefore("  ").trim()
+        return v.take(9).ifEmpty { null }
+    }
 
     // the phone back key: on a DinMeter menu or service screen one level up there; on the main screen to the background
     // (the link stays, the app is not closed)
