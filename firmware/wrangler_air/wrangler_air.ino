@@ -69,11 +69,12 @@ Guards guards; // idle safety checks: VALVE CHECK, PUMP CHECK, battery guard (gu
 M5Canvas canvas(&M5.Display);
 
 enum IdleDir { D_UP, D_DOWN, D_OK, D_ABOVE, D_DEAD };   // what a start would do from the idle screen
-enum class Screen { MAIN, MENU, EDIT, CAL, OTA, VERSION, SENSOR, CUSTOM, LEARN_PICK, LEARN_CONF, LEARN_MSG, HOURS, HOURS_CONF, OUT_TEST, WIFI_PASS };
+enum class Screen { MAIN, MENU, EDIT, CAL, OTA, VERSION, SENSOR, CUSTOM, LEARN_PICK, LEARN_CONF, LEARN_MSG, HOURS, HOURS_CONF, OUT_TEST, WIFI_PASS, BT };
+int btPos = 0; uint32_t btForgetArm = 0;   // menu BLUETOOTH
 Screen screen = Screen::MAIN;
 int menuPos = 0;
-enum MenuItem { M_CAL, M_LEARN, M_SENSOR, M_OUTPUT, M_DEMO, M_UNITS, M_TYRE, M_OFFSET, M_OFFMAX, M_SETTLE, M_VALVE, M_VSTUCK, M_PSTUCK, M_VCHECK, M_VTRIM, M_ECONF, M_WDOG, M_SCREEN, M_RESET, M_UPDATE, M_WIFIPASS, M_VERSION, M_HOURS, M_EXIT };
-const char* const MENU[] = {"CALIBRATE", "LEARN", "SENSOR", "IO TEST", "DEMO", "UNITS", "TYRE", "OFFSET", "OFFSET MAX", "SETTLE", "VALVE", "VALVE CHECK", "PUMP CHECK", "VOLT CHECK", "AUX1 TRIM", "ENGINE CONFIRM", "WATCHDOG", "SCREEN", "RESET LEARNING", "WIFI: UPDATE + LOG", "WIFI PASSWORD", "VERSION", "HOURS", "EXIT"};
+enum MenuItem { M_CAL, M_LEARN, M_SENSOR, M_OUTPUT, M_DEMO, M_UNITS, M_TYRE, M_OFFSET, M_OFFMAX, M_SETTLE, M_VALVE, M_VSTUCK, M_PSTUCK, M_VCHECK, M_VTRIM, M_ECONF, M_WDOG, M_SCREEN, M_RESET, M_UPDATE, M_WIFIPASS, M_BT, M_VERSION, M_HOURS, M_EXIT };
+const char* const MENU[] = {"CALIBRATE", "LEARN", "SENSOR", "IO TEST", "DEMO", "UNITS", "TYRE", "OFFSET", "OFFSET MAX", "SETTLE", "VALVE", "VALVE CHECK", "PUMP CHECK", "VOLT CHECK", "AUX1 TRIM", "ENGINE CONFIRM", "WATCHDOG", "SCREEN", "RESET LEARNING", "WIFI: UPDATE + LOG", "WIFI PASSWORD", "BLUETOOTH", "VERSION", "HOURS", "EXIT"};
 const int MENU_N = sizeof(MENU) / sizeof(MENU[0]);
 
 // ---------- OFFSET / SETTLE editor: index 0 = AUTO ----------
@@ -99,6 +100,7 @@ int setIdx() { return settings.settleAuto ? 0 : constrain((int)roundf((settings.
 void beep(int n = 1) { sound::beep(n); }
 
 // drawing / screens (need enums and globals above)
+#include "ble.h"
 #include "ui_draw.h"
 #include "ui_screens.h"
 
@@ -110,6 +112,10 @@ void push() {
     const int w = canvas.textWidth(tag) + 6;
     canvas.fillRect(canvas.width() - w - 1, 0, w + 1, 17, TFT_MAGENTA);
     canvas.setTextColor(TFT_WHITE); canvas.drawString(tag, canvas.width() - 4, 1);
+  }
+  if (screen == Screen::MAIN && ble::connected()) {   // a phone is connected: small blue BT mark, top left
+    canvas.fillRoundRect(0, 0, 17, 11, 2, TFT_BLUE);
+    canvas.setFont(&fonts::Font0); canvas.setTextDatum(top_left); canvas.setTextColor(TFT_WHITE); canvas.drawString("BT", 3, 2);
   }
   canvas.pushSprite(0, 0);
 }
@@ -252,6 +258,7 @@ void benchCommand(String c) {
     Serial.printf("# tyre %s  rate %.4f  kTop %.4f  offset %.3f  c %.2f  offcap %.2f%s  tauD %.1f  learned %d/%d  cal a %.4f b %.3f\n",
                   TYRES[settings.tyre].name, settings.rate, settings.kTop, settings.offset, settings.c, settings.offCap(), settings.omAuto ? " AUTO" : "", settings.tauD,
                   settings.learned, settings.learnedD, settings.calA, settings.calB);
+    Serial.printf("# BT %s  bonds %d  connected %d  pairing %d  phone inputs %lu\n", ble::on ? "on" : "off", ble::bonds(), ble::connected(), ble::pairing() ? 1 : 0, (unsigned long)ble::inputs);
     Serial.printf("# compressor %.2f h  valve %.2f h  since filter service %.2f h  boot %lu\n", settings.cmpSec / 3600.0f,
                   settings.ventSec / 3600.0f, settings.svcHours(), (unsigned long)settings.bootN);
   } else if (c == "log") {
@@ -390,6 +397,7 @@ void publishUi(int scr) {
   u.bar = sensor.bar(settings.calA, settings.calB); u.est = pump.estimate(); u.target = settings.target; u.staticBar = pump.staticBar();
   u.aux1 = supply.volts(); u.runMs = pump.runMs(); u.phaseMs = pump.phaseMs(); u.adcFails = adc2::fails;
   uiPublish(u);
+  ble::update(u);   // notify the phone (ble.h), nothing when BT is off
 }
 
 // ---------- setup / loop ----------
@@ -425,6 +433,7 @@ void setup() {
   cal.begin(&sensor, &settings);
   input::begin();
   input::queueBegin();
+  if (settings.bt) ble::begin();   // menu BLUETOOTH, off by default
   supply.setTrim(settings.vtrim);
   splash();          // outputs are already off; sensor and pump wait
 
@@ -611,7 +620,8 @@ void loop() {
             if (resetArm && millis() - resetArm < 3000) { settings.resetLearning(); wlog::ev("RESET_LEARNING", ""); beep(); resetArm = 0; }
             else resetArm = millis();
             break;
-          case M_UPDATE:  pump.stop(); ota.start(&settings.psi, settings.wifiPass); screen = Screen::OTA; break;
+          case M_UPDATE:  pump.stop(); ble::end(); ota.start(&settings.psi, settings.wifiPass); screen = Screen::OTA; break;   // Wi-Fi and BLE never together
+          case M_BT:      btPos = 0; btForgetArm = 0; screen = Screen::BT; break;
           case M_WIFIPASS:
             strncpy(wifiPassEdit, settings.wifiPass, sizeof wifiPassEdit);
             wifiPassEdit[sizeof wifiPassEdit - 1] = 0;
@@ -717,6 +727,26 @@ void loop() {
       if (b == input::Btn::LONG) { ota.stop(); screen = Screen::MAIN; }
       else if (!ota.running()) screen = Screen::MAIN;                  // Wi-Fi switched itself off after 10 min without requests
       else drawOta();
+      if (screen != Screen::OTA && settings.bt) ble::begin();          // BLE back after the Wi-Fi session
+      break;
+
+    case Screen::BT:   // menu BLUETOOTH: [x] BT ON / PAIR / FORGET ALL / BACK
+      if (steps) btPos = ((btPos + steps) % 4 + 4) % 4;
+      if (b == input::Btn::LONG) { ble::pairStop(); screen = Screen::MENU; }
+      if (b == input::Btn::SHORT) {
+        if (ble::pairing()) ble::pairStop();                           // any press closes the PIN window
+        else switch (btPos) {
+          case 0: settings.bt = !settings.bt; settings.save(); if (settings.bt) ble::begin(); else ble::end(); break;
+          case 1: if (!ble::pairStart()) beep(3); break;               // BT off or 3 phones bonded already
+          case 2:                                                      // two presses within 3 s, like RESET LEARNING
+            if (!ble::on) beep(3);
+            else if (btForgetArm && millis() - btForgetArm < 3000) { ble::forgetAll(); btForgetArm = 0; beep(); }
+            else btForgetArm = millis();
+            break;
+          default: screen = Screen::MENU; break;
+        }
+      }
+      if (screen == Screen::BT) drawBt();
       break;
 
     case Screen::VERSION:

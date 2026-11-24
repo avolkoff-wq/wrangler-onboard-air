@@ -10,6 +10,7 @@
 #include "ota.h"
 #include "input.h"
 #include "ui_draw.h"
+#include "ble.h"
 
 extern M5Canvas canvas;
 extern Settings settings;
@@ -36,6 +37,8 @@ extern bool learnArm;
 extern bool calEngArm;
 extern String learnMsg;
 extern int outPos;
+extern int btPos;
+extern uint32_t btForgetArm;
 extern const char* const MENU[];
 extern const int MENU_N;
 extern const int OFF_N;
@@ -326,6 +329,31 @@ void drawMenu() {
   push();
 }
 
+// ---------- menu BLUETOOTH ----------
+void drawBt() {
+  canvas.fillSprite(TFT_BLACK);
+  if (ble::pairing()) {   // the PIN the phone asks for, with the seconds left
+    drawHint("press: cancel");
+    drawLines({ {"TYPE ON THE PHONE", F_TEXT, TFT_WHITE, F_SMALL}, {String(ble::pin), F_LARGE, TFT_YELLOW},
+                {String(ble::pairLeftMs() / 1000) + " s", F_TEXT, C_LGREY} }, 0, hintTop);
+    push(); return;
+  }
+  const int ht = drawHint("press: select  hold: back  turn: scroll");
+  canvas.setFont(portrait() ? F_SMALL : F_TEXT); canvas.setTextDatum(middle_left);
+  const int rowH = portrait() ? 28 : 23;
+  for (int i = 0; i < 4; i++) {
+    const int y = 2 + rowH / 2 + i * rowH;
+    if (i == btPos) canvas.fillRoundRect(3, y - 10, W() - 6, 20, 4, TFT_DARKGREEN);
+    canvas.setTextColor(i && i < 3 && !ble::on ? C_GREY : TFT_WHITE);
+    String t = i == 0 ? String(settings.bt ? "[x] " : "[ ] ") + "BT ON" : i == 1 ? "PAIR A PHONE"
+             : i == 2 ? (btForgetArm && millis() - btForgetArm < 3000 ? "PRESS AGAIN" : "FORGET ALL") : "BACK";
+    if (i == 0 && ble::on) t += String("  ") + String(ble::bonds()) + (portrait() ? "/" : " PAIRED, ") + String(ble::connected()) + (portrait() ? "" : " ON LINE");
+    canvas.drawString(t, 8, y);
+  }
+  (void)ht;
+  push();
+}
+
 // ---------- menu LEARN ----------
 void drawLearnPick() {
   canvas.fillSprite(TFT_BLACK);
@@ -527,8 +555,14 @@ void splash() {
     const uint16_t white = canvas.color565(v, v, v), amb = canvas.color565(255 * fade, 165 * fade, 0);
     canvas.setFont(&fonts::FreeSansBold18pt7b); canvas.setTextDatum(top_left);
     if (port) {
+      // 135 px wide: VOLKOV in the 18 pt bold touched both edges (owner, bench 24.11). Squeezed sideways to leave 5 px
+      // at each side, the height stays
+      const int vw = canvas.textWidth("VOLKOV");
+      const float sx = vw > w - 10 ? float(w - 10) / vw : 1.0f;
+      canvas.setTextSize(sx, 1.0f);
       textAt("VOLKOV", w / 2, 40, &fonts::FreeSansBold18pt7b, white, top_center);
       textAt("AIR", w / 2, 80, &fonts::FreeSansBold18pt7b, amb, top_center);
+      canvas.setTextSize(1.0f, 1.0f);
     } else {
       const int tw = canvas.textWidth("VOLKOV "), aw = canvas.textWidth("AIR"), x0 = (w - tw - aw) / 2;
       textAt("VOLKOV ", x0, 30, &fonts::FreeSansBold18pt7b, white, top_left);

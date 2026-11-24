@@ -14,6 +14,7 @@ struct Settings {
   bool  valve   = true;           // menu VALVE: deflate valve fitted (g_valve follows it)
   bool  vcheck  = true;           // menu VOLT CHECK: read AUX1 through the 0-25 V module on G15
   bool  wdog    = true;
+  bool  bt      = false;          // menu BLUETOOTH: off until the bench shows BLE does not disturb the ADC2 sensor input
   bool  vchk2   = true;
   bool  pchk    = true;           // menu PUMP CHECK: watch for the compressor running with its output off           // menu VALVE CHECK: watch for a valve stuck open while idle           // menu WATCHDOG: 5 s main-loop watchdog
   bool  econfirm = true;          // menu ENGINE CONFIRM: third press before inflating when the engine is off or unknown
@@ -89,6 +90,7 @@ struct Settings {
     vcheck       = p.getBool ("vchk", vcheck);
     econfirm     = p.getBool ("econf", econfirm);
     wdog         = p.getBool ("wdog", wdog);
+    bt           = p.getBool ("bt", bt);
     vchk2        = p.getBool ("vstuck", vchk2);
     pchk         = p.getBool ("pstuck", pchk);
     offAuto      = p.getBool ("offAuto", offAuto);
@@ -164,6 +166,7 @@ struct Settings {
     p.putBool ("vchk", vcheck);
     p.putBool ("econf", econfirm);
     p.putBool ("wdog", wdog);
+    p.putBool ("bt", bt);
     p.putBool ("vstuck", vchk2);
     p.putBool ("pstuck", pchk);
     p.putBool ("offAuto", offAuto);
