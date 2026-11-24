@@ -36,9 +36,11 @@ object SceneArt {
             }
         }
     }
-    // wheels in the mask (px): centres and radius, measured from suv_bitmap.h
-    private const val REAR_X = 27f; private const val FRONT_X = 113f; private const val WHEEL_Y = 40f; private const val WHEEL_R = 11f
-    private const val TYRE_K = 1.3f
+    // wheels in the mask (px): centres and radius, measured from the 512 px reference (tools/suv_vector.py)
+    private const val REAR_X = JeepShape.REAR_X; private const val FRONT_X = JeepShape.FRONT_X
+    private const val WHEEL_Y = JeepShape.WHEEL_Y; private const val WHEEL_R = JeepShape.WHEEL_R
+    private const val TYRE_K = 0.97f   // a hair inside the mask wheel, so the dark gap to the arch stays
+    private const val MW = JeepShape.W / 128f   // the old 128 px mask -> this one (lamp positions below)
 
     fun draw(c: Canvas, preset: Int, w: Float, h: Float, dim: Boolean = false, time: Float = 0f) {
         t = time
@@ -145,7 +147,7 @@ object SceneArt {
     private fun jeep(c: Canvas, ps: Pose, body: Int, shade: Int, lights: Boolean = false, wheelTurn: Float, sunk: Float = 0f) {
         val len = JeepShape.W * ps.z
         if (lights) {
-            val (hx, hy) = maskPt(ps, 125f, 24f)
+            val (hx, hy) = maskPt(ps, 124f * MW, 24f * MW)
             c.save(); c.translate(hx, hy); c.rotate(ps.ang + 4f)
             path.reset(); path.moveTo(0f, -len * 0.015f); path.lineTo(len * 0.9f, -len * 0.09f); path.lineTo(len * 0.9f, len * 0.12f); path.lineTo(0f, len * 0.015f); path.close()
             p.color = Color.BLACK; p.shader = LinearGradient(0f, 0f, len * 0.9f, 0f, 0x66FFF2C8, Color.TRANSPARENT, Shader.TileMode.CLAMP)
@@ -153,16 +155,16 @@ object SceneArt {
         }
         // contact shadow
         p.color = 0x55000000; p.maskFilter = BlurMaskFilter(len * 0.03f, BlurMaskFilter.Blur.NORMAL)
-        val (sx0, sy0) = maskPt(ps, REAR_X - 14, 51f); val (sx1, sy1) = maskPt(ps, FRONT_X + 14, 51f)
+        val (sx0, sy0) = maskPt(ps, REAR_X - WHEEL_R * 1.3f, JeepShape.H); val (sx1, sy1) = maskPt(ps, FRONT_X + WHEEL_R * 1.3f, JeepShape.H)
         r.set(sx0, minOf(sy0, sy1) - len * 0.012f, sx1, maxOf(sy0, sy1) + len * 0.025f); c.drawOval(r, p); p.maskFilter = null
         c.save(); c.translate(ps.x, ps.y + sunk); c.rotate(ps.ang); c.scale(ps.z, ps.z); c.translate(-JeepShape.PIVOT_X, -JeepShape.PIVOT_Y)
         p.color = Color.BLACK; p.shader = LinearGradient(0f, 0f, 0f, JeepShape.H * 0.95f, intArrayOf(Color.WHITE, body, shade), floatArrayOf(0f, 0.22f, 1f), Shader.TileMode.CLAMP)
         c.drawPath(jeep, p); p.shader = null
         // a thin dark outline, so the body stands out on light scenes (sand, dusk)
-        p.style = Paint.Style.STROKE; p.strokeWidth = 1.1f; p.color = 0x66000000; c.drawPath(jeep, p); p.style = Paint.Style.FILL
+        p.style = Paint.Style.STROKE; p.strokeWidth = 1.1f * MW; p.color = 0x66000000; c.drawPath(jeep, p); p.style = Paint.Style.FILL
         // wheels (owner: bigger, a lifted JL on 35s): a fat dark tyre with tread blocks, a satin rim with five spokes.
         // The tyre is 1.3x the mask wheel; its centre is lifted so it still stands on the ground.
-        val tr = WHEEL_R * TYRE_K; val cy = JeepShape.PIVOT_Y - tr + 0.8f
+        val tr = WHEEL_R * TYRE_K; val cy = WHEEL_Y
         for (wx in floatArrayOf(REAR_X, FRONT_X)) {
             p.color = 0xFF1B1C1F.toInt(); c.drawCircle(wx, cy, tr, p)
             p.color = 0xFF2E3035.toInt()
@@ -185,9 +187,9 @@ object SceneArt {
         }
         c.restore()
         if (lights) {
-            val (hx, hy) = maskPt(ps, 125f, 24f)
+            val (hx, hy) = maskPt(ps, 124f * MW, 24f * MW)
             p.color = Color.BLACK; p.shader = RadialGradient(hx, hy, len * 0.06f, 0xFFFFF6D8.toInt(), Color.TRANSPARENT, Shader.TileMode.CLAMP); c.drawCircle(hx, hy, len * 0.06f, p)
-            val (tx, ty) = maskPt(ps, 3f, 22f)
+            val (tx, ty) = maskPt(ps, 10f * MW, 27f * MW)
             p.color = Color.BLACK; p.shader = RadialGradient(tx, ty, len * 0.04f, 0xFFFF3B30.toInt(), Color.TRANSPARENT, Shader.TileMode.CLAMP); c.drawCircle(tx, ty, len * 0.04f, p)
             p.shader = null
         }
@@ -196,7 +198,7 @@ object SceneArt {
     private fun turn(speedPx: Float, z: Float) = t * speedPx / (WHEEL_R * z)
     /** dust behind the rear wheel */
     private fun dust(c: Canvas, ps: Pose, col: Int) {
-        val (x, y) = maskPt(ps, REAR_X - 6, 50f); val len = JeepShape.W * ps.z
+        val (x, y) = maskPt(ps, REAR_X - WHEEL_R * 0.5f, JeepShape.H - 2f); val len = JeepShape.W * ps.z
         for (i in 0 until 16) {
             val ph = ((t * 0.8f + i / 16f) % 1f)
             val dx = -ph * len * 0.55f; val dy = -ph * len * 0.14f + sin(i * 2.1f) * len * 0.02f
