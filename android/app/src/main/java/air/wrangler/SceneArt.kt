@@ -26,46 +26,20 @@ object SceneArt {
     private val path = Path()
     private val r = RectF()
     private var t = 0f
-    private val jeep: Path by lazy {
-        Path().apply {
-            fillType = Path.FillType.EVEN_ODD
-            for (c in JeepShape.CONTOURS) {
-                moveTo(c[0], c[1]); var i = 2
-                while (i < c.size) { lineTo(c[i], c[i + 1]); i += 2 }
-                close()
+    // ---------- the owner's Jeep: JeepShape.LAYERS (tools/jl_blueprint.py, read off his photos), drawn as they are ----------
+    private const val REAR_X = JeepShape.REAR_X; private const val FRONT_X = JeepShape.FRONT_X
+    private const val WHEEL_Y = JeepShape.WHEEL_Y; private const val WHEEL_R = JeepShape.WHEEL_R
+    private const val TYRE_R = JeepShape.WHEEL_R            // 33 in tyres, to scale
+    private const val TYRE_Y = JeepShape.WHEEL_Y
+    private val layerPaths: List<Path> by lazy {
+        JeepShape.LAYERS.map { l ->
+            Path().apply {
+                moveTo(l.pts[0], l.pts[1]); var i = 2
+                while (i < l.pts.size) { lineTo(l.pts[i], l.pts[i + 1]); i += 2 }
+                if (l.kind == 0) close()
             }
         }
     }
-    // ---------- the owner's Jeep: a JL Unlimited Rubicon traced from his reference photo (JeepShape, tools/jl_blueprint.py) ----------
-    private const val REAR_X = JeepShape.REAR_X; private const val FRONT_X = JeepShape.FRONT_X
-    private const val WHEEL_Y = JeepShape.WHEEL_Y; private const val WHEEL_R = JeepShape.WHEEL_R
-    private const val TYRE_K = 0.97f   // 33 in tyres (owner: a touch smaller than the photo's)
-    private const val ARCH_K = 1.2f    // the arch round the tyre, generous like the photo
-    private val TYRE_R = WHEEL_R * TYRE_K
-    private val TYRE_Y = JeepShape.PIVOT_Y - TYRE_R   // on the ground
-    private fun poly(a: FloatArray) = Path().apply { moveTo(a[0], a[1]); var i = 2; while (i < a.size) { lineTo(a[i], a[i + 1]); i += 2 }; close() }
-    private val outer: Path by lazy { poly(JeepShape.CONTOURS[0]) }
-    private val glass: Path by lazy { Path().apply { for (i in 1..3) addPath(poly(JeepShape.CONTOURS[i])) } }
-    private val seams: Path by lazy { Path().apply { for (i in 4 until JeepShape.CONTOURS.size) addPath(poly(JeepShape.CONTOURS[i])) } }
-    private val arches: Path by lazy {
-        Path().apply { for (cx in floatArrayOf(REAR_X, FRONT_X)) addCircle(cx, TYRE_Y, TYRE_R * ARCH_K, Path.Direction.CW) }
-    }
-    /** a flare: the photo's outline (bottom-left, top-left, top-right, bottom-right) and its inner edge, t px inside */
-    private fun flareInner(f: FloatArray, t: Float) = poly(floatArrayOf(f[0] + t * 1.4f, f[1], f[2] + t, f[3] + t, f[4] - t, f[5] + t, f[6] - t * 1.4f, f[7]))
-    private val wells: Path by lazy {   // the dark wheel wells: inside the flares and the arch circles
-        Path().apply {
-            op(flareInner(JeepShape.FLARE_REAR, 7f), Path.Op.UNION); op(flareInner(JeepShape.FLARE_FRONT, 7f), Path.Op.UNION)
-            op(arches, Path.Op.UNION)
-        }
-    }
-    private val flares: Path by lazy {
-        Path().apply {
-            op(poly(JeepShape.FLARE_REAR), Path.Op.UNION); op(poly(JeepShape.FLARE_FRONT), Path.Op.UNION)
-            op(wells, Path.Op.DIFFERENCE)
-        }
-    }
-    private val bodyCut: Path by lazy { Path().apply { op(outer, wells, Path.Op.DIFFERENCE) } }
-    private fun rr(c: Canvas, a: FloatArray, rad: Float) { r.set(a[0], a[1], a[2], a[3]); c.drawRoundRect(r, rad, rad, p) }
 
     fun draw(c: Canvas, preset: Int, w: Float, h: Float, dim: Boolean = false, time: Float = 0f) {
         t = time
@@ -174,7 +148,8 @@ object SceneArt {
         val dx = (mx - JeepShape.PIVOT_X) * ps.z; val dy = (my - JeepShape.PIVOT_Y) * ps.z
         return Pair(ps.x + (dx * cos(a) - dy * sin(a)).toFloat(), ps.y + (dx * sin(a) + dy * cos(a)).toFloat())
     }
-    private val rubiconFont = android.graphics.Typeface.create(android.graphics.Typeface.create("sans-serif-condensed", android.graphics.Typeface.BOLD), 900, false)
+    private val decalFont = android.graphics.Typeface.create(android.graphics.Typeface.create("sans-serif", android.graphics.Typeface.BOLD), 900, false)   // wide heavy caps, like the decal
+    private val badgeFont = android.graphics.Typeface.create("sans-serif", android.graphics.Typeface.BOLD_ITALIC)
     private fun mix(a: Int, b: Int, k: Float): Int {
         fun ch(sh: Int) = (((a shr sh) and 0xFF) * (1 - k) + ((b shr sh) and 0xFF) * k).toInt().coerceIn(0, 255)
         return (0xFF shl 24) or (ch(16) shl 16) or (ch(8) shl 8) or ch(0)
@@ -182,128 +157,88 @@ object SceneArt {
     private fun jeep(c: Canvas, ps: Pose, body: Int, shade: Int, lights: Boolean = false, wheelTurn: Float, sunk: Float = 0f, spin: Float = 0f) {
         val len = JeepShape.W * ps.z
         val J = JeepShape
+        val ghost = Color.red(body) < 0x80          // the floor reflection in CUSTOM: the same car, faint
         if (lights) {   // headlight beam, under the body
-            val (hx, hy) = maskPt(ps, J.HEADLAMP[0], J.HEADLAMP[1])
+            val (hx, hy) = maskPt(ps, J.HEAD_X, J.HEAD_Y)
             c.save(); c.translate(hx, hy); c.rotate(ps.ang + 4f)
-            path.reset(); path.moveTo(0f, -len * 0.015f); path.lineTo(len * 0.9f, -len * 0.09f); path.lineTo(len * 0.9f, len * 0.12f); path.lineTo(0f, len * 0.015f); path.close()
-            p.color = Color.BLACK; p.shader = LinearGradient(0f, 0f, len * 0.9f, 0f, 0x66FFF2C8, Color.TRANSPARENT, Shader.TileMode.CLAMP)
+            path.reset(); path.moveTo(0f, -len * 0.012f); path.lineTo(len * 0.8f, -len * 0.08f); path.lineTo(len * 0.8f, len * 0.1f); path.lineTo(0f, len * 0.012f); path.close()
+            p.color = Color.BLACK; p.shader = LinearGradient(0f, 0f, len * 0.8f, 0f, 0x40FFF2C8, Color.TRANSPARENT, Shader.TileMode.CLAMP)
             c.drawPath(path, p); p.shader = null; c.restore()
         }
-        // contact shadow
-        p.color = 0x55000000; p.maskFilter = BlurMaskFilter(len * 0.03f, BlurMaskFilter.Blur.NORMAL)
-        val (sx0, sy0) = maskPt(ps, REAR_X - WHEEL_R * 1.6f, J.H); val (sx1, sy1) = maskPt(ps, FRONT_X + WHEEL_R * 1.8f, J.H)
-        r.set(sx0, minOf(sy0, sy1) - len * 0.012f, sx1, maxOf(sy0, sy1) + len * 0.025f); c.drawOval(r, p); p.maskFilter = null
+        if (!ghost) {   // contact shadow
+            p.color = 0x70000000; p.maskFilter = BlurMaskFilter(len * 0.02f, BlurMaskFilter.Blur.NORMAL)
+            val (sx0, sy0) = maskPt(ps, REAR_X - WHEEL_R * 1.6f, J.H); val (sx1, sy1) = maskPt(ps, FRONT_X + WHEEL_R * 1.5f, J.H)
+            r.set(sx0, minOf(sy0, sy1) - len * 0.01f, sx1, maxOf(sy0, sy1) + len * 0.02f); c.drawOval(r, p); p.maskFilter = null
+        }
         c.save(); c.translate(ps.x, ps.y + sunk); c.rotate(ps.ang); c.scale(ps.z, ps.z); c.translate(-J.PIVOT_X, -J.PIVOT_Y)
-        val reflection = Color.red(body) < 0x80
-        // dark wheel wells behind everything
-        c.save(); c.clipRect(0f, 0f, J.W, J.H); p.color = 0xFF0E0E10.toInt(); c.drawPath(wells, p); c.restore()
-        // the spare on the tailgate, seen on its tread
-        p.color = Color.BLACK
-        p.shader = LinearGradient(J.SPARE[0], 0f, J.SPARE[2], 0f, intArrayOf(0xFF0F0F11.toInt(), 0xFF3A3B40.toInt(), 0xFF141416.toInt()), floatArrayOf(0f, 0.45f, 1f), Shader.TileMode.CLAMP)
-        rr(c, J.SPARE, 16f); p.shader = null
-        p.color = 0xFF08080A.toInt(); var gy = J.SPARE[1] + 8f
-        while (gy < J.SPARE[3] - 8f) { c.drawRect(J.SPARE[0] + 4f, gy, J.SPARE[2] - 4f, gy + 2.2f, p); gy += 7f }
-        // body: Sting Gray, lit from above, the scene tints the highlight and the shadow a little
-        val top = if (reflection) body else mix(0xFFBDBEBD.toInt(), body, 0.10f)
-        val mid = if (reflection) body else 0xFF8C8D8C.toInt()
-        val bot = if (reflection) shade else mix(0xFF54555A.toInt(), shade, 0.20f)
-        p.color = Color.BLACK
-        p.shader = LinearGradient(0f, J.ROOF_Y, 0f, J.BODY_BOTTOM, intArrayOf(top, mid, mid, bot), floatArrayOf(0f, 0.22f, 0.6f, 1f), Shader.TileMode.CLAMP)
-        c.drawPath(bodyCut, p); p.shader = null
-        if (!reflection) {
-            c.save(); c.clipPath(bodyCut)
-            p.color = 0x14000000; c.drawRect(0f, 0f, J.W, J.BELT_Y - 2f, p)                       // hardtop as its own part
-            p.color = 0xFF3A3B3E.toInt(); c.drawRect(36f, J.ROOF_Y + 9f, J.ROOF_FRONT_X - 6f, J.ROOF_Y + 10.4f, p)   // Freedom panel joint
-            p.color = 0x29FFFFFF; c.drawRect(30f, J.BELT_Y + 2f, 500f, J.BELT_Y + 3f, p)            // belt crease
-            p.color = 0x33000000; c.drawRect(30f, J.BELT_Y + 4f, 500f, J.BELT_Y + 5f, p)
-            p.color = 0x1F000000; c.drawRect(0f, J.BODY_BOTTOM - 28f, J.W, J.BODY_BOTTOM, p)        // lower doors in shade
-            c.restore()
+        if (ghost) c.saveLayerAlpha(0f, 0f, J.W, J.H, 60)
+        // the layers of the blueprint, back to front; body-colour parts take a little of the scene's light
+        val n = J.LAYERS.size
+        for (i in 0 until n) {
+            val l = J.LAYERS[i]; val pa = layerPaths[i]
+            if (l.kind == 0) {
+                val c0 = if (l.tint) mix(l.c0, body, 0.08f) else l.c0
+                val c1 = if (l.tint) mix(l.c1, shade, 0.12f) else l.c1
+                p.style = Paint.Style.FILL; p.color = Color.BLACK
+                if (c0 == c1) { p.color = c0; p.shader = null } else p.shader = LinearGradient(0f, l.y0, 0f, l.y1, c0, c1, Shader.TileMode.CLAMP)
+                c.drawPath(pa, p); p.shader = null
+                if (l.sw > 0f) { p.style = Paint.Style.STROKE; p.strokeWidth = l.sw; p.strokeJoin = Paint.Join.ROUND; p.color = l.stroke; c.drawPath(pa, p); p.style = Paint.Style.FILL }
+            } else {
+                p.style = Paint.Style.STROKE; p.strokeWidth = l.sw; p.strokeCap = Paint.Cap.ROUND; p.strokeJoin = Paint.Join.ROUND; p.color = l.stroke
+                c.drawPath(pa, p); p.style = Paint.Style.FILL; p.strokeCap = Paint.Cap.BUTT
+            }
         }
-        // tinted glass with a soft reflection, thick black frames like the hardtop's
-        p.style = Paint.Style.STROKE; p.strokeWidth = 4f; p.color = 0xFF1C1D20.toInt(); c.drawPath(glass, p); p.style = Paint.Style.FILL
-        p.color = Color.BLACK; p.shader = LinearGradient(0f, J.ROOF_Y + 10f, 0f, J.BELT_Y, 0xFF3A444D.toInt(), 0xFF15191D.toInt(), Shader.TileMode.CLAMP)
-        c.drawPath(glass, p); p.shader = null
-        c.save(); c.clipPath(glass); p.color = 0x18FFFFFF
-        path.reset(); path.moveTo(50f, J.BELT_Y); path.lineTo(100f, J.ROOF_Y + 10f); path.lineTo(130f, J.ROOF_Y + 10f); path.lineTo(80f, J.BELT_Y); path.close(); c.drawPath(path, p)
-        path.offset(170f, 0f); c.drawPath(path, p); c.restore()
-        p.color = 0xFF2A2B2E.toInt(); c.drawPath(seams, p)                                            // door seams
-        // flares, rock rail, bumpers: satin black with a sheen from above
-        p.color = Color.BLACK; p.shader = LinearGradient(0f, 100f, 0f, J.H, 0xFF3A3B40.toInt(), 0xFF141416.toInt(), Shader.TileMode.CLAMP)
-        c.drawPath(flares, p); rr(c, J.ROCK_RAIL, 3f); rr(c, J.BUMPER_FRONT, 4f); rr(c, J.BUMPER_REAR, 3f); p.shader = null
-        p.color = 0xFF55575C.toInt()
-        for (f in arrayOf(J.FLARE_REAR, J.FLARE_FRONT)) c.drawRect(f[2], f[3], f[4], f[3] + 1f, p)   // flare tops read as a shelf
-        p.color = 0xFF4A4C52.toInt(); c.drawRect(J.ROCK_RAIL[0], J.ROCK_RAIL[1] + 1f, J.ROCK_RAIL[2], J.ROCK_RAIL[1] + 2f, p)
-        // fender vent (gills) in front of the door
-        p.color = 0xFF151518.toInt(); rr(c, J.VENT, 3f)
-        p.color = 0xFF3A3B40.toInt(); var vy = J.VENT[1] + 3f
-        while (vy < J.VENT[3] - 2f) { c.drawRect(J.VENT[0] + 3f, vy, J.VENT[2] - 3f, vy + 1.2f, p); vy += 3.2f }
-        // hinges (body colour, dark edge): the rear door's on the centre pillar, the front door's on the A pillar
-        for (hg in J.HINGES) {
-            p.color = if (reflection) body else 0xFF9A9B99.toInt(); rr(c, hg, 2f)
-            p.style = Paint.Style.STROKE; p.strokeWidth = 1f; p.color = 0xFF2A2B2E.toInt(); rr(c, hg, 2f); p.style = Paint.Style.FILL
-        }
-        p.color = 0xFF1A1B1D.toInt(); for (hd in J.HANDLES) rr(c, hd, 2.5f)                    // door handles
-        p.color = 0xFF151618.toInt(); rr(c, J.MIRROR, 5f)                                        // mirror
-        p.color = 0xFF2A2B2E.toInt(); c.drawRect(J.ANTENNA[0], J.ANTENNA[1], J.ANTENNA[0] + 1.2f, J.ANTENNA[3], p)   // antenna
-        // tail lamp: black surround, red lens
-        p.color = 0xFF151518.toInt(); rr(c, J.TAIL_LAMP, 3f)
-        p.color = 0xFFB3141E.toInt(); r.set(J.TAIL_LAMP[0] + 2f, J.TAIL_LAMP[1] + 2f, J.TAIL_LAMP[2] - 2f, J.TAIL_LAMP[1] + (J.TAIL_LAMP[3] - J.TAIL_LAMP[1]) * 0.55f); c.drawRoundRect(r, 2f, 2f, p)
-        p.color = 0xFFE8902A.toInt(); rr(c, J.MARKER, 2f)                                         // amber side marker
-        p.color = 0xFF1A1B1D.toInt(); c.drawCircle(J.HEADLAMP[0], J.HEADLAMP[1], 6f, p)          // headlamp bucket
-        p.color = 0xFFCFD6DC.toInt(); c.drawCircle(J.HEADLAMP[0] + 1f, J.HEADLAMP[1], 3.5f, p)
-        // badges: Jeep behind the front arch, RUBICON along the hood side (red, as on the owner's car)
-        p.typeface = rubiconFont; p.letterSpacing = 0.06f
-        p.textSize = 10f; p.color = 0xFF8E1F2A.toInt(); c.drawText("Jeep", J.BADGE[0], J.BADGE[1], p)
-        p.letterSpacing = 0.12f; p.textSize = 13.5f
-        val dw = J.DECAL[2] - J.DECAL[0]; p.textScaleX = 1f
-        p.textScaleX = dw / p.measureText("RUBICON")
-        p.color = 0x59000000; c.drawText("RUBICON", J.DECAL[0] + 0.6f, J.DECAL[1] + 0.6f, p)
-        p.color = 0xFFC8102E.toInt(); c.drawText("RUBICON", J.DECAL[0], J.DECAL[1], p)
+        // RUBICON along the hood side, red with a dark edge, and the Jeep badge behind the front arch
+        p.typeface = decalFont; p.textSize = J.DECAL_H * 1.25f; p.letterSpacing = 0.04f; p.textScaleX = 1f
+        p.textScaleX = (J.DECAL_X1 - J.DECAL_X0) / p.measureText("RUBICON")
+        p.style = Paint.Style.STROKE; p.strokeWidth = 0.6f; p.color = 0xFF3A0A0D.toInt(); c.drawText("RUBICON", J.DECAL_X0, J.DECAL_Y, p)
+        p.style = Paint.Style.FILL; p.color = 0xFFB4232A.toInt(); c.drawText("RUBICON", J.DECAL_X0, J.DECAL_Y, p)
         p.textScaleX = 1f; p.letterSpacing = 0f
-        // rim light on the roof and the hood top, a thin outline for light scenes
-        if (!reflection) { c.save(); c.clipRect(0f, 0f, J.W, J.BELT_Y); p.style = Paint.Style.STROKE; p.strokeWidth = 1.6f; p.color = 0x61FFFFFF; c.drawPath(outer, p); c.restore() }
-        p.style = Paint.Style.STROKE; p.strokeWidth = 1.2f; p.color = 0x66000000; c.drawPath(bodyCut, p); p.style = Paint.Style.FILL
+        p.typeface = badgeFont; p.textSize = J.BADGE_H * 1.2f; p.color = 0xFF8E1F2A.toInt(); c.drawText("Jeep", J.BADGE_X, J.BADGE_Y, p)
         // wheels
         val tr = TYRE_R; val cy = TYRE_Y
         val fast = spin > 0.35f * 25f
         for (wx in floatArrayOf(REAR_X, FRONT_X)) {
-            p.color = 0xFF141517.toInt(); c.drawCircle(wx, cy, tr * 0.99f, p)
-            for (k in 0 until 20) {   // tread blocks that break the outline
-                c.save(); c.rotate(Math.toDegrees((wheelTurn + k * 0.31416f).toDouble()).toFloat(), wx, cy)
-                c.drawRect(wx + tr * 0.93f, cy - tr * 0.075f, wx + tr * 1.045f, cy + tr * 0.075f, p); c.restore()
+            // mud-terrain tyre: lugs break the outline, a second row on the shoulder
+            p.color = 0xFF141517.toInt(); c.drawCircle(wx, cy, tr * 0.975f, p)
+            for (k in 0 until 22) {
+                c.save(); c.rotate(Math.toDegrees((wheelTurn + k * 0.2856f).toDouble()).toFloat(), wx, cy)
+                c.drawRect(wx + tr * 0.93f, cy - tr * 0.07f, wx + tr * 1.0f, cy + tr * 0.07f, p); c.restore()
             }
-            p.color = 0xFF26272B.toInt()
-            for (k in 0 until 20) {   // shoulder lugs, half a pitch offset
-                c.save(); c.rotate(Math.toDegrees((wheelTurn + k * 0.31416f + 0.157f).toDouble()).toFloat(), wx, cy)
-                c.drawRect(wx + tr * 0.80f, cy - tr * 0.06f, wx + tr * 0.92f, cy + tr * 0.06f, p); c.restore()
+            p.color = 0xFF232427.toInt()
+            for (k in 0 until 22) {
+                c.save(); c.rotate(Math.toDegrees((wheelTurn + k * 0.2856f + 0.143f).toDouble()).toFloat(), wx, cy)
+                c.drawRect(wx + tr * 0.82f, cy - tr * 0.055f, wx + tr * 0.925f, cy + tr * 0.055f, p); c.restore()
             }
-            p.color = 0xFF17181A.toInt(); c.drawCircle(wx, cy, tr * 0.79f, p)                 // sidewall
-            p.style = Paint.Style.STROKE; p.strokeWidth = tr * 0.02f; p.color = 0xFF232427.toInt(); c.drawCircle(wx, cy, tr * 0.78f, p); p.style = Paint.Style.FILL
-            p.color = 0xFF0D0D0F.toInt(); c.drawCircle(wx, cy, tr * 0.54f, p)                 // wheel well of the rim
-            p.color = 0xFF0D0D0F.toInt(); c.drawCircle(wx, cy, tr * 0.5f, p)
-            for (k in 0 until 5) {   // five wide spokes, machined silver, a dark slit down each
+            p.color = 0xFF18191B.toInt(); c.drawCircle(wx, cy, tr * 0.81f, p)                 // sidewall
+            p.style = Paint.Style.STROKE; p.strokeWidth = tr * 0.018f; p.color = 0xFF26272A.toInt(); c.drawCircle(wx, cy, tr * 0.72f, p); p.style = Paint.Style.FILL
+            // Rubicon 17 in wheel in a 33 in tyre (0.55 of the radius): black, machined spokes, a polished lip
+            p.color = 0xFF0B0B0D.toInt(); c.drawCircle(wx, cy, tr * 0.58f, p)
+            p.style = Paint.Style.STROKE; p.strokeWidth = tr * 0.02f; p.color = 0xFF9DA1A8.toInt(); c.drawCircle(wx, cy, tr * 0.545f, p); p.style = Paint.Style.FILL
+            for (k in 0 until 5) {   // five spokes that split towards the rim, machined face, dark pockets between
                 c.save(); c.rotate(Math.toDegrees((wheelTurn + k * 1.2566f).toDouble()).toFloat(), wx, cy)
                 path.reset()
-                path.moveTo(wx + tr * 0.11f, cy - tr * 0.11f); path.lineTo(wx + tr * 0.46f, cy - tr * 0.075f)
-                path.lineTo(wx + tr * 0.46f, cy + tr * 0.075f); path.lineTo(wx + tr * 0.11f, cy + tr * 0.11f); path.close()
+                path.moveTo(wx + tr * 0.10f, cy - tr * 0.085f); path.lineTo(wx + tr * 0.50f, cy - tr * 0.14f)
+                path.lineTo(wx + tr * 0.52f, cy - tr * 0.06f); path.lineTo(wx + tr * 0.30f, cy)
+                path.lineTo(wx + tr * 0.52f, cy + tr * 0.06f); path.lineTo(wx + tr * 0.50f, cy + tr * 0.14f)
+                path.lineTo(wx + tr * 0.10f, cy + tr * 0.085f); path.close()
                 p.color = Color.BLACK
-                p.shader = LinearGradient(wx + tr * 0.11f, cy, wx + tr * 0.46f, cy, 0xFFA9ADB3.toInt(), 0xFF7C8087.toInt(), Shader.TileMode.CLAMP)
+                p.shader = LinearGradient(wx + tr * 0.10f, cy, wx + tr * 0.52f, cy, 0xFFB4B8BE.toInt(), 0xFF7E8288.toInt(), Shader.TileMode.CLAMP)
                 if (fast) p.alpha = 90
                 c.drawPath(path, p); p.shader = null; p.alpha = 255
-                p.color = 0xFF0D0D0F.toInt(); c.drawRect(wx + tr * 0.20f, cy - tr * 0.011f, wx + tr * 0.44f, cy + tr * 0.011f, p)
                 c.restore()
             }
-            if (fast) { p.color = 0x6E5A5E64; c.drawCircle(wx, cy, tr * 0.46f, p) }
-            p.style = Paint.Style.STROKE; p.strokeWidth = tr * 0.035f; p.color = 0xFF8A8E95.toInt(); c.drawCircle(wx, cy, tr * 0.485f, p); p.style = Paint.Style.FILL
-            p.color = 0xFF1A1B1E.toInt(); c.drawCircle(wx, cy, tr * 0.13f, p)
-            p.color = 0xFF6E7278.toInt(); c.drawCircle(wx, cy, tr * 0.045f, p)
-                }
+            if (fast) { p.color = 0x6E5A5E64; c.drawCircle(wx, cy, tr * 0.5f, p) }
+            p.color = 0xFF111214.toInt(); c.drawCircle(wx, cy, tr * 0.12f, p)                 // hub cap
+            p.color = 0xFF5A5E64.toInt(); c.drawCircle(wx, cy, tr * 0.035f, p)
+        }
+        if (ghost) c.restore()
         c.restore()
-        if (lights) {
-            val (hx, hy) = maskPt(ps, J.HEADLAMP[0], J.HEADLAMP[1])
-            p.color = Color.BLACK; p.shader = RadialGradient(hx, hy, len * 0.06f, 0xFFFFF6D8.toInt(), Color.TRANSPARENT, Shader.TileMode.CLAMP); c.drawCircle(hx, hy, len * 0.06f, p)
-            val (tx, ty) = maskPt(ps, (J.TAIL_LAMP[0] + J.TAIL_LAMP[2]) / 2, J.TAIL_LAMP[1] + 10f)
-            p.color = Color.BLACK; p.shader = RadialGradient(tx, ty, len * 0.04f, 0xFFFF3B30.toInt(), Color.TRANSPARENT, Shader.TileMode.CLAMP); c.drawCircle(tx, ty, len * 0.04f, p)
+        if (lights) {   // small glows: they must not hide the nose or the spare
+            val (hx, hy) = maskPt(ps, J.HEAD_X, J.HEAD_Y)
+            p.color = Color.BLACK; p.shader = RadialGradient(hx, hy, len * 0.03f, 0xFFFFF6D8.toInt(), Color.TRANSPARENT, Shader.TileMode.CLAMP); c.drawCircle(hx, hy, len * 0.03f, p)
+            val (tx, ty) = maskPt(ps, J.TAIL_X, J.TAIL_Y)
+            p.color = Color.BLACK; p.shader = RadialGradient(tx, ty, len * 0.02f, 0xFFFF3B30.toInt(), Color.TRANSPARENT, Shader.TileMode.CLAMP); c.drawCircle(tx, ty, len * 0.02f, p)
             p.shader = null
         }
     }
@@ -348,7 +283,7 @@ object SceneArt {
         p.color = 0xEEFFFFFF.toInt()
         every(w, w * 0.18f, off) { x, _ -> c.drawRect(x, g + h * 0.15f, x + w * 0.09f, g + h * 0.17f, p) }
         val road = g + h * 0.075f
-        val ps = pose(w * 0.17f, w * 0.60f, { road }, bounce = h * 0.003f * sin(t * 17f))
+        val ps = pose(w * 0.18f, w * 0.66f, { road }, bounce = h * 0.003f * sin(t * 17f))
         jeep(c, ps, 0xFFE8E4F0.toInt(), 0xFF5D6378.toInt(), lights = true, wheelTurn = turn(speed, ps.z))
     }
 
@@ -365,7 +300,7 @@ object SceneArt {
         p.color = 0xFF0E0F12.toInt(); p.style = Paint.Style.STROKE; p.strokeWidth = h * 0.008f
         every(w, w * 0.45f, off) { x, _ -> path.reset(); path.moveTo(x, h * 0.85f); path.lineTo(x + w * 0.03f, h * 0.89f); path.lineTo(x + w * 0.07f, h * 0.87f); path.lineTo(x + w * 0.1f, h * 0.92f); c.drawPath(path, p) }
         p.style = Paint.Style.FILL
-        val ps = pose(w * 0.17f, w * 0.60f, g)
+        val ps = pose(w * 0.18f, w * 0.66f, g)
         jeep(c, ps, 0xFFEDF1F5.toInt(), 0xFF7D8792.toInt(), wheelTurn = turn(speed, ps.z))
     }
 
@@ -386,7 +321,7 @@ object SceneArt {
             val sy = h * 0.83f + fy * h * 0.17f
             p.color = if (fr > 0.5f) 0xFFD9C4A3.toInt() else 0xFF8C7458.toInt(); c.drawCircle(sx, sy, h * (0.006f + fr * 0.012f), p)
         }
-        val ps = pose(w * 0.17f, w * 0.60f, g)
+        val ps = pose(w * 0.18f, w * 0.66f, g)
         dust(c, ps, 0xFFD9C4A3.toInt())
         jeep(c, ps, 0xFFFFF8EE.toInt(), 0xFF9C8C78.toInt(), wheelTurn = turn(speed, ps.z))
     }
@@ -401,7 +336,7 @@ object SceneArt {
         band(c, w, h, g, 0xFF6B4E33.toInt(), 0xFF3A2A1C.toInt())
         p.color = 0x553A2A1C
         every(w, w * 0.12f, off) { x, _ -> c.drawRect(x, g(x) + h * 0.09f, x + w * 0.05f, g(x) + h * 0.105f, p) }
-        val ps = pose(w * 0.17f, w * 0.60f, g)
+        val ps = pose(w * 0.18f, w * 0.66f, g)
         jeep(c, ps, 0xFFEFF5EA.toInt(), 0xFF5F7562.toInt(), lights = true, wheelTurn = turn(speed, ps.z))
     }
 
@@ -432,7 +367,7 @@ object SceneArt {
         band(c, w, h, g, 0xFF8E8A84.toInt(), 0xFF3B3935.toInt())
         p.color = 0x22FFFFFF
         every(w, period, off) { x, _ -> path.reset(); path.moveTo(x - w * 0.12f, g(x - w * 0.12f)); path.lineTo(x, g(x)); path.lineTo(x + w * 0.02f, g(x) + h * 0.06f); path.close(); c.drawPath(path, p) }
-        val ps = pose(w * 0.15f, w * 0.52f, g)
+        val ps = pose(w * 0.17f, w * 0.58f, g)
         jeep(c, ps, 0xFFF2F7FF.toInt(), 0xFF6C7C92.toInt(), wheelTurn = turn(speed, ps.z))
     }
 
@@ -465,7 +400,7 @@ object SceneArt {
         p.color = 0x22000000; p.style = Paint.Style.STROKE; p.strokeWidth = h * 0.006f
         for (i in 0 until 4) { path.reset(); var x = 0f; path.moveTo(0f, g(0f) + h * (0.04f + i * 0.03f)); while (x < w) { path.lineTo(x, g(x) + h * (0.04f + i * 0.03f) + h * 0.006f * sin((x + off) / w * 40)); x += w / 40 }; c.drawPath(path, p) }
         p.style = Paint.Style.FILL
-        val ps = pose(w * 0.17f, w * 0.60f, g)
+        val ps = pose(w * 0.18f, w * 0.66f, g)
         dust(c, ps, 0xFFF3CD8F.toInt())
         jeep(c, ps, 0xFFFFFFFF.toInt(), 0xFF8E6440.toInt(), wheelTurn = turn(speed, ps.z))
     }
@@ -475,7 +410,7 @@ object SceneArt {
         sun(c, w * 0.2f, h * 0.62f, h * 0.09f, 0xFFFFC27A.toInt())
         band(c, w, h, { x -> h * (0.66f - 0.06f * sin(x / w * 4f)) }, 0xFFD18A4C.toInt(), 0xFFA8652F.toInt())
         val shake = h * 0.004f * sin(t * 23f)   // the body shakes while the wheels dig
-        val ps = pose(w * 0.20f, w * 0.58f, { h * 0.8f }, bounce = shake)
+        val ps = pose(w * 0.20f, w * 0.64f, { h * 0.8f }, bounce = shake)
         val sunk = h * 0.06f
         jeep(c, ps, 0xFFFFFFFF.toInt(), 0xFF7E4A38.toInt(), lights = true, wheelTurn = t * 14f, sunk = sunk, spin = 14f)
         // the sand the wheels sit in, piled a little higher at each wheel
@@ -506,7 +441,7 @@ object SceneArt {
         c.drawRect(0f, 0f, w, h, p); p.shader = null
         p.color = Color.BLACK; p.shader = LinearGradient(0f, h * 0.8f, 0f, h, 0xFF1F2024.toInt(), 0xFF0C0C0E.toInt(), Shader.TileMode.CLAMP); c.drawRect(0f, h * 0.8f, w, h, p); p.shader = null
         p.color = 0x0FFFFFFF; c.drawRect(0f, h * 0.8f, w, h * 0.8f + 1f, p)
-        val ps = pose(w * 0.17f, w * 0.60f, { h * 0.8f })
+        val ps = pose(w * 0.18f, w * 0.66f, { h * 0.8f })
         c.save(); c.scale(1f, -1f, 0f, h * 0.8f); jeep(c, ps, 0xFF3A3D45.toInt(), 0xFF1A1B20.toInt(), wheelTurn = 0f); c.restore()
         p.color = Color.BLACK; p.shader = LinearGradient(0f, h * 0.8f, 0f, h, 0x991A1B20.toInt(), 0xFF1A1B20.toInt(), Shader.TileMode.CLAMP); c.drawRect(0f, h * 0.8f, w, h, p); p.shader = null
         jeep(c, ps, 0xFFF2F2F7.toInt(), 0xFF6E717C.toInt(), wheelTurn = 0f)
