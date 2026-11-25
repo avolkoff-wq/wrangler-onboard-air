@@ -174,11 +174,15 @@ print('DEMO: learn tests ...')
 n0 = len(events)
 open_menu(0, 4); cmd('press', 0.8); go_main()                 # DEMO on
 open_menu(0, 1); cmd('press', 0.8)                            # LEARN TEST -> pick, LEARN INFLATE first
-cmd('press', 0.8); cmd('press', 0.8); cmd('press', 0.8)       # confirm (engine off: one more press)
+cmd('press', 0.8)                                             # -> confirm screen
+# press until the test runs, never once more: a press during the test stops it (24.11: LEARN DEFLATE stopped at 0.8 s,
+# it needs no engine confirmation, so the third blind press was one too many)
+if not start_run(): issues.append('LEARN INFLATE did not start')
 pump(24)
 cmd('press', 0.8); go_main()
 open_menu(0, 1); cmd('press', 0.8); cmd('right', 0.3)         # LEARN DEFLATE
-cmd('press', 0.8); cmd('press', 0.8); cmd('press', 0.8)
+cmd('press', 0.8)
+if not start_run(): issues.append('LEARN DEFLATE did not start')
 pump(30)
 cmd('press', 0.8); go_main()
 open_menu(0, 4); cmd('press', 0.8); go_main()                 # DEMO off

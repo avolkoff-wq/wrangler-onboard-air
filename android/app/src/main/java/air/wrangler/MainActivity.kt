@@ -49,7 +49,10 @@ class MainActivity : Activity(), Ble.Listener {
         window.statusBarColor = Color.BLACK; window.navigationBarColor = Color.BLACK
         window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)   // the screen stays on while the app is open
         val dp = resources.displayMetrics.density
-        val land = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+        // side by side unless the screen is clearly tall: the unfolded Fold (750 x 830 dp) is "portrait" but nearly square,
+        // stacked it gave a long low scene card and a small knob (owner, 25.11)
+        val cfg = resources.configuration
+        val land = cfg.screenHeightDp < cfg.screenWidthDp * 1.3f
 
         home = HomeView(this) { send(if (it < 0) Ble.LEFT else Ble.RIGHT) }
         mirror = ScreenView(this, { send(if (it < 0) Ble.LEFT else Ble.RIGHT) }, { send(it) })
@@ -187,8 +190,8 @@ class MainActivity : Activity(), Ble.Listener {
         val g = hintGroups().firstOrNull { it.startsWith("PRESS:") || it.startsWith("PRESS AGAIN:") || it.startsWith("TURN + PRESS:") } ?: return null
         return g.substringAfter(":").trim().take(9).ifEmpty { null }
     }
-    /** what a hold does there, as written on the DinMeter ("HOLD: BACK", "HOLD 2 S: RESET SERVICE"); "" when a hold does nothing */
-    private fun hintHold(): String = hintGroups().firstOrNull { it.startsWith("HOLD") } ?: ""
+    /** what a hold does there, as written on the DinMeter ("HOLD: BACK", "HOLD 2 S: RESET SERVICE") */
+    private fun hintHold(): String = hintGroups().firstOrNull { it.startsWith("HOLD") } ?: "HOLD: BACK"   // the narrow DinMeter drops the hold group; there a hold goes back
 
     // the phone back key: on a DinMeter menu or service screen one level up there; on the main screen to the background
     // (the link stays, the app is not closed)

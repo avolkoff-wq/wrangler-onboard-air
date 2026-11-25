@@ -95,8 +95,12 @@ class HomeView(ctx: Context, private val onTurn: (Int) -> Unit = {}) : View(ctx)
             else -> 0xFF2C2C2E.toInt()
         }
         // soft glow of the state colour behind everything
-        p.shader = RadialGradient(w / 2, h * 0.35f, max(w, h) * 0.75f, (accent and 0x00FFFFFF) or 0x55000000, Color.TRANSPARENT, Shader.TileMode.CLAMP)
-        c.drawRect(0f, 0f, w, h, p); p.shader = null
+        // soft glow of the state colour, only when there is a state to show; it fades out before the view's sides, so no
+        // edge shows next to the knob (side by side on the unfolded Fold)
+        if (accent != 0xFF2C2C2E.toInt()) {
+            p.shader = RadialGradient(w / 2, h * 0.35f, min(max(w, h) * 0.75f, w * 0.6f), (accent and 0x00FFFFFF) or 0x55000000, Color.TRANSPARENT, Shader.TileMode.CLAMP)
+            c.drawRect(0f, 0f, w, h, p); p.shader = null
+        }
 
         when {
             s.state == 8 -> drawError(c, s, w, h)
@@ -128,7 +132,8 @@ class HomeView(ctx: Context, private val onTurn: (Int) -> Unit = {}) : View(ctx)
         val m = 16 * dp
         val cw = w - 2 * m
         val ch = min(cw * 0.62f, h * 0.44f)
-        val top = 4 * dp
+        // a tall column (the unfolded Fold, side by side with the knob): the card and the text under it as one block in the middle
+        val top = if (h > cw * 1.3f) ((h - ch - 330 * dp) / 2).coerceAtLeast(4 * dp) else 4 * dp
         c.save()
         r.set(m, top, m + cw, top + ch)
         val clip = android.graphics.Path().apply { addRoundRect(r, 24 * dp, 24 * dp, android.graphics.Path.Direction.CW) }
@@ -162,7 +167,7 @@ class HomeView(ctx: Context, private val onTurn: (Int) -> Unit = {}) : View(ctx)
         heavy { centeredF(c, name, y, 34f, if (s.target < 0.8f) ORANGE else 0xFFF5F5F7.toInt()) }
         p.letterSpacing = 0f
         // target: big white heavy digits + BAR (advisor: one accent per state, no neon)
-        val numSize = min(h * 0.18f, w * 0.40f)
+        val numSize = numSize()
         y += numSize * 0.92f
         p.typeface = jeepFont; p.textSize = numSize; p.color = 0xFFF5F5F7.toInt()
         val num = "%.1f".format(s.target)
@@ -197,7 +202,7 @@ class HomeView(ctx: Context, private val onTurn: (Int) -> Unit = {}) : View(ctx)
         p.letterSpacing = 0.08f
         heavy { centeredF(c, if (s.customStep == 0) "CUSTOM PRESSURE" else "WHEELS ON THE LINE", y, 26f, 0xFF64D2FF.toInt()) }
         p.letterSpacing = 0f
-        val numSize = min(height * 0.18f, w * 0.40f)
+        val numSize = numSize()
         y += numSize * 0.92f
         p.typeface = jeepFont; p.textSize = numSize; p.color = 0xFF64D2FF.toInt(); p.textScaleX = 0.9f
         val num = if (s.customStep == 0) "%.1f".format(s.customEdit) else "${s.customWheels}"
@@ -219,11 +224,13 @@ class HomeView(ctx: Context, private val onTurn: (Int) -> Unit = {}) : View(ctx)
     /** how far to move the text block down so it sits midway between the dots line and the bottom of this view (the knob
      *  starts there): the block = the title's cap height, the big number and what follows it (dp) */
     private fun centre(dotsY: Float, titleSp: Float, tailDp: Float): Float {
-        val numSize = min(height * 0.18f, width * 0.40f)
+        val numSize = numSize()
         val block = titleSp * 0.72f * dp + numSize * 0.92f + tailDp * dp
         val natural = 44 * dp - titleSp * 0.72f * dp          // the gap the layout leaves above the title without centring
         return (((height - dotsY) - block) / 2 - natural).coerceAtLeast(0f)
     }
+    /** the big number: by the view, never over 100 dp (the unfolded Fold's tall column made it 190 dp) */
+    private fun numSize() = minOf(height * 0.18f, width * 0.40f, 100 * dp)
     /** a heavier weight than Roboto Condensed Bold has: fill and a thin stroke of the same colour (advisor) */
     private inline fun heavy(f: () -> Unit) {
         p.style = Paint.Style.FILL_AND_STROKE; p.strokeWidth = p.textSize * 0.03f; p.strokeJoin = Paint.Join.MITER
@@ -257,7 +264,7 @@ class HomeView(ctx: Context, private val onTurn: (Int) -> Unit = {}) : View(ctx)
         p.letterSpacing = 0f
         val est = s.state == 4 || s.state == 5
         val v = if (est) s.est else s.bar
-        val numSize = min(h * 0.18f, w * 0.40f)
+        val numSize = numSize()
         y += numSize * 0.92f
         p.typeface = jeepFont; p.textSize = numSize; p.color = 0xFFF5F5F7.toInt(); p.textScaleX = 0.9f
         val num = "%.2f".format(v)
@@ -293,7 +300,7 @@ class HomeView(ctx: Context, private val onTurn: (Int) -> Unit = {}) : View(ctx)
         p.letterSpacing = 0.08f
         heavy { centeredF(c, title.uppercase(), y, 30f, RED) }
         p.letterSpacing = 0f
-        val numSize = min(h * 0.18f, w * 0.40f)
+        val numSize = numSize()
         y += numSize * 0.92f
         p.typeface = jeepFont; p.textSize = numSize; p.color = 0xFFF5F5F7.toInt(); p.textScaleX = 0.9f
         val num = "%.2f".format(s.bar); val nw = p.measureText(num)

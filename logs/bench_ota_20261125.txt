@@ -1,0 +1,51 @@
+08:52:50.039 > ui
+08:52:50.090 < UI,15219,0,3,0,0,0,0,0.012,0.012,2.30,1.471,0.00,0,0,1,0,0,41385,57829
+08:52:50.359 > status
+08:52:50.411 < # fw 0.7.7  preset HIGHWAY  target 2.30 bar  sensor 0.014 bar (0.004 V)  state 0 err 0
+08:52:50.411 < # ADC2 failed samples since the last RUN: 0
+08:52:50.411 < # AUX1 0.00 V  no module  volt check 1  engine confirm 1  valve 1  demo 0
+08:52:50.411 < # tyre 285/70R17  rate 0.0097  kTop 0.0058  offset 0.400  c 0.00  offcap 0.80  tauD 211.8  learned 0/0  cal a 1.0000 b 0.000
+08:52:50.411 < # BT on  bonds 2  connected 1  pairing 0  phone inputs 23
+08:52:50.411 < # compressor 0.16 h  valve 0.09 h  since filter service 0.01 h  boot 36
+08:52:51.213 > hold
+08:52:52.121 > ui
+08:52:52.175 < UI,15269,1,0,0,0,0,0,0.014,0.014,2.30,1.471,0.00,0,0,1,0,0,41385,59903
+08:52:52.443 > right
+08:52:52.771 > right
+08:52:53.096 > right
+08:52:53.423 > press
+08:52:54.062 > ui
+08:52:54.118 < UI,15321,1,0,0,0,0,0,0.013,0.013,2.30,1.471,0.00,0,0,1,0,0,41385,61829
+08:52:54.388 > right
+08:52:54.709 > press
+08:52:54.762 < 36,636.7,BT,on=0;
+08:52:56.750 > ui
+08:52:56.805 < UI,15390,4,1,0,0,0,0,0.014,0.014,2.30,1.471,0.00,0,0,1,0,0,86536,64519
+08:52:57.072 > dl
+08:52:57.126 < DL,240,135,5,4
+08:52:57.126 < DLT,120,9,135,18,1,3,UPDATE MODE
+08:52:57.126 < DLT,120,36,146,18,1,3,WiFi WranglerAir
+08:52:57.126 < DLT,120,63,118,18,1,3,pass jeepjeep
+08:52:57.126 < DLT,120,90,182,18,1,3,192.168.4.1  (log: /log)
+08:52:57.126 < DLT,120,117,102,18,1,3,HOLD: EXIT
+08:52:57 # DinMeter in UPDATE MODE, AP WranglerAir up
+08:53:04 # Mac joins WranglerAir: rc 0 
+08:53:07 # Mac address 192.168.4.2 after 7 s
+08:53:08 # page /: ok (4393 bytes)
+08:53:08 # log download: http 200 43675 bytes
+08:53:16 # upload wrangler_air.bin: "OK, rebooting" in 7.4 s
+08:53:26.404 > status
+08:53:26.459 < # fw 0.7.7  preset HIGHWAY  target 2.30 bar  sensor 0.011 bar (0.003 V)  state 0 err 0
+08:53:26.459 < # ADC2 failed samples since the last RUN: 0
+08:53:26.459 < # AUX1 0.00 V  no module  volt check 1  engine confirm 1  valve 1  demo 0
+08:53:26.459 < # tyre 285/70R17  rate 0.0097  kTop 0.0058  offset 0.400  c 0.00  offcap 0.80  tauD 211.8  learned 0/0  cal a 1.0000 b 0.000
+08:53:26.460 < # BT on  bonds 2  connected 1  pairing 0  phone inputs 0
+08:53:26.460 < # compressor 0.16 h  valve 0.09 h  since filter service 0.01 h  boot 37
+08:53:27 # after: # fw 0.7.7  preset HIGHWAY  target 2.30 bar  sensor 0.011 bar (0.003 V)  state 0 err 0
+08:53:27 # after: # ADC2 failed samples since the last RUN: 0
+08:53:27 # after: # AUX1 0.00 V  no module  volt check 1  engine confirm 1  valve 1  demo 0
+08:53:27 # after: # tyre 285/70R17  rate 0.0097  kTop 0.0058  offset 0.400  c 0.00  offcap 0.80  tauD 211.8  learned 0/0  cal a 1.0000 b 0.000
+08:53:27 # after: # BT on  bonds 2  connected 1  pairing 0  phone inputs 0
+08:53:27 # after: # compressor 0.16 h  valve 0.09 h  since filter service 0.01 h  boot 37
+08:53:27 # boot before: # compressor 0.16 h  valve 0.09 h  since filter service 0.01 h  boot 36
+08:53:29 # Mac back on the home network: yes after 2 s

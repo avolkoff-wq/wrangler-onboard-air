@@ -9,6 +9,7 @@ import android.graphics.Path
 import android.graphics.RadialGradient
 import android.graphics.RectF
 import android.graphics.Shader
+import kotlin.math.min
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.exp
@@ -51,6 +52,8 @@ object SceneArt {
         td += dt * moving
         runProg = if (running) progress else -1f; runCol = accent
         t = time
+        kw = min(w, h / 0.62f)   // the Jeep's frame: a card wider than 0.62 (the unfolded Fold) keeps the car to its height
+        cx = w / 2
         c.save(); c.clipRect(0f, 0f, w, h)
         when (preset) {
             0 -> highway(c, w, h)
@@ -137,6 +140,9 @@ object SceneArt {
     // ---------- the Jeep ----------
     private class Pose(val x: Float, val y: Float, val ang: Float, val z: Float)
     /** stand the Jeep on the ground: rear wheel at screen x `xr`, both wheels on ground(x), plus a small body bounce */
+    private var kw = 1f; private var cx = 0f
+    /** the Jeep at fraction a of a 0.62 card (rear wheel) and b of its width (length), centred the same way in a wider card */
+    private fun at(a: Float, b: Float, ground: (Float) -> Float, bounce: Float = 0f) = pose(cx - (0.5f - a) * kw, b * kw, ground, bounce)
     private fun pose(xr: Float, len: Float, ground: (Float) -> Float, bounce: Float = 0f): Pose {
         val z = len / JeepShape.W
         val wb = (FRONT_X - REAR_X) * z
@@ -315,7 +321,7 @@ object SceneArt {
         p.color = 0xEEFFFFFF.toInt()
         every(w, w * 0.18f, off) { x, _ -> c.drawRect(x, g + h * 0.15f, x + w * 0.09f, g + h * 0.17f, p) }
         val road = g + h * 0.075f
-        val ps = pose(w * 0.18f, w * 0.66f, { road }, bounce = h * 0.003f * sin(t * 17f) * moving)
+        val ps = at(0.18f, 0.66f, { road }, bounce = h * 0.003f * sin(t * 17f) * moving)
         jeep(c, ps, 0xFFE8E4F0.toInt(), 0xFF5D6378.toInt(), lights = true, wheelTurn = turn(speed, ps.z))
     }
 
@@ -332,7 +338,7 @@ object SceneArt {
         p.color = 0xFF0E0F12.toInt(); p.style = Paint.Style.STROKE; p.strokeWidth = h * 0.008f
         every(w, w * 0.45f, off) { x, _ -> path.reset(); path.moveTo(x, h * 0.85f); path.lineTo(x + w * 0.03f, h * 0.89f); path.lineTo(x + w * 0.07f, h * 0.87f); path.lineTo(x + w * 0.1f, h * 0.92f); c.drawPath(path, p) }
         p.style = Paint.Style.FILL
-        val ps = pose(w * 0.18f, w * 0.66f, g)
+        val ps = at(0.18f, 0.66f, g)
         jeep(c, ps, 0xFFEDF1F5.toInt(), 0xFF7D8792.toInt(), wheelTurn = turn(speed, ps.z))
     }
 
@@ -353,7 +359,7 @@ object SceneArt {
             val sy = h * 0.83f + fy * h * 0.17f
             p.color = if (fr > 0.5f) 0xFFD9C4A3.toInt() else 0xFF8C7458.toInt(); c.drawCircle(sx, sy, h * (0.006f + fr * 0.012f), p)
         }
-        val ps = pose(w * 0.18f, w * 0.66f, g)
+        val ps = at(0.18f, 0.66f, g)
         dust(c, ps, 0xFFD9C4A3.toInt())
         jeep(c, ps, 0xFFFFF8EE.toInt(), 0xFF9C8C78.toInt(), wheelTurn = turn(speed, ps.z))
     }
@@ -368,7 +374,7 @@ object SceneArt {
         band(c, w, h, g, 0xFF6B4E33.toInt(), 0xFF3A2A1C.toInt())
         p.color = 0x553A2A1C
         every(w, w * 0.12f, off) { x, _ -> c.drawRect(x, g(x) + h * 0.09f, x + w * 0.05f, g(x) + h * 0.105f, p) }
-        val ps = pose(w * 0.18f, w * 0.66f, g)
+        val ps = at(0.18f, 0.66f, g)
         jeep(c, ps, 0xFFEFF5EA.toInt(), 0xFF5F7562.toInt(), lights = true, wheelTurn = turn(speed, ps.z))
     }
 
@@ -399,7 +405,7 @@ object SceneArt {
         band(c, w, h, g, 0xFF8E8A84.toInt(), 0xFF3B3935.toInt())
         p.color = 0x22FFFFFF
         every(w, period, off) { x, _ -> path.reset(); path.moveTo(x - w * 0.12f, g(x - w * 0.12f)); path.lineTo(x, g(x)); path.lineTo(x + w * 0.02f, g(x) + h * 0.06f); path.close(); c.drawPath(path, p) }
-        val ps = pose(w * 0.17f, w * 0.58f, g)
+        val ps = at(0.17f, 0.58f, g)
         jeep(c, ps, 0xFFF2F7FF.toInt(), 0xFF6C7C92.toInt(), wheelTurn = turn(speed, ps.z))
     }
 
@@ -432,7 +438,7 @@ object SceneArt {
         p.color = 0x22000000; p.style = Paint.Style.STROKE; p.strokeWidth = h * 0.006f
         for (i in 0 until 4) { path.reset(); var x = 0f; path.moveTo(0f, g(0f) + h * (0.04f + i * 0.03f)); while (x < w) { path.lineTo(x, g(x) + h * (0.04f + i * 0.03f) + h * 0.006f * sin((x + off) / w * 40)); x += w / 40 }; c.drawPath(path, p) }
         p.style = Paint.Style.FILL
-        val ps = pose(w * 0.18f, w * 0.66f, g)
+        val ps = at(0.18f, 0.66f, g)
         dust(c, ps, 0xFFF3CD8F.toInt())
         jeep(c, ps, 0xFFFFFFFF.toInt(), 0xFF8E6440.toInt(), wheelTurn = turn(speed, ps.z))
     }
@@ -442,7 +448,7 @@ object SceneArt {
         sun(c, w * 0.2f, h * 0.62f, h * 0.09f, 0xFFFFC27A.toInt())
         band(c, w, h, { x -> h * (0.66f - 0.06f * sin(x / w * 4f)) }, 0xFFD18A4C.toInt(), 0xFFA8652F.toInt())
         val shake = h * 0.004f * sin(t * 23f) * moving   // the body shakes while the wheels dig
-        val ps = pose(w * 0.20f, w * 0.64f, { h * 0.8f }, bounce = shake)
+        val ps = at(0.20f, 0.64f, { h * 0.8f }, bounce = shake)
         val sunk = h * 0.06f
         jeep(c, ps, 0xFFFFFFFF.toInt(), 0xFF7E4A38.toInt(), lights = true, wheelTurn = td * 14f, sunk = sunk, spin = 14f * moving)
         // the sand the wheels sit in, piled a little higher at each wheel
@@ -473,7 +479,7 @@ object SceneArt {
         c.drawRect(0f, 0f, w, h, p); p.shader = null
         p.color = Color.BLACK; p.shader = LinearGradient(0f, h * 0.8f, 0f, h, 0xFF1F2024.toInt(), 0xFF0C0C0E.toInt(), Shader.TileMode.CLAMP); c.drawRect(0f, h * 0.8f, w, h, p); p.shader = null
         p.color = 0x0FFFFFFF; c.drawRect(0f, h * 0.8f, w, h * 0.8f + 1f, p)
-        val ps = pose(w * 0.18f, w * 0.66f, { h * 0.8f })
+        val ps = at(0.18f, 0.66f, { h * 0.8f })
         c.save(); c.scale(1f, -1f, 0f, h * 0.8f); jeep(c, ps, 0xFF3A3D45.toInt(), 0xFF1A1B20.toInt(), wheelTurn = 0f); c.restore()
         p.color = Color.BLACK; p.shader = LinearGradient(0f, h * 0.8f, 0f, h, 0x991A1B20.toInt(), 0xFF1A1B20.toInt(), Shader.TileMode.CLAMP); c.drawRect(0f, h * 0.8f, w, h, p); p.shader = null
         jeep(c, ps, 0xFFF2F2F7.toInt(), 0xFF6E717C.toInt(), wheelTurn = 0f)
