@@ -52,7 +52,7 @@ class MainActivity : Activity(), Ble.Listener {
         // side by side unless the screen is clearly tall: the unfolded Fold (750 x 830 dp) is "portrait" but nearly square,
         // stacked it gave a long low scene card and a small knob (owner, 25.11)
         val cfg = resources.configuration
-        val land = cfg.screenHeightDp < cfg.screenWidthDp * 1.3f
+        val land = cfg.screenWidthDp >= 600 || cfg.screenHeightDp < cfg.screenWidthDp * 1.3f   // TASK.md: 600 dp and wider, two columns
 
         home = HomeView(this) { send(if (it < 0) Ble.LEFT else Ble.RIGHT) }
         mirror = ScreenView(this, { send(if (it < 0) Ble.LEFT else Ble.RIGHT) }, { send(it) })
