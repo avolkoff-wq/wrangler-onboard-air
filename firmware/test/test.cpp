@@ -227,6 +227,47 @@ static int regressions() {
     char m[120]; snprintf(m, sizeof m, "AUTO settle, steady line, loop pass 5..70 ms: longest %.2f s (at %d ms)", worst / 1000.0, worstDt);
     check(worst <= 2000, m);
   }
+  {   // 28-32: preset pressures from the menu, kept in NVS per tyre size (0.8.0)
+    g_valve = true; Preferences::bytes().clear();
+    auto near = [](float a, float b) { return fabsf(a - b) < 1e-4f; };
+    Settings a; a.tyre = 0;
+    const bool ok0 = a.setPresetBar(2, 1.3f, false);          // GRAVEL on 255/75
+    a.tyre = 1; const bool ok1 = a.setPresetBar(2, 1.7f, false); // GRAVEL on 285/70
+    a.tyre = 0;
+    Settings b; b.load();
+    char m[140]; snprintf(m, sizeof m, "presets saved and read back: GRAVEL 255/75 %.2f, 285/70 %.2f, others factory (HIGHWAY %.2f / %.2f)",
+                          b.ptab[0][2], b.ptab[1][2], b.ptab[0][0], b.ptab[1][0]);
+    check(ok0 && ok1 && near(b.ptab[0][2], 1.3f) && near(b.ptab[1][2], 1.7f) && near(b.ptab[0][0], 2.5f) && near(b.ptab[1][0], 2.3f) && near(b.ptab[0][4], 1.0f), m);
+
+    a.preset = 2; a.target = a.presetBar(2); const float t255 = a.target;
+    a.setTyre(1); const float t285 = a.target; a.setTyre(0);
+    a.setPresetBar(2, 1.4f, false); const float tNow = a.target;   // the active preset: the target follows at once
+    snprintf(m, sizeof m, "tyre size switches the targets: GRAVEL %.2f -> %.2f -> %.2f; editing the active preset moves the target to %.2f",
+             t255, t285, a.target, tNow);
+    check(near(t255, 1.3f) && near(t285, 1.7f) && near(tNow, 1.4f), m);
+
+    // garbage in NVS: NaN / inf give the factory value, out of range is clamped like custom, a row of another length is ignored
+    float bad[Settings::N_PT]; for (int i = 0; i < Settings::N_PT; i++) bad[i] = PRESETS[i].bar;
+    bad[0] = NAN; bad[1] = INFINITY; bad[3] = 9.0f; bad[4] = -1.0f;
+    Preferences pr; pr.putBytes("pt0", bad, sizeof bad);
+    const float shortRow[3] = {0.1f, 0.2f, 0.3f}; pr.putBytes("pt1", shortRow, sizeof shortRow);
+    Settings g; g.load();
+    snprintf(m, sizeof m, "NVS garbage: NaN %.2f, inf %.2f, 9.0 -> %.2f, -1 -> %.2f, short row -> HIGHWAY %.2f", g.ptab[0][0], g.ptab[0][1], g.ptab[0][3], g.ptab[0][4], g.ptab[1][0]);
+    check(near(g.ptab[0][0], 2.5f) && near(g.ptab[0][1], 1.8f) && near(g.ptab[0][3], TARGET_MAX) && near(g.ptab[0][4], TARGET_MIN) &&
+          near(g.ptab[1][0], 2.3f) && near(g.ptab[1][2], 1.5f), m);
+
+    Settings r; r.ptab[0][1] = 2.0f; r.ptab[1][5] = 1.1f; r.custom = 2.7f; r.preset = 1; r.target = 2.0f;
+    const bool rs = r.resetPresets(false);
+    snprintf(m, sizeof m, "RESET ALL: ROUGH ROAD %.2f, SAND 285/70 %.2f, CUSTOM %.2f, target %.2f", r.ptab[0][1], r.ptab[1][5], r.custom, r.target);
+    check(rs && near(r.ptab[0][1], 1.8f) && near(r.ptab[1][5], 0.8f) && near(r.custom, 2.0f) && near(r.target, 1.8f), m);
+
+    Settings busy; busy.preset = 3; busy.target = busy.presetBar(3); busy.ptab[0][1] = 2.0f;
+    const bool e1 = busy.setPresetBar(3, 2.2f, true), e2 = busy.setPresetBar(P_CUSTOM, 2.9f, true), e3 = busy.resetPresets(true);
+    snprintf(m, sizeof m, "while the pump works an edit is refused: TRAIL %.2f, target %.2f, CUSTOM %.2f, reset kept ROUGH ROAD %.2f",
+             busy.ptab[0][3], busy.target, busy.custom, busy.ptab[0][1]);
+    check(!e1 && !e2 && !e3 && near(busy.ptab[0][3], 1.2f) && near(busy.target, 1.2f) && near(busy.custom, 2.0f) && near(busy.ptab[0][1], 2.0f), m);
+    Preferences::bytes().clear();
+  }
   printf("==== regressions: %s (%d failed)\n", g_fail ? "FAILED" : "all ok", g_fail);
   return g_fail ? 1 : 0;
 }

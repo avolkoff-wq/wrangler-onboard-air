@@ -7,7 +7,7 @@
 //   VALVE (deflate valve fitted, schematic C), DEMO (virtual tyres for the desk, never saved, off at every power-up).
 // The USB serial log, LIVE stream and commands are always on.
 #define BENCH_USB 1
-#define FW_VERSION "0.7.7"
+#define FW_VERSION "0.8.0"
 inline bool g_valve = true;     // menu VALVE, saved (Settings::valve)
 inline bool g_demo  = false;    // menu DEMO, RAM only
 inline float g_fakeV = -1;      // USB "fake <bar>": pin voltage the sensor pretends to read (< 0 = off), RAM only
@@ -80,6 +80,7 @@ constexpr float TARGET_MAX       = 3.0f;   // bar, hard cap for the program
 constexpr float TARGET_LOW_WARN  = 0.8f;   // below this the screen shows LOW: bead may come off without beadlocks
 constexpr float START_BAND       = 0.10f;  // at start: within +/-0.1 bar of the target nothing is done
 constexpr float TARGET_STEP      = 0.1f;
+constexpr float PSI_PER_BAR      = 14.5038f;
 // Typical pressures: the knob steps through these instead of 0.1 bar. Latin names only (screen font).
 // 255/75R17 without beadlocks. Below 0.8 bar the screen shows LOW.
 struct Preset { const char* name; float bar; };
@@ -92,6 +93,7 @@ constexpr Preset PRESETS[] = {      // owner's list, 18.11.2026, high to low; in
   {"SAND",       0.8f}, // 12 psi: sand, dunes
   {"RECOVERY",   0.5f}, //  7 psi: stuck in soft sand, walking pace only
   {"CUSTOM",     2.0f}, // own value, set with the knob in 0.1 bar steps (NVS "custom"); 2.0 is only the default
+  // 0.8.0, owner: these are the factory values. The values in use live in NVS per tyre size (storage.h ptab, menu PRESETS)
 };
 constexpr int N_PRESETS = sizeof(PRESETS) / sizeof(PRESETS[0]);
 constexpr int P_CUSTOM  = N_PRESETS - 1;   // the last preset is CUSTOM
@@ -146,7 +148,7 @@ struct TyreSize { const char* name; float w, ar, rim; };
 constexpr TyreSize TYRES[] = { {"255/75R17", 255, 75, 17}, {"285/70R17", 285, 70, 17} };
 // HIGHWAY per tyre size (index = TYRES): 255/75R17 2.5 bar (placard 37 psi); 285/70R17 2.3 bar (owners of C-load
 // 285/70 on JL / JK run 30-35 psi on the road; fine-tune with a chalk test). Checked 24.11.2026.
-constexpr float HIGHWAY_BY_TYRE[] = { 2.5f, 2.3f };
+constexpr float HIGHWAY_BY_TYRE[] = { 2.5f, 2.3f };   // factory HIGHWAY per tyre size (0.8.0: the table in NVS starts from it)
 constexpr int   N_TYRE_SIZES = sizeof(TYRES) / sizeof(TYRES[0]);
 constexpr int   N_TYRES     = 4;
 constexpr float TYRE_FILL   = 0.55f;                       // torus shape vs the full annulus box

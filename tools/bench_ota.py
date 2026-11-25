@@ -46,7 +46,7 @@ def sh(*a, timeout=60):
 home = sh('networksetup', '-listpreferredwirelessnetworks', 'en0')[1].splitlines()[1].strip()
 result = {}
 try:
-    # main screen, then menu CONNECT (top row 3) > WIFI UPDATE + LOG (row 1)
+    # main screen, then menu CONNECT (top row 4 since 0.8.0) > WIFI UPDATE + LOG (row 1)
     for _ in range(6):
         scr, pos, st = ui()
         if scr == 0 and st == 0: break
@@ -54,7 +54,7 @@ try:
     boot0 = [l for l in cmd('status', 0.8) if 'boot' in l]
     cmd('hold', 0.9)
     scr, pos, _ = ui(); assert scr == 1, 'menu did not open'
-    for _ in range(3): cmd('right', 0.3)
+    for _ in range(4): cmd('right', 0.3)
     cmd('press', 0.6)
     scr, pos, _ = ui(); assert scr == 1 and pos == 0, 'not in CONNECT'
     cmd('right', 0.3); cmd('press', 2.0)

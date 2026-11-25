@@ -23,6 +23,8 @@ struct UiSnapshot {
   float    aux1 = 0;       // AUX1 volts (0 = no module)
   uint32_t runMs = 0, phaseMs = 0;
   uint32_t adcFails = 0;
+  bool     psi = false;     // display units (0.8.0)
+  float    presets[8] = {}; // the preset pressures of the tyre size in use, bar (0.8.0, menu PRESETS)
 };
 
 inline UiSnapshot g_ui;

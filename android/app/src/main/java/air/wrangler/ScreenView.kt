@@ -81,7 +81,7 @@ class ScreenView(ctx: Context, private val onTurn: (Int) -> Unit, private val se
 
     private val TITLES = mapOf(2 to "SETTING", 3 to "CALIBRATE GAUGE", 4 to "WI-FI UPDATE", 5 to "VERSION", 6 to "SENSOR LIVE",
         8 to "LEARN TEST", 9 to "LEARN TEST", 10 to "LEARN TEST", 11 to "COMPRESSOR HOURS", 12 to "COMPRESSOR HOURS",
-        13 to "OUTPUT TEST", 14 to "WI-FI PASSWORD", 15 to "BLUETOOTH")
+        13 to "OUTPUT TEST", 14 to "WI-FI PASSWORD", 15 to "BLUETOOTH", 16 to "PRESET")
 
     /** the device palette as the app's: white, grey notes, amber warnings, green / red results */
     private fun tone(col: Int): Int {

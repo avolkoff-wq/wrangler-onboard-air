@@ -95,11 +95,12 @@ def go_main():
         elif u['screen'] != 0: cmd('hold', 0.8)
     raise RuntimeError('cannot reach the main screen')
 def open_menu(group=None, item=0):
-    """main -> menu top; optionally into group g (0 SETUP, 1 SERVICE, 2 CONNECT, 3 SAFETY, 4 PUMP TUNING) on item"""
+    """main -> menu top; optionally into group g (0 SETUP, 1 SERVICE, 2 CONNECT, 3 SAFETY, 4 PUMP TUNING, 5 PRESETS) on item.
+    Top level since 0.8.0: TYRE, PRESETS, SETUP, SERVICE, CONNECT, SAFETY, PUMP TUNING, EXIT"""
     go_main(); cmd('hold', 0.8)
     assert ui()['screen'] == 1, 'menu did not open'
     if group is None: return
-    for _ in range(group + 1): cmd('right', 0.25)
+    for _ in range(1 if group == 5 else group + 2): cmd('right', 0.25)
     cmd('press', 0.5)
     for _ in range(item): cmd('right', 0.25)
 def start_run():
@@ -108,7 +109,7 @@ def start_run():
         if ui()['state'] not in (0, 7, 8): return True
     return False
 
-GROUPS = [('SETUP', 5), ('SERVICE', 5), ('CONNECT', 3), ('SAFETY', 7), ('PUMP TUNING', 3)]
+GROUPS = [('SETUP', 5), ('SERVICE', 5), ('CONNECT', 3), ('SAFETY', 7), ('PUMP TUNING', 3), ('PRESETS', 9)]
 def layout_pass(tag):
     go_main(); cmd('fake off', 0.6)
     for k in range(8):                                   # every preset, no pressure
@@ -128,7 +129,7 @@ def layout_pass(tag):
     go_main()
     # menu: top and every group at its first and last row
     open_menu(); check('menu top');
-    for _ in range(6): cmd('right', 0.25)
+    for _ in range(7): cmd('right', 0.25)
     check('menu top, last row')
     for g, (name, n) in enumerate(GROUPS):
         open_menu(g); check('menu %s' % name)
@@ -138,7 +139,8 @@ def layout_pass(tag):
     for g, item, name, leave in ((1, 0, 'SENSOR LIVE', 'press'), (1, 1, 'OUTPUT TEST', 'hold'), (1, 2, 'COMPRESSOR HOURS', 'press'),
                                  (1, 4, 'VERSION + VALUES', 'press'), (2, 0, 'BLUETOOTH', 'hold'), (2, 2, 'WIFI PASSWORD', 'hold'),
                                  (4, 0, 'FLOW OFFSET editor', 'hold'), (4, 1, 'OFFSET LIMIT editor', 'hold'), (4, 2, 'SETTLE TIME editor', 'hold'),
-                                 (0, 1, 'LEARN TEST', 'hold'), (0, 0, 'CALIBRATE GAUGE', 'hold')):
+                                 (0, 1, 'LEARN TEST', 'hold'), (0, 0, 'CALIBRATE GAUGE', 'hold'),
+                                 (5, 1, 'PRESET editor, ROUGH ROAD', 'hold'), (5, 7, 'PRESET editor, CUSTOM', 'hold')):
         open_menu(g, item); cmd('press', 0.8); check(name); cmd(leave, 0.9)
     go_main()
     # run and error screens on a typed pressure

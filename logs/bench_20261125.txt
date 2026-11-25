@@ -1,0 +1,1973 @@
+14:50:16.191 > presets
+14:50:16.244 < # 255/75R17 (in use):  HIGHWAY 2.50  ROUGH ROAD 1.80  GRAVEL 1.50  TRAIL 1.20  ROCK 1.00  SAND 0.80  RECOVERY 0.50
+14:50:16.245 < # 285/70R17:  HIGHWAY 2.30  ROUGH ROAD 1.80  GRAVEL 1.50  TRAIL 1.20  ROCK 1.00  SAND 0.80  RECOVERY 0.50
+14:50:16.245 < # CUSTOM 3.00  preset ROCK  target 1.00 bar
+14:50:16.836 > status
+14:50:16.890 < # fw 0.8.0  preset ROCK  target 1.00 bar  sensor 0.011 bar (0.003 V)  state 0 err 0
+14:50:16.890 < # ADC2 failed samples since the last RUN: 0
+14:50:16.890 < # AUX1 0.00 V  no module  volt check 1  engine confirm 1  valve 1  demo 0
+14:50:16.890 < # tyre 255/75R17  rate 0.0114  kTop 0.0069  offset 0.400  c 0.00  offcap 1.00  tauD 179.3  learned 0/0  cal a 1.0000 b 0.000
+14:50:16.890 < # BT on  bonds 2  connected 0  pairing 0  phone inputs 0
+14:50:16.890 < # compressor 0.16 h  valve 0.09 h  since filter service 0.01 h  boot 60
+14:50:17.477 > log
+14:50:17.528 < # /log_old.csv: none
+14:50:17.528 < # ---- /log.csv (51838 bytes)
+14:50:17.528 < boot,t_s,event,data
+14:50:17.528 < 1,2.6,BOOT,fw=0.6.1;reset=USB;tyre=255/75R17;air_L=210;target=2.50;offset=0.400;c=0.00;offcap=0.600;rate=0.0114;kTop=0.0069;bias=0.000;dev=0.050;learned=0;tauD=179.3;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.00;vent_h=0.00;svc_h=0.00;
+14:50:17.528 < 2,0.5,BOOT,fw=0.6.1;reset=USB;tyre=255/75R17;air_L=210;target=2.50;offset=0.400;c=0.00;offcap=0.600;rate=0.0114;kTop=0.0069;bias=0.000;dev=0.050;learned=0;tauD=179.3;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.00;vent_h=0.00;svc_h=0.00;
+14:50:17.528 < 3,0.5,BOOT,fw=0.6.1;reset=USB;tyre=255/75R17;air_L=210;target=2.50;offset=0.400;c=0.00;offcap=0.600;rate=0.0114;kTop=0.0069;bias=0.000;dev=0.050;learned=0;tauD=179.3;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.00;vent_h=0.00;svc_h=0.00;
+14:50:17.529 < 3,2.2,FAKE,bar=1.000;
+14:50:17.529 < 4,0.5,BOOT,fw=0.6.1;reset=USB;tyre=255/75R17;air_L=210;target=2.50;offset=0.400;c=0.00;offcap=0.600;rate=0.0114;kTop=0.0069;bias=0.000;dev=0.050;learned=0;tauD=179.3;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.00;vent_h=0.00;svc_h=0.00;
+14:50:17.529 < 4,14.4,FAKE,bar=1.000;
+14:50:17.532 < 4,38.2,FAKE,bar=1.000;
+14:50:17.532 < 4,41.5,OUTPUT_TEST,output=K1;p_before=1.000;p_after=1.000;fault=0;
+14:50:17.532 < 4,43.1,OUTPUT_TEST,output=VALVE;p_before=1.000;p_after=1.000;fault=0;
+14:50:17.532 < 4,46.2,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:50:17.532 < 4,47.5,OUTPUT_TEST,output=K1;p_before=1.000;p_after=1.000;fault=0;cut=RUN_START;
+14:50:17.532 < 4,47.5,RUN,target=2.50;fw=0.6.1;
+14:50:17.532 < 4,49.6,STATIC,after=START;p=1.000;settle_s=1.3;
+14:50:17.532 < 4,49.7,MODE,mode=INF;p0=1.000;target=2.50;
+14:50:17.532 < 4,64.7,STOP,phase=CAL_PULSE;t_s=15.00;line_bar=1.000;est_bar=0.600;offset=0.400;rate=0.0000;margin=0.100;offcap=0.600;
+14:50:17.533 < 4,71.6,STATIC,after=AFTER_CAL;p=1.000;settle_s=6.0;
+14:50:17.533 < 4,71.7,LEARN_INF,from=CAL_PULSE;off_meas=0.000;c_meas=0.00;rate_meas=0.0000;miss=0.000;offset=0.400>0.400;c=0.00>0.00;rate=0.0114>0.0114;kTop=0.0069>0.0097;bias=0.000>0.000;dev=0.050>0.050;
+14:50:17.533 < 4,80.0,FAKE,bar=1.200;
+14:50:17.533 < 4,81.1,FAKE,bar=1.400;
+14:50:17.533 < 4,82.1,FAKE,bar=1.600;
+14:50:17.533 < 4,83.1,FAKE,bar=1.800;
+14:50:17.533 < 4,84.2,FAKE,bar=2.000;
+14:50:17.533 < 4,85.2,FAKE,bar=2.200;
+14:50:17.533 < 4,86.2,FAKE,bar=2.400;
+14:50:17.533 < 4,87.3,FAKE,bar=2.500;
+14:50:17.533 < 4,88.3,FAKE,bar=2.600;
+14:50:17.533 < 4,89.4,FAKE,bar=2.700;
+14:50:17.533 < 4,90.4,FAKE,bar=2.800;
+14:50:17.533 < 4,90.5,STOP,phase=MAIN;t_s=18.76;line_bar=2.800;est_bar=2.400;offset=0.400;rate=0.1023;margin=0.130;offcap=0.700;
+14:50:17.533 < 4,91.4,FAKE,bar=2.900;
+14:50:17.533 < 4,93.7,STATIC,after=AFTER_MAIN;p=2.900;settle_s=2.4;
+14:50:17.533 < 4,93.7,LEARN_INF,from=MAIN;off_meas=-0.100;c_meas=0.00;rate_meas=0.1013;miss=0.500;offset=0.400>0.400;c=0.00>0.00;rate=0.0114>0.0384;kTop=0.0097>0.0326;bias=0.000>0.150;dev=0.050>0.140;
+14:50:17.533 < 4,93.8,VENT,p=2.900;aim=2.660;tauD=179.3;t_s=11.35;
+14:50:17.533 < 4,97.0,FAKE,bar=2.500;
+14:50:17.534 < 4,105.2,STOP,phase=VENT;t_s=11.35;line_bar=2.500;
+14:50:17.534 < 4,112.1,STATIC,after=AFTER_VENT;p=2.500;settle_s=6.0;
+14:50:17.534 < 4,112.2,LEARN_DEF,t_s=11.35;p_before=2.900;p_after=2.500;aim=2.660;miss=-0.160;tau_meas=105.2;tauD=179.3>105.2;
+14:50:17.534 < 4,112.2,END,result=DONE;mode=INF;target=2.50;p0=1.000;p=2.500;starts= 2;vents= 1;run_s=64.7;cmp_h=0.01;vent_h=0.00;adc_fail= 0;loop_max_ms=1144;
+14:50:17.534 < 4,190.8,FAKE,bar=1.000;
+14:50:17.534 < 4,195.4,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:50:17.534 < 4,196.9,RUN,target=2.50;fw=0.6.1;
+14:50:17.534 < 4,199.1,STATIC,after=START;p=1.000;settle_s=1.3;
+14:50:17.534 < 4,199.1,MODE,mode=INF;p0=1.000;target=2.50;
+14:50:17.534 < 4,204.4,FAKE,bar=0.000;
+14:50:17.534 < 4,204.5,END,result=ERR_SENSOR;mode=INF;target=2.50;p0=1.000;p=1.000;starts= 1;vents= 0;run_s=7.6;cmp_h=0.01;vent_h=0.00;adc_fail= 0;loop_max_ms=193;
+14:50:17.534 < 4,225.5,FAKE,bar=1.000;
+14:50:17.534 < 4,229.1,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:50:17.534 < 4,229.9,RUN,target=2.50;fw=0.6.1;
+14:50:17.534 < 4,232.1,STATIC,after=START;p=1.000;settle_s=1.3;
+14:50:17.534 < 4,232.1,MODE,mode=INF;p0=1.000;target=2.50;
+14:50:17.534 < 4,235.0,FAKE,bar=4.000;
+14:50:17.534 < 4,235.1,END,result=ERR_OVER;mode=INF;target=2.50;p0=1.000;p=1.000;starts= 1;vents= 0;run_s=5.2;cmp_h=0.01;vent_h=0.00;adc_fail= 0;loop_max_ms=133;
+14:50:17.534 < 4,241.1,FAKE,bar=1.000;
+14:50:17.534 < 4,244.7,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:50:17.534 < 4,245.5,RUN,target=2.50;fw=0.6.1;
+14:50:17.534 < 4,247.7,STATIC,after=START;p=1.000;settle_s=1.3;
+14:50:17.534 < 4,247.8,MODE,mode=INF;p0=1.000;target=2.50;
+14:50:17.534 < 4,250.6,END,result=STOPPED;mode=INF;target=2.50;p0=1.000;p=1.000;starts= 1;vents= 0;run_s=5.0;cmp_h=0.01;vent_h=0.00;adc_fail= 0;loop_max_ms=150;
+14:50:17.534 < 4,258.1,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:50:17.534 < 4,258.9,RUN,target=2.50;fw=0.6.1;
+14:50:17.534 < 4,259.8,END,result=STOPPED;mode=-;target=2.50;p0=1.000;p=1.000;starts= 0;vents= 0;run_s=0.9;cmp_h=0.01;vent_h=0.00;adc_fail= 0;loop_max_ms=85;
+14:50:17.535 < 4,341.0,FAKE,bar=1.000;
+14:50:17.535 < 4,343.7,RUN,target=0.50;fw=0.6.1;
+14:50:17.535 < 4,345.8,STATIC,after=START;p=1.000;settle_s=1.3;
+14:50:17.535 < 4,345.9,MODE,mode=DEF;p0=1.000;target=0.50;
+14:50:17.535 < 4,345.9,VENT,p=1.000;aim=0.575;tauD=105.2;t_s=24.96;
+14:50:17.535 < 4,370.9,STOP,phase=VENT;t_s=24.96;line_bar=1.000;
+14:50:17.535 < 4,373.0,STATIC,after=AFTER_VENT;p=1.000;settle_s=1.3;
+14:50:17.535 < 4,373.1,LEARN_DEF,t_s=24.96;p_before=1.000;p_after=1.000;aim=0.575;miss=0.425;tau_meas=0.0;tauD=105.2>105.2;
+14:50:17.535 < 4,373.1,VENT,p=1.000;aim=0.575;tauD=105.2;t_s=24.96;
+14:50:17.535 < 4,398.1,STOP,phase=VENT;t_s=24.96;line_bar=1.000;
+14:50:17.535 < 4,400.2,STATIC,after=AFTER_VENT;p=1.000;settle_s=1.3;
+14:50:17.535 < 4,400.3,LEARN_DEF,t_s=24.96;p_before=1.000;p_after=1.000;aim=0.575;miss=0.425;tau_meas=0.0;tauD=105.2>105.2;
+14:50:17.535 < 4,400.4,VENT,p=1.000;aim=0.575;tauD=105.2;t_s=24.96;
+14:50:17.535 < 4,423.1,END,result=STOPPED;mode=DEF;target=0.50;p0=1.000;p=1.000;starts= 0;vents= 3;run_s=79.4;cmp_h=0.01;vent_h=0.02;adc_fail= 0;loop_max_ms=2043;
+14:50:17.535 < 4,440.8,FAKE,bar=1.000;
+14:50:17.535 < 4,443.6,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:50:17.537 < 4,446.6,ARM_CANCEL,reason=TIMEOUT;
+14:50:17.537 < 4,525.0,FAKE,bar=1.000;
+14:50:17.537 < 4,528.1,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:50:17.537 < 4,529.2,RUN,target=2.50;fw=0.6.1;
+14:50:17.537 < 4,531.3,STATIC,after=START;p=1.000;settle_s=1.3;
+14:50:17.537 < 4,531.4,MODE,mode=INF;p0=1.000;target=2.50;
+14:50:17.538 < 4,591.4,END,result=ERR_LEAK;mode=INF;target=2.50;p0=1.000;p=1.000;starts= 1;vents= 0;run_s=62.2;cmp_h=0.03;vent_h=0.02;adc_fail= 0;loop_max_ms=123;
+14:50:17.538 < 4,611.6,FAKE,bar=1.500;
+14:50:17.538 < 4,624.3,FAKE,bar=1.480;
+14:50:17.538 < 4,625.4,FAKE,bar=1.460;
+14:50:17.538 < 4,626.4,FAKE,bar=1.440;
+14:50:17.538 < 4,627.4,FAKE,bar=1.420;
+14:50:17.538 < 4,628.5,FAKE,bar=1.400;
+14:50:17.538 < 4,629.5,FAKE,bar=1.380;
+14:50:17.538 < 4,630.5,FAKE,bar=1.360;
+14:50:17.538 < 4,631.6,FAKE,bar=1.340;
+14:50:17.538 < 4,632.6,FAKE,bar=1.320;
+14:50:17.538 < 4,633.7,FAKE,bar=1.300;
+14:50:17.538 < 4,634.2,VALVE_STUCK,p=1.300;rate=0.0133;
+14:50:17.538 < 4,634.3,END,result=ERR_VALVE;mode=-;target=2.50;p0=1.300;p=1.300;starts= 1;vents= 0;run_s=0.0;cmp_h=0.03;vent_h=0.02;adc_fail= 0;loop_max_ms=273;
+14:50:17.538 < 4,634.7,FAKE,bar=1.280;
+14:50:17.538 < 4,635.7,FAKE,bar=1.260;
+14:50:17.538 < 4,636.8,FAKE,bar=1.240;
+14:50:17.538 < 4,637.8,FAKE,bar=1.220;
+14:50:17.538 < 4,638.9,FAKE,bar=1.200;
+14:50:17.538 < 4,639.9,FAKE,bar=1.180;
+14:50:17.538 < 4,640.9,FAKE,bar=1.160;
+14:50:17.538 < 4,642.0,FAKE,bar=1.140;
+14:50:17.538 < 4,643.1,FAKE,bar=1.120;
+14:50:17.538 < 4,644.1,FAKE,bar=1.100;
+14:50:17.538 < 4,645.1,FAKE,bar=1.080;
+14:50:17.539 < 4,646.1,FAKE,bar=1.060;
+14:50:17.539 < 4,647.2,FAKE,bar=1.040;
+14:50:17.539 < 4,648.2,FAKE,bar=1.020;
+14:50:17.539 < 4,649.3,FAKE,bar=1.000;
+14:50:17.539 < 4,650.3,FAKE,bar=0.980;
+14:50:17.539 < 4,651.3,FAKE,bar=0.960;
+14:50:17.539 < 4,652.4,FAKE,bar=0.940;
+14:50:17.539 < 4,653.4,FAKE,bar=0.920;
+14:50:17.539 < 4,654.5,FAKE,bar=0.900;
+14:50:17.539 < 4,655.5,FAKE,bar=0.880;
+14:50:17.539 < 4,656.5,FAKE,bar=0.860;
+14:50:17.539 < 4,657.6,FAKE,bar=0.840;
+14:50:17.539 < 4,658.6,FAKE,bar=0.820;
+14:50:17.539 < 4,659.7,FAKE,bar=0.800;
+14:50:17.539 < 4,660.7,FAKE,bar=0.780;
+14:50:17.539 < 4,661.7,FAKE,bar=0.760;
+14:50:17.539 < 4,662.8,FAKE,bar=0.740;
+14:50:17.539 < 4,663.8,FAKE,bar=0.720;
+14:50:17.539 < 4,664.8,FAKE,bar=0.700;
+14:50:17.539 < 4,665.9,FAKE,bar=0.680;
+14:50:17.539 < 4,666.9,FAKE,bar=0.660;
+14:50:17.539 < 4,668.0,FAKE,bar=0.640;
+14:50:17.539 < 4,669.0,FAKE,bar=0.620;
+14:50:17.540 < 4,670.0,FAKE,bar=0.600;
+14:50:17.540 < 4,674.3,FAKE,bar=1.000;
+14:50:17.540 < 4,688.0,FAKE,bar=1.040;
+14:50:17.540 < 4,689.0,FAKE,bar=1.080;
+14:50:17.540 < 4,690.1,FAKE,bar=1.120;
+14:50:17.540 < 4,691.1,FAKE,bar=1.160;
+14:50:17.540 < 4,692.2,FAKE,bar=1.200;
+14:50:17.540 < 4,693.0,PUMP_STUCK,p=1.200;rise=0.600;high=0;
+14:50:17.540 < 4,693.0,END,result=ERR_PUMP_ON;mode=-;target=2.50;p0=1.200;p=1.200;starts= 1;vents= 0;run_s=0.0;cmp_h=0.03;vent_h=0.02;adc_fail= 0;loop_max_ms=273;
+14:50:17.540 < 4,693.2,FAKE,bar=1.240;
+14:50:17.540 < 4,694.2,FAKE,bar=1.280;
+14:50:17.540 < 4,695.3,FAKE,bar=1.320;
+14:50:17.540 < 4,696.3,FAKE,bar=1.360;
+14:50:17.540 < 4,697.3,FAKE,bar=1.400;
+14:50:17.540 < 4,698.4,FAKE,bar=1.440;
+14:50:17.540 < 4,699.4,FAKE,bar=1.480;
+14:50:17.540 < 4,700.5,FAKE,bar=1.520;
+14:50:17.540 < 4,701.5,FAKE,bar=1.560;
+14:50:17.540 < 4,702.5,FAKE,bar=1.600;
+14:50:17.540 < 4,703.6,FAKE,bar=1.640;
+14:50:17.540 < 4,704.6,FAKE,bar=1.680;
+14:50:17.540 < 4,705.6,FAKE,bar=1.720;
+14:50:17.540 < 4,706.8,FAKE,bar=1.760;
+14:50:17.540 < 4,707.7,FAKE,bar=1.800;
+14:50:17.540 < 4,708.8,FAKE,bar=1.840;
+14:50:17.540 < 4,709.8,FAKE,bar=1.880;
+14:50:17.540 < 4,710.9,FAKE,bar=1.920;
+14:50:17.540 < 4,711.9,FAKE,bar=1.960;
+14:50:17.540 < 4,712.9,FAKE,bar=2.000;
+14:50:17.540 < 4,713.9,FAKE,bar=2.040;
+14:50:17.540 < 4,747.3,FAKE,bar=5.500;
+14:50:17.540 < 4,750.8,PUMP_STUCK,p=5.500;rise=3.460;high=1;
+14:50:17.540 < 4,750.9,END,result=ERR_PUMP_ON;mode=-;target=2.50;p0=5.500;p=5.500;starts= 1;vents= 0;run_s=0.0;cmp_h=0.03;vent_h=0.02;adc_fail= 0;loop_max_ms=273;
+14:50:17.540 < 4,768.6,FAKE,bar=1.000;
+14:50:17.540 < 4,776.6,ENGINE_CONFIRM,in=CAL;aux1=0.0;
+14:50:17.540 < 4,779.8,CAL_POINT,n= 0;raw=1.000;gauge=0.00;
+14:50:17.540 < 4,822.8,OFFSET_MAX,auto=0;cap=0.800;
+14:50:17.540 < 4,829.3,OFFSET_MAX,auto=1;cap=0.700;
+14:50:17.540 < 4,1143.8,OUTPUT_TEST,output=K1;p_before=0.015;p_after=0.015;fault=0;
+14:50:17.540 < 4,1173.9,OUTPUT_TEST,output=K1;p_before=0.015;p_after=0.011;fault=0;
+14:50:17.540 < 4,1215.0,OUTPUT_TEST,output=K1;p_before=0.011;p_after=0.016;fault=0;
+14:50:17.540 < 4,1240.7,OUTPUT_TEST,output=VALVE;p_before=0.016;p_after=0.012;fault=0;
+14:50:17.540 < 4,1242.3,OUTPUT_TEST,output=K1;p_before=0.012;p_after=0.015;fault=0;
+14:50:17.540 < 4,1244.1,OUTPUT_TEST,output=VALVE;p_before=0.015;p_after=0.013;fault=0;
+14:50:17.540 < 4,1397.6,OUTPUT_TEST,output=K1;p_before=0.013;p_after=0.013;fault=0;
+14:50:17.540 < 4,1423.4,OUTPUT_TEST,output=VALVE;p_before=0.013;p_after=0.016;fault=0;
+14:50:17.540 < 4,1491.8,OUTPUT_TEST,output=K1;p_before=0.013;p_after=0.013;fault=0;
+14:50:17.540 < 4,1573.6,DEMO,on=1;
+14:50:17.540 < 4,1598.1,RESET_LEARNING,
+14:50:17.540 < 4,1602.9,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:50:17.540 < 4,1604.0,RUN,target=2.50;fw=0.6.1;
+14:50:17.540 < 4,1606.1,STATIC,after=START;p=1.000;settle_s=1.3;
+14:50:17.540 < 4,1606.2,MODE,mode=INF;p0=1.000;target=2.50;
+14:50:17.540 < 4,1625.0,STOP,phase=CAL_PULSE;t_s=16.83;line_bar=2.286;est_bar=1.886;offset=0.400;rate=0.0000;margin=0.100;offcap=0.600;
+14:50:17.540 < 4,1631.7,STATIC,after=AFTER_CAL;p=1.917;settle_s=5.7;
+14:50:17.542 < 4,1631.8,LEARN_INF,from=CAL_PULSE;off_meas=0.369;c_meas=0.00;rate_meas=0.0545;miss=0.000;offset=0.400>0.369;c=0.00>0.00;rate=0.0114>0.0545;kTop=0.0069>0.0463;bias=0.000>0.000;dev=0.050>0.050;
+14:50:17.543 < 4,1641.4,END,result=STOPPED;mode=INF;target=2.50;p0=1.000;p=1.917;starts= 2;vents= 0;run_s=37.4;cmp_h=0.08;vent_h=0.04;adc_fail= 0;loop_max_ms=4088;
+14:50:17.543 < 4,1672.4,FAKE,bar=1.500;
+14:50:17.543 < 4,1678.3,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:50:17.543 < 4,1680.6,RUN,target=2.50;fw=0.6.1;
+14:50:17.543 < 4,1682.7,STATIC,after=START;p=1.500;settle_s=1.3;
+14:50:17.543 < 4,1682.8,MODE,mode=INF;p0=1.500;target=2.50;
+14:50:17.543 < 4,1724.1,END,result=STOPPED;mode=INF;target=2.50;p0=1.500;p=1.500;starts= 1;vents= 0;run_s=43.5;cmp_h=0.09;vent_h=0.04;adc_fail= 0;loop_max_ms=122;
+14:50:17.543 < 4,1734.6,RUN,target=1.00;fw=0.6.1;
+14:50:17.543 < 4,1736.7,STATIC,after=START;p=1.500;settle_s=1.3;
+14:50:17.543 < 4,1736.8,MODE,mode=DEF;p0=1.500;target=1.00;
+14:50:17.543 < 4,1736.8,VENT,p=1.500;aim=1.200;tauD=179.3;t_s=22.80;
+14:50:17.543 < 4,1738.1,END,result=STOPPED;mode=DEF;target=1.00;p0=1.500;p=1.500;starts= 0;vents= 1;run_s=3.5;cmp_h=0.09;vent_h=0.04;adc_fail= 0;loop_max_ms=171;
+14:50:17.543 < 4,1752.2,TYRE,from=255/75R17;to=285/70R17;air_L=248;rate=0.0461;tauD=211.8;
+14:50:17.543 < 4,1753.5,TYRE,from=285/70R17;to=255/75R17;air_L=210;rate=0.0545;tauD=179.3;
+14:50:17.543 < 4,1756.0,TYRE,from=255/75R17;to=285/70R17;air_L=248;rate=0.0461;tauD=211.8;
+14:50:17.543 < 4,1771.8,TYRE,from=285/70R17;to=255/75R17;air_L=210;rate=0.0545;tauD=179.3;
+14:50:17.543 < 4,1774.6,TYRE,from=255/75R17;to=285/70R17;air_L=248;rate=0.0461;tauD=211.8;
+14:50:17.543 < 4,1782.1,DEMO,on=0;
+14:50:17.543 < 4,1785.3,TYRE,from=285/70R17;to=255/75R17;air_L=210;rate=0.0545;tauD=179.3;
+14:50:17.543 < 4,1786.2,TYRE,from=255/75R17;to=285/70R17;air_L=248;rate=0.0461;tauD=211.8;
+14:50:17.543 < 4,1787.3,TYRE,from=285/70R17;to=255/75R17;air_L=210;rate=0.0545;tauD=179.3;
+14:50:17.543 < 4,1788.0,TYRE,from=255/75R17;to=285/70R17;air_L=248;rate=0.0461;tauD=211.8;
+14:50:17.543 < 4,1789.0,TYRE,from=285/70R17;to=255/75R17;air_L=210;rate=0.0545;tauD=179.3;
+14:50:17.543 < 4,1789.5,TYRE,from=255/75R17;to=285/70R17;air_L=248;rate=0.0461;tauD=211.8;
+14:50:17.543 < 4,1792.4,DEMO,on=1;
+14:50:17.543 < 4,1798.8,DEMO,on=0;
+14:50:17.543 < 4,1799.4,DEMO,on=1;
+14:50:17.543 < 4,1799.8,DEMO,on=0;
+14:50:17.543 < 4,1800.0,DEMO,on=1;
+14:50:17.543 < 4,1800.3,DEMO,on=0;
+14:50:17.543 < 4,1800.6,DEMO,on=1;
+14:50:17.543 < 4,1800.7,DEMO,on=0;
+14:50:17.543 < 4,1800.9,DEMO,on=1;
+14:50:17.543 < 4,1801.1,DEMO,on=0;
+14:50:17.543 < 4,1803.6,DEMO,on=1;
+14:50:17.543 < 4,1808.6,TYRE,from=285/70R17;to=255/75R17;air_L=210;rate=0.0545;tauD=179.3;
+14:50:17.543 < 4,1809.2,TYRE,from=255/75R17;to=285/70R17;air_L=248;rate=0.0461;tauD=211.8;
+14:50:17.543 < 4,1809.8,TYRE,from=285/70R17;to=255/75R17;air_L=210;rate=0.0545;tauD=179.3;
+14:50:17.543 < 4,1810.3,TYRE,from=255/75R17;to=285/70R17;air_L=248;rate=0.0461;tauD=211.8;
+14:50:17.543 < 4,1882.5,FAKE,bar=2.950;
+14:50:17.543 < 4,1927.7,RESET_LEARNING,
+14:50:17.543 < 4,1933.4,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:50:17.543 < 4,1934.4,RUN,target=2.30;fw=0.6.1;
+14:50:17.543 < 4,1936.6,STATIC,after=START;p=1.000;settle_s=1.3;
+14:50:17.543 < 4,1936.7,MODE,mode=INF;p0=1.000;target=2.30;
+14:50:17.543 < 4,1951.7,STOP,phase=CAL_PULSE;t_s=15.00;line_bar=2.190;est_bar=1.790;offset=0.400;rate=0.0508;margin=0.100;offcap=0.600;
+14:50:17.543 < 4,1958.7,STATIC,after=AFTER_CAL;p=1.857;settle_s=6.0;
+14:50:17.543 < 4,1958.8,LEARN_INF,from=CAL_PULSE;off_meas=0.333;c_meas=6.56;rate_meas=0.0571;miss=0.000;offset=0.400>0.333;c=0.00>6.56;rate=0.0097>0.0571;kTop=0.0058>0.0485;bias=0.000>0.000;dev=0.050>0.050;
+14:50:17.543 < 4,1964.6,STOP,phase=MAIN;t_s=5.72;line_bar=2.482;est_bar=2.172;offset=0.309;rate=0.0471;margin=0.130;offcap=0.600;
+14:50:17.543 < 4,1971.5,STATIC,after=AFTER_MAIN;p=2.169;settle_s=6.0;
+14:50:17.543 < 4,1971.6,LEARN_INF,from=MAIN;off_meas=0.312;c_meas=6.63;rate_meas=0.0546;miss=-0.003;offset=0.333>0.327;c=6.56>6.58;rate=0.0571>0.0564;kTop=0.0485>0.0479;bias=0.000>-0.001;dev=0.050>0.036;
+14:50:17.543 < 4,1974.0,STOP,phase=TOPUP;t_s=2.33;line_bar=2.591;est_bar=2.264;by=TIME;
+14:50:17.543 < 4,1980.9,STATIC,after=AFTER_TOPUP;p=2.292;settle_s=6.0;
+14:50:17.543 < 4,1980.9,LEARN_INF,from=TOPUP;k_meas=0.0526;kTop=0.0479>0.0526;
+14:50:17.543 < 4,1981.0,END,result=DONE;mode=INF;target=2.30;p0=1.000;p=2.292;starts= 3;vents= 0;run_s=46.6;cmp_h=0.10;vent_h=0.04;adc_fail= 0;loop_max_ms=310;
+14:50:17.543 < 4,2235.0,FAKE,bar=0.000;
+14:50:17.543 < 4,2243.4,FAKE,bar=5.500;
+14:50:17.543 < 5,2.5,BOOT,fw=0.6.2;reset=USB;tyre=285/70R17;air_L=248;target=2.30;offset=0.327;c=6.58;offcap=0.590;rate=0.0564;kTop=0.0526;bias=-0.001;dev=0.036;learned=1;tauD=211.8;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.10;vent_h=0.04;svc_h=0.10;
+14:50:17.543 < 5,26.5,DEMO,on=1;
+14:50:17.543 < 5,32.5,RESET_LEARNING,
+14:50:17.543 < 5,36.7,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:50:17.543 < 5,37.8,RUN,target=2.30;fw=0.6.2;
+14:50:17.543 < 5,40.0,STATIC,after=START;p=0.999;settle_s=1.3;
+14:50:17.543 < 5,40.1,MODE,mode=INF;p0=0.999;target=2.30;
+14:50:17.548 < 5,55.1,STOP,phase=CAL_PULSE;t_s=15.00;line_bar=2.193;est_bar=1.793;offset=0.400;rate=0.0500;margin=0.100;offcap=0.600;
+14:50:17.548 < 5,60.0,STATIC,after=AFTER_CAL;p=1.861;settle_s=4.0;
+14:50:17.548 < 5,60.0,LEARN_INF,from=CAL_PULSE;off_meas=0.332;c_meas=6.64;rate_meas=0.0574;miss=0.000;offset=0.400>0.332;c=0.00>6.64;rate=0.0097>0.0574;kTop=0.0058>0.0488;bias=0.000>0.000;dev=0.050>0.050;
+14:50:17.548 < 5,66.1,STOP,phase=MAIN;t_s=6.03;line_bar=2.488;est_bar=2.170;offset=0.318;rate=0.0478;margin=0.130;offcap=0.598;
+14:50:17.548 < 5,70.9,STATIC,after=AFTER_MAIN;p=2.175;settle_s=4.0;
+14:50:17.548 < 5,71.0,LEARN_INF,from=MAIN;off_meas=0.312;c_meas=6.53;rate_meas=0.0521;miss=0.005;offset=0.332>0.326;c=6.64>6.61;rate=0.0574>0.0559;kTop=0.0488>0.0475;bias=0.000>0.002;dev=0.050>0.036;
+14:50:17.548 < 5,73.3,STOP,phase=TOPUP;t_s=2.24;line_bar=2.591;est_bar=2.265;by=TIME;
+14:50:17.548 < 5,78.4,STATIC,after=AFTER_TOPUP;p=2.294;settle_s=4.2;
+14:50:17.548 < 5,78.5,LEARN_INF,from=TOPUP;k_meas=0.0529;kTop=0.0475>0.0529;
+14:50:17.548 < 5,78.5,END,result=DONE;mode=INF;target=2.30;p0=0.999;p=2.294;starts= 3;vents= 0;run_s=40.7;cmp_h=0.10;vent_h=0.04;adc_fail= 0;loop_max_ms=209;
+14:50:17.548 < 6,2.5,BOOT,fw=0.6.2;reset=USB;tyre=285/70R17;air_L=248;target=2.30;offset=0.326;c=6.61;offcap=0.589;rate=0.0559;kTop=0.0529;bias=0.002;dev=0.036;learned=1;tauD=211.8;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.10;vent_h=0.04;svc_h=0.10;
+14:50:17.548 < 6,8.2,WATCHDOG,on=0;
+14:50:17.548 < 6,43.6,DEMO,on=1;
+14:50:17.548 < 6,68.4,ARM_CANCEL,reason=TIMEOUT;
+14:50:17.548 < 6,70.8,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:50:17.548 < 6,72.4,RUN,target=1.80;fw=0.6.2;
+14:50:17.548 < 6,74.4,STATIC,after=START;p=1.000;settle_s=1.1;
+14:50:17.548 < 6,74.4,MODE,mode=INF;p0=1.000;target=1.80;
+14:50:17.548 < 6,86.5,STOP,phase=MAIN;t_s=12.04;line_bar=2.040;est_bar=1.700;offset=0.341;rate=0.0516;margin=0.102;offcap=0.589;
+14:50:17.548 < 6,91.7,STATIC,after=AFTER_MAIN;p=1.697;settle_s=4.3;
+14:50:17.548 < 6,91.8,LEARN_INF,from=MAIN;off_meas=0.343;c_meas=6.65;rate_meas=0.0579;miss=-0.002;offset=0.326>0.331;c=6.61>6.62;rate=0.0559>0.0565;kTop=0.0529>0.0529;bias=0.002>0.000;dev=0.036>0.026;
+14:50:17.548 < 6,93.4,STOP,phase=TOPUP;t_s=1.56;line_bar=2.091;est_bar=1.760;by=TIME;
+14:50:17.548 < 6,98.3,STATIC,after=AFTER_TOPUP;p=1.788;settle_s=4.0;
+14:50:17.548 < 6,98.3,LEARN_INF,from=TOPUP;k_meas=0.0583;kTop=0.0529>0.0546;
+14:50:17.548 < 6,98.4,END,result=DONE;mode=INF;target=1.80;p0=1.000;p=1.788;starts= 2;vents= 0;run_s=26.0;cmp_h=0.11;vent_h=0.04;adc_fail= 0;loop_max_ms=161;
+14:50:17.548 < 7,2.5,BOOT,fw=0.6.2;reset=USB;tyre=285/70R17;air_L=248;target=1.00;offset=0.331;c=6.62;offcap=0.597;rate=0.0565;kTop=0.0546;bias=0.000;dev=0.026;learned=1;tauD=211.8;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.11;vent_h=0.04;svc_h=0.11;
+14:50:17.548 < 7,36.2,DEMO,on=1;
+14:50:17.548 < 7,42.7,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:50:17.548 < 7,43.6,RUN,target=2.30;fw=0.6.2;
+14:50:17.548 < 7,45.8,STATIC,after=START;p=1.000;settle_s=1.3;
+14:50:17.548 < 7,45.9,MODE,mode=INF;p0=1.000;target=2.30;
+14:50:17.548 < 7,62.3,END,result=STOPPED;mode=INF;target=2.30;p0=1.000;p=1.000;starts= 1;vents= 0;run_s=18.7;cmp_h=0.11;vent_h=0.04;adc_fail= 0;loop_max_ms=255;
+14:50:17.548 < 7,68.7,RUN,target=1.50;fw=0.6.2;
+14:50:17.548 < 7,70.7,STATIC,after=START;p=1.932;settle_s=1.1;
+14:50:17.548 < 7,70.7,MODE,mode=DEF;p0=1.932;target=1.50;
+14:50:17.548 < 7,70.8,VENT,p=1.932;aim=1.673;tauD=211.8;t_s=19.52;
+14:50:17.548 < 7,79.6,END,result=STOPPED;mode=DEF;target=1.50;p0=1.932;p=1.932;starts= 0;vents= 1;run_s=11.0;cmp_h=0.11;vent_h=0.04;adc_fail= 0;loop_max_ms=207;
+14:50:17.548 < 8,2.5,BOOT,fw=0.6.2;reset=USB;tyre=285/70R17;air_L=248;target=1.50;offset=0.331;c=6.62;offcap=0.597;rate=0.0565;kTop=0.0546;bias=0.000;dev=0.026;learned=1;tauD=211.8;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.11;vent_h=0.04;svc_h=0.11;
+14:50:17.548 < 8,21.2,DEMO,on=1;
+14:50:17.548 < 8,34.7,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:50:17.548 < 8,37.3,RUN,target=1.50;fw=0.6.2;
+14:50:17.548 < 8,39.3,STATIC,after=START;p=1.000;settle_s=1.2;
+14:50:17.548 < 8,39.3,MODE,mode=INF;p0=1.000;target=1.50;
+14:50:17.548 < 8,45.2,END,result=STOPPED;mode=INF;target=1.50;p0=1.000;p=1.000;starts= 1;vents= 0;run_s=7.9;cmp_h=0.11;vent_h=0.04;adc_fail= 0;loop_max_ms=123;
+14:50:17.548 < 8,50.7,RUN,target=1.00;fw=0.6.2;
+14:50:17.548 < 8,52.7,STATIC,after=START;p=1.344;settle_s=1.1;
+14:50:17.548 < 8,52.8,MODE,mode=DEF;p0=1.344;target=1.00;
+14:50:17.548 < 8,52.8,VENT,p=1.344;aim=1.138;tauD=211.8;t_s=19.43;
+14:50:17.548 < 8,60.7,END,result=STOPPED;mode=DEF;target=1.00;p0=1.344;p=1.344;starts= 0;vents= 1;run_s=10.0;cmp_h=0.11;vent_h=0.04;adc_fail= 0;loop_max_ms=241;
+14:50:17.548 < 8,80.5,ARM_CANCEL,reason=KNOB;
+14:50:17.548 < 8,82.5,RUN,target=0.50;fw=0.6.2;
+14:50:17.548 < 8,84.5,STATIC,after=START;p=1.213;settle_s=1.2;
+14:50:17.548 < 8,84.5,MODE,mode=DEF;p0=1.213;target=0.50;
+14:50:17.553 < 8,84.6,VENT,p=1.213;aim=0.785;tauD=211.8;t_s=45.20;
+14:50:17.553 < 8,129.8,STOP,phase=VENT;t_s=45.20;line_bar=0.312;
+14:50:17.553 < 8,132.4,STATIC,after=AFTER_VENT;p=0.597;settle_s=1.7;
+14:50:17.553 < 8,132.5,LEARN_DEF,t_s=45.20;p_before=1.213;p_after=0.597;aim=0.785;miss=-0.188;tau_meas=139.7;tauD=211.8>139.7;
+14:50:17.553 < 8,132.5,VENT,p=0.597;aim=0.520;tauD=139.7;t_s=6.89;
+14:50:17.553 < 8,139.4,STOP,phase=VENT;t_s=6.89;line_bar=0.246;
+14:50:17.553 < 8,142.0,STATIC,after=AFTER_VENT;p=0.519;settle_s=1.7;
+14:50:17.553 < 8,142.1,LEARN_DEF,t_s=6.89;p_before=0.597;p_after=0.519;aim=0.520;miss=-0.001;tau_meas=137.6;tauD=139.7>139.1;
+14:50:17.553 < 8,142.2,END,result=DONE;mode=DEF;target=0.50;p0=1.213;p=0.519;starts= 0;vents= 2;run_s=59.7;cmp_h=0.11;vent_h=0.06;adc_fail= 0;loop_max_ms=184;
+14:50:17.553 < 8,157.8,CUSTOM_SET,custom=2.00;wheels=4;
+14:50:17.553 < 8,158.8,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:50:17.553 < 8,159.8,RUN,target=2.00;fw=0.6.2;
+14:50:17.553 < 8,161.9,STATIC,after=START;p=0.519;settle_s=1.2;
+14:50:17.553 < 8,161.9,MODE,mode=INF;p0=0.519;target=2.00;
+14:50:17.553 < 8,185.8,STOP,phase=MAIN;t_s=23.83;line_bar=2.247;est_bar=1.919;offset=0.328;rate=0.0496;margin=0.082;offcap=0.597;
+14:50:17.553 < 8,190.7,STATIC,after=AFTER_MAIN;p=1.916;settle_s=4.0;
+14:50:17.553 < 8,190.8,LEARN_INF,from=MAIN;off_meas=0.331;c_meas=6.67;rate_meas=0.0587;miss=-0.002;offset=0.331>0.331;c=6.62>6.64;rate=0.0565>0.0571;kTop=0.0546>0.0546;bias=0.000>-0.000;dev=0.026>0.019;
+14:50:17.553 < 8,192.0,STOP,phase=TOPUP;t_s=1.20;line_bar=2.261;est_bar=1.930;by=TIME;
+14:50:17.553 < 8,196.6,STATIC,after=AFTER_TOPUP;p=1.986;settle_s=3.7;
+14:50:17.553 < 8,196.7,LEARN_INF,from=TOPUP;k_meas=0.0583;kTop=0.0546>0.0557;
+14:50:17.553 < 8,196.7,END,result=DONE;mode=INF;target=2.00;p0=0.519;p=1.986;starts= 2;vents= 0;run_s=36.9;cmp_h=0.12;vent_h=0.06;adc_fail= 0;loop_max_ms=158;
+14:50:17.553 < 9,2.3,BOOT,fw=0.6.2;reset=USB;tyre=285/70R17;air_L=248;target=2.00;offset=0.331;c=6.64;offcap=0.597;rate=0.0571;kTop=0.0557;bias=-0.000;dev=0.019;learned=1;tauD=139.1;learnedD=1;calA=1.0000;calB=0.000;cmp_h=0.12;vent_h=0.06;svc_h=0.12;
+14:50:17.553 < 9,62.7,RESET_LEARNING,
+14:50:17.553 < 9,133.9,OFFSET_MAX,auto=0;cap=0.800;
+14:50:17.553 < 10,2.5,BOOT,fw=0.6.2;reset=USB;tyre=285/70R17;air_L=248;target=2.00;offset=0.400;c=0.00;offcap=0.800;rate=0.0097;kTop=0.0058;bias=0.000;dev=0.050;learned=0;tauD=211.8;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.12;vent_h=0.06;svc_h=0.12;
+14:50:17.553 < 11,2.6,BOOT,fw=0.6.2;reset=USB;tyre=285/70R17;air_L=248;target=2.00;offset=0.400;c=0.00;offcap=0.800;rate=0.0097;kTop=0.0058;bias=0.000;dev=0.050;learned=0;tauD=211.8;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.12;vent_h=0.06;svc_h=0.12;
+14:50:17.553 < 11,28.6,CUSTOM_SET,custom=1.00;wheels=1;
+14:50:17.553 < 11,31.7,ARM_CANCEL,reason=TIMEOUT;
+14:50:17.553 < 11,35.4,CUSTOM_SET,custom=1.00;wheels=1;
+14:50:17.553 < 11,37.6,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:50:17.553 < 11,40.6,ARM_CANCEL,reason=TIMEOUT;
+14:50:17.553 < 11,42.1,CUSTOM_SET,custom=1.00;wheels=1;
+14:50:17.553 < 11,44.9,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:50:17.553 < 11,47.7,RUN,target=1.00;fw=0.6.2;
+14:50:17.553 < 11,58.5,STATIC,after=START;p=0.019;settle_s=6.7;
+14:50:17.553 < 11,60.6,MODE,mode=INF;p0=0.019;target=1.00;
+14:50:17.553 < 11,66.7,END,result=ERR_SENSOR;mode=INF;target=1.00;p0=0.019;p=0.019;starts= 1;vents= 0;run_s=19.0;cmp_h=0.12;vent_h=0.06;adc_fail= 0;loop_max_ms=6159;
+14:50:17.553 < 11,109.5,CUSTOM_SET,custom=1.00;wheels=1;
+14:50:17.553 < 11,112.6,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:50:17.553 < 11,115.5,RUN,target=1.00;fw=0.6.2;
+14:50:17.553 < 11,125.8,STATIC,after=START;p=0.020;settle_s=6.2;
+14:50:17.553 < 11,127.9,MODE,mode=INF;p0=0.020;target=1.00;
+14:50:17.553 < 11,134.1,END,result=ERR_SENSOR;mode=INF;target=1.00;p0=0.020;p=0.020;starts= 1;vents= 0;run_s=18.6;cmp_h=0.12;vent_h=0.06;adc_fail= 0;loop_max_ms=6267;
+14:50:17.553 < 12,0.3,BOOT,fw=0.6.2;reset=POWERON;tyre=285/70R17;air_L=248;target=1.00;offset=0.400;c=0.00;offcap=0.800;rate=0.0097;kTop=0.0058;bias=0.000;dev=0.050;learned=0;tauD=211.8;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.12;vent_h=0.06;svc_h=0.12;
+14:50:17.553 < 13,0.3,BOOT,fw=0.6.2;reset=POWERON;tyre=285/70R17;air_L=248;target=0.80;offset=0.400;c=0.00;offcap=0.800;rate=0.0097;kTop=0.0058;bias=0.000;dev=0.050;learned=0;tauD=211.8;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.12;vent_h=0.06;svc_h=0.12;
+14:50:17.553 < 14,2.3,BOOT,fw=0.7.0;reset=USB;tyre=285/70R17;air_L=248;target=0.80;offset=0.400;c=0.00;offcap=0.800;rate=0.0097;kTop=0.0058;bias=0.000;dev=0.050;learned=0;tauD=211.8;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.12;vent_h=0.06;svc_h=0.12;
+14:50:17.553 < 14,45.6,CUSTOM_SET,custom=3.00;wheels=1;
+14:50:17.553 < 14,47.4,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:50:17.558 < 14,48.9,RUN,target=3.00;fw=0.7.0;
+14:50:17.558 < 14,49.2,END,result=STOPPED;mode=-;target=3.00;p0=0.000;p=0.000;starts= 0;vents= 0;run_s=0.3;cmp_h=0.12;vent_h=0.06;adc_fail= 0;loop_max_ms=85;
+14:50:17.558 < 14,64.1,BT,on=1;bonds=0;
+14:50:17.558 < 14,103.7,FAKE,bar=1.000;
+14:50:17.558 < 14,106.8,RUN,target=0.50;fw=0.7.0;
+14:50:17.558 < 14,108.8,STATIC,after=START;p=1.000;settle_s=1.2;
+14:50:17.558 < 14,108.9,MODE,mode=DEF;p0=1.000;target=0.50;
+14:50:17.558 < 14,108.9,VENT,p=1.000;aim=0.700;tauD=211.8;t_s=34.18;
+14:50:17.558 < 14,115.9,FAKE,bar=1.600;
+14:50:17.558 < 14,118.0,FAKE,bar=2.200;
+14:50:17.558 < 14,120.0,FAKE,bar=3.000;
+14:50:17.558 < 14,143.0,END,result=STOPPED;mode=DEF;target=0.50;p0=1.000;p=1.000;starts= 0;vents= 1;run_s=36.2;cmp_h=0.12;vent_h=0.07;adc_fail= 0;loop_max_ms=2009;
+14:50:17.558 < 14,346.0,BT_PAIR,window=60;
+14:50:17.558 < 14,475.4,BT_CONNECT,n=1;
+14:50:17.558 < 14,482.6,BT_DISCONNECT,n=0;
+14:50:17.558 < 14,534.6,BT_PAIR,window=60;
+14:50:17.558 < 14,560.1,BT_CONNECT,n=1;
+14:50:17.558 < 14,579.3,BT_DISCONNECT,n=0;
+14:50:17.558 < 14,579.3,BT_PAIRED,bonds=0;
+14:50:17.558 < 14,653.3,BT_PAIR,window=60;
+14:50:17.558 < 14,670.2,BT_CONNECT,n=1;
+14:50:17.558 < 14,691.7,BT_DISCONNECT,n=0;
+14:50:17.558 < 14,691.8,BT_PAIRED,bonds=0;
+14:50:17.558 < 14,733.9,BT_CONNECT,n=1;
+14:50:17.558 < 14,749.8,BT_PAIR,window=60;
+14:50:17.558 < 15,2.4,BOOT,fw=0.7.0;reset=USB;tyre=285/70R17;air_L=248;target=0.50;offset=0.400;c=0.00;offcap=0.800;rate=0.0097;kTop=0.0058;bias=0.000;dev=0.050;learned=0;tauD=211.8;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.12;vent_h=0.07;svc_h=0.12;
+14:50:17.558 < 15,2.5,BT,on=1;bonds=0;
+14:50:17.558 < 15,36.3,BT_PAIR,window=60;
+14:50:17.558 < 15,59.0,BT_CONNECT,n=1;
+14:50:17.558 < 15,78.4,BT_PAIRED,bonds=1;auth=107;
+14:50:17.558 < 15,78.5,BT_DISCONNECT,n=0;reason=213;
+14:50:17.558 < 15,80.6,BT_CONNECT,n=1;
+14:50:17.558 < 15,85.9,BT_DISCONNECT,n=0;reason=213;
+14:50:17.558 < 15,482.7,BT,on=0;
+14:50:17.558 < 15,488.9,BT,on=1;bonds=1;
+14:50:17.558 < 16,2.5,BOOT,fw=0.7.1;reset=USB;tyre=285/70R17;air_L=248;target=0.50;offset=0.400;c=0.00;offcap=0.800;rate=0.0097;kTop=0.0058;bias=0.000;dev=0.050;learned=0;tauD=211.8;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.12;vent_h=0.07;svc_h=0.12;
+14:50:17.558 < 16,2.7,BT,on=1;bonds=1;
+14:50:17.558 < 16,67.3,DEMO,on=1;
+14:50:17.558 < 16,83.5,RUN,target=0.80;fw=0.7.1;
+14:50:17.558 < 16,87.5,STATIC,after=START;p=1.000;settle_s=1.1;
+14:50:17.558 < 16,89.5,MODE,mode=DEF;p0=1.000;target=0.80;
+14:50:17.558 < 16,91.7,VENT,p=1.000;aim=0.880;tauD=211.8;t_s=13.04;
+14:50:17.558 < 17,2.3,BOOT,fw=0.7.1;reset=USB;tyre=285/70R17;air_L=248;target=0.80;offset=0.400;c=0.00;offcap=0.800;rate=0.0097;kTop=0.0058;bias=0.000;dev=0.050;learned=0;tauD=211.8;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.12;vent_h=0.07;svc_h=0.12;
+14:50:17.558 < 17,2.4,BT,on=1;bonds=1;
+14:50:17.558 < 17,45.1,DEMO,on=1;
+14:50:17.558 < 17,56.4,ARM_CANCEL,reason=KNOB;
+14:50:17.558 < 17,57.6,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:50:17.558 < 17,58.6,RUN,target=1.20;fw=0.7.1;
+14:50:17.558 < 17,69.9,STATIC,after=START;p=0.997;settle_s=7.2;
+14:50:17.559 < 17,72.0,MODE,mode=INF;p0=0.997;target=1.20;
+14:50:17.559 < 17,90.4,STOP,phase=CAL_PULSE;t_s=16.36;line_bar=2.503;est_bar=2.103;offset=0.400;rate=0.0000;margin=0.100;offcap=0.800;
+14:50:17.559 < 17,100.6,STATIC,after=AFTER_CAL;p=2.146;settle_s=6.1;
+14:50:17.559 < 17,102.7,LEARN_INF,from=CAL_PULSE;off_meas=0.357;c_meas=0.00;rate_meas=0.0702;miss=0.000;offset=0.400>0.357;c=0.00>0.00;rate=0.0097>0.0702;kTop=0.0058>0.0597;bias=0.000>0.000;dev=0.050>0.050;
+14:50:17.559 < 17,104.8,VENT,p=2.146;aim=1.578;tauD=211.8;t_s=41.96;
+14:50:17.559 < 17,149.8,STOP,phase=VENT;t_s=41.96;line_bar=0.799;
+14:50:17.559 < 17,160.0,STATIC,after=AFTER_VENT;p=1.201;settle_s=6.1;
+14:50:17.559 < 17,162.1,LEARN_DEF,t_s=41.96;p_before=2.146;p_after=1.201;aim=1.578;miss=-0.377;tau_meas=118.0;tauD=211.8>118.0;
+14:50:17.559 < 17,164.3,END,result=DONE;mode=INF;target=1.20;p0=0.997;p=1.201;starts= 1;vents= 1;run_s=103.6;cmp_h=0.13;vent_h=0.08;adc_fail= 0;loop_max_ms=8244;
+14:50:17.559 < 18,2.3,BOOT,fw=0.7.1;reset=USB;tyre=285/70R17;air_L=248;target=1.20;offset=0.357;c=0.00;offcap=0.800;rate=0.0702;kTop=0.0597;bias=0.000;dev=0.050;learned=1;tauD=118.0;learnedD=1;calA=1.0000;calB=0.000;cmp_h=0.13;vent_h=0.08;svc_h=0.13;
+14:50:17.559 < 18,2.4,BT,on=1;bonds=1;
+14:50:17.559 < 19,0.3,BOOT,fw=0.7.1;reset=POWERON;tyre=285/70R17;air_L=248;target=1.20;offset=0.357;c=0.00;offcap=0.800;rate=0.0702;kTop=0.0597;bias=0.000;dev=0.050;learned=1;tauD=118.0;learnedD=1;calA=1.0000;calB=0.000;cmp_h=0.13;vent_h=0.08;svc_h=0.13;
+14:50:17.559 < 19,0.5,BT,on=1;bonds=1;
+14:50:17.559 < 19,2.1,BT_CONNECT,n=1;
+14:50:17.559 < 19,43.9,BT_PAIR,window=60;
+14:50:17.559 < 19,136.8,BT_PAIR,window=60;
+14:50:17.559 < 19,146.0,BT_DENIED,auth=0;
+14:50:17.559 < 19,149.0,BT_DISCONNECT,n=0;reason=213;
+14:50:17.559 < 19,149.2,BT_CONNECT,n=1;
+14:50:17.559 < 19,196.0,BT_PAIR,window=60;
+14:50:17.559 < 19,266.5,BT_DISCONNECT,n=0;reason=213;
+14:50:17.559 < 19,279.3,BT_CONNECT,n=1;
+14:50:17.559 < 19,306.2,BT,on=0;
+14:50:17.559 < 19,310.0,BT,on=1;bonds=1;
+14:50:17.559 < 19,310.2,BT_DISCONNECT,n=0;reason=216;
+14:50:17.559 < 19,310.3,BT_CONNECT,n=1;
+14:50:17.563 < 19,314.1,BT_PAIR,window=60;
+14:50:17.563 < 19,338.5,BT_PAIRED,bonds=2;auth=107;
+14:50:17.563 < 20,0.3,BOOT,fw=0.7.1;reset=POWERON;tyre=285/70R17;air_L=248;target=2.30;offset=0.357;c=0.00;offcap=0.800;rate=0.0702;kTop=0.0597;bias=0.000;dev=0.050;learned=1;tauD=118.0;learnedD=1;calA=1.0000;calB=0.000;cmp_h=0.13;vent_h=0.08;svc_h=0.13;
+14:50:17.563 < 20,0.4,BT,on=1;bonds=2;
+14:50:17.563 < 20,4.2,BT_CONNECT,n=1;
+14:50:17.563 < 21,2.3,BOOT,fw=0.7.2;reset=USB;tyre=285/70R17;air_L=248;target=2.30;offset=0.357;c=0.00;offcap=0.800;rate=0.0702;kTop=0.0597;bias=0.000;dev=0.050;learned=1;tauD=118.0;learnedD=1;calA=1.0000;calB=0.000;cmp_h=0.13;vent_h=0.08;svc_h=0.13;
+14:50:17.563 < 21,2.4,BT,on=1;bonds=2;
+14:50:17.563 < 21,4.1,BT_CONNECT,n=1;
+14:50:17.563 < 22,2.3,BOOT,fw=0.7.2;reset=USB;tyre=285/70R17;air_L=248;target=3.00;offset=0.357;c=0.00;offcap=0.800;rate=0.0702;kTop=0.0597;bias=0.000;dev=0.050;learned=1;tauD=118.0;learnedD=1;calA=1.0000;calB=0.000;cmp_h=0.13;vent_h=0.08;svc_h=0.13;
+14:50:17.563 < 22,2.4,BT,on=1;bonds=2;
+14:50:17.563 < 22,4.1,BT_CONNECT,n=1;
+14:50:17.563 < 22,163.2,BT_DISCONNECT,n=0;reason=213;
+14:50:17.563 < 22,163.3,BT_CONNECT,n=1;
+14:50:17.563 < 23,2.5,BOOT,fw=0.7.2;reset=USB;tyre=285/70R17;air_L=248;target=1.00;offset=0.357;c=0.00;offcap=0.800;rate=0.0702;kTop=0.0597;bias=0.000;dev=0.050;learned=1;tauD=118.0;learnedD=1;calA=1.0000;calB=0.000;cmp_h=0.13;vent_h=0.08;svc_h=0.13;
+14:50:17.563 < 23,2.7,BT,on=1;bonds=2;
+14:50:17.563 < 23,4.4,BT_CONNECT,n=1;
+14:50:17.563 < 23,24.2,BT_DISCONNECT,n=0;reason=213;
+14:50:17.563 < 23,43.1,BT_CONNECT,n=1;
+14:50:17.563 < 23,77.4,BT_DISCONNECT,n=0;reason=213;
+14:50:17.563 < 23,77.6,BT_CONNECT,n=1;
+14:50:17.563 < 24,2.5,BOOT,fw=0.7.2;reset=USB;tyre=285/70R17;air_L=248;target=1.00;offset=0.357;c=0.00;offcap=0.800;rate=0.0702;kTop=0.0597;bias=0.000;dev=0.050;learned=1;tauD=118.0;learnedD=1;calA=1.0000;calB=0.000;cmp_h=0.13;vent_h=0.08;svc_h=0.13;
+14:50:17.563 < 24,2.7,BT,on=1;bonds=2;
+14:50:17.563 < 24,4.3,BT_CONNECT,n=1;
+14:50:17.563 < 24,55.2,BT_DISCONNECT,n=0;reason=213;
+14:50:17.563 < 24,55.3,BT_CONNECT,n=1;
+14:50:17.563 < 25,2.5,BOOT,fw=0.7.3;reset=USB;tyre=285/70R17;air_L=248;target=1.80;offset=0.357;c=0.00;offcap=0.800;rate=0.0702;kTop=0.0597;bias=0.000;dev=0.050;learned=1;tauD=118.0;learnedD=1;calA=1.0000;calB=0.000;cmp_h=0.13;vent_h=0.08;svc_h=0.13;
+14:50:17.563 < 25,2.7,BT,on=1;bonds=2;
+14:50:17.563 < 25,94.4,BT_CONNECT,n=1;
+14:50:17.563 < 26,2.5,BOOT,fw=0.7.3;reset=USB;tyre=285/70R17;air_L=248;target=2.30;offset=0.357;c=0.00;offcap=0.800;rate=0.0702;kTop=0.0597;bias=0.000;dev=0.050;learned=1;tauD=118.0;learnedD=1;calA=1.0000;calB=0.000;cmp_h=0.13;vent_h=0.08;svc_h=0.13;
+14:50:17.563 < 26,2.7,BT,on=1;bonds=2;
+14:50:17.563 < 26,4.4,BT_CONNECT,n=1;
+14:50:17.563 < 26,159.6,BT_DISCONNECT,n=0;reason=213;
+14:50:17.563 < 26,173.1,BT_CONNECT,n=1;
+14:50:17.563 < 26,318.3,BT_DISCONNECT,n=0;reason=213;
+14:50:17.563 < 26,580.1,BT_CONNECT,n=1;
+14:50:17.563 < 26,684.4,BT_DISCONNECT,n=0;reason=213;
+14:50:17.563 < 26,684.6,BT_CONNECT,n=1;
+14:50:17.563 < 26,761.6,BT_DISCONNECT,n=0;reason=213;
+14:50:17.563 < 26,761.8,BT_CONNECT,n=1;
+14:50:17.563 < 26,856.1,BT_DISCONNECT,n=0;reason=213;
+14:50:17.563 < 26,856.3,BT_CONNECT,n=1;
+14:50:17.563 < 27,2.5,BOOT,fw=0.7.3;reset=USB;tyre=285/70R17;air_L=248;target=2.30;offset=0.357;c=0.00;offcap=0.800;rate=0.0702;kTop=0.0597;bias=0.000;dev=0.050;learned=1;tauD=118.0;learnedD=1;calA=1.0000;calB=0.000;cmp_h=0.13;vent_h=0.08;svc_h=0.13;
+14:50:17.564 < 27,2.7,BT,on=1;bonds=2;
+14:50:17.564 < 27,4.4,BT_CONNECT,n=1;
+14:50:17.564 < 27,91.3,BT_DISCONNECT,n=0;reason=213;
+14:50:17.564 < 27,91.5,BT_CONNECT,n=1;
+14:50:17.564 < 27,137.8,BT_DISCONNECT,n=0;reason=213;
+14:50:17.564 < 27,137.9,BT_CONNECT,n=1;
+14:50:17.564 < 27,218.8,BT_DISCONNECT,n=0;reason=213;
+14:50:17.564 < 27,218.9,BT_CONNECT,n=1;
+14:50:17.564 < 27,303.4,BT_DISCONNECT,n=0;reason=213;
+14:50:17.564 < 27,303.7,BT_CONNECT,n=1;
+14:50:17.564 < 27,363.2,BT_DISCONNECT,n=0;reason=213;
+14:50:17.564 < 27,367.0,BT_CONNECT,n=1;
+14:50:17.564 < 27,406.5,BT_DISCONNECT,n=0;reason=213;
+14:50:17.564 < 27,406.7,BT_CONNECT,n=1;
+14:50:17.564 < 27,445.8,BT_DISCONNECT,n=0;reason=213;
+14:50:17.564 < 27,445.9,BT_CONNECT,n=1;
+14:50:17.564 < 27,743.7,BT_DISCONNECT,n=0;reason=213;
+14:50:17.564 < 27,747.0,BT_CONNECT,n=1;
+14:50:17.564 < 27,1162.0,BT_DISCONNECT,n=0;reason=213;
+14:50:17.564 < 27,1162.1,BT_CONNECT,n=1;
+14:50:17.564 < 27,1190.5,BT_DISCONNECT,n=0;reason=213;
+14:50:17.564 < 27,1190.7,BT_CONNECT,n=1;
+14:50:17.564 < 27,1286.5,BT_DISCONNECT,n=0;reason=213;
+14:50:17.564 < 27,1286.6,BT_CONNECT,n=1;
+14:50:17.564 < 27,1352.1,BT_DISCONNECT,n=0;reason=213;
+14:50:17.564 < 27,1352.3,BT_CONNECT,n=1;
+14:50:17.564 < 27,1446.7,BT_DISCONNECT,n=0;reason=213;
+14:50:17.564 < 27,1446.8,BT_CONNECT,n=1;
+14:50:17.564 < 28,2.5,BOOT,fw=0.7.4;reset=USB;tyre=285/70R17;air_L=248;target=1.00;offset=0.357;c=0.00;offcap=0.800;rate=0.0702;kTop=0.0597;bias=0.000;dev=0.050;learned=1;tauD=118.0;learnedD=1;calA=1.0000;calB=0.000;cmp_h=0.13;vent_h=0.08;svc_h=0.13;
+14:50:17.564 < 28,2.7,BT,on=1;bonds=2;
+14:50:17.564 < 28,4.3,BT_CONNECT,n=1;
+14:50:17.564 < 28,29.2,BT_DISCONNECT,n=0;reason=213;
+14:50:17.564 < 28,29.7,BT_CONNECT,n=1;
+14:50:17.568 < 28,69.1,BT_DISCONNECT,n=0;reason=213;
+14:50:17.568 < 28,69.3,BT_CONNECT,n=1;
+14:50:17.568 < 28,137.0,BT_DISCONNECT,n=0;reason=213;
+14:50:17.568 < 28,137.3,BT_CONNECT,n=1;
+14:50:17.568 < 28,229.4,TYRE,from=285/70R17;to=255/75R17;air_L=210;rate=0.0830;tauD=99.9;
+14:50:17.569 < 28,231.0,TYRE,from=255/75R17;to=285/70R17;air_L=248;rate=0.0702;tauD=118.0;
+14:50:17.569 < 28,244.6,CUSTOM_SET,custom=1.70;wheels=1;
+14:50:17.569 < 28,247.6,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:50:17.569 < 28,248.5,RUN,target=1.70;fw=0.7.4;
+14:50:17.569 < 28,258.8,STATIC,after=START;p=0.014;settle_s=6.2;
+14:50:17.569 < 28,260.8,MODE,mode=INF;p0=0.014;target=1.70;
+14:50:17.569 < 28,267.0,END,result=ERR_SENSOR;mode=INF;target=1.70;p0=0.014;p=0.014;starts= 1;vents= 0;run_s=16.4;cmp_h=0.13;vent_h=0.08;adc_fail= 0;loop_max_ms=6135;
+14:50:17.569 < 28,279.6,CUSTOM_SET,custom=1.70;wheels=1;
+14:50:17.569 < 28,281.9,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:50:17.569 < 28,284.9,ARM_CANCEL,reason=TIMEOUT;
+14:50:17.569 < 28,289.6,CUSTOM_SET,custom=1.70;wheels=1;
+14:50:17.569 < 28,292.6,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:50:17.569 < 28,295.4,RUN,target=1.70;fw=0.7.4;
+14:50:17.569 < 28,305.6,STATIC,after=START;p=0.011;settle_s=6.2;
+14:50:17.569 < 28,307.8,MODE,mode=INF;p0=0.011;target=1.70;
+14:50:17.569 < 28,313.9,END,result=ERR_SENSOR;mode=INF;target=1.70;p0=0.011;p=0.011;starts= 1;vents= 0;run_s=18.6;cmp_h=0.13;vent_h=0.08;adc_fail= 0;loop_max_ms=6236;
+14:50:17.569 < 29,2.5,BOOT,fw=0.7.4;reset=USB;tyre=285/70R17;air_L=248;target=2.30;offset=0.357;c=0.00;offcap=0.800;rate=0.0702;kTop=0.0597;bias=0.000;dev=0.050;learned=1;tauD=118.0;learnedD=1;calA=1.0000;calB=0.000;cmp_h=0.13;vent_h=0.08;svc_h=0.13;
+14:50:17.569 < 29,2.6,BT,on=1;bonds=2;
+14:50:17.569 < 29,4.3,BT_CONNECT,n=1;
+14:50:17.569 < 29,7.3,BT_DISCONNECT,n=0;reason=213;
+14:50:17.569 < 29,7.5,BT_CONNECT,n=1;
+14:50:17.569 < 29,76.4,BT_DISCONNECT,n=0;reason=213;
+14:50:17.569 < 29,76.6,BT_CONNECT,n=1;
+14:50:17.569 < 29,82.8,FAKE,bar=1.000;
+14:50:17.569 < 29,85.4,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:50:17.569 < 29,86.4,RUN,target=2.30;fw=0.7.4;
+14:50:17.569 < 29,88.6,STATIC,after=START;p=1.000;settle_s=1.3;
+14:50:17.569 < 29,88.6,MODE,mode=INF;p0=1.000;target=2.30;
+14:50:17.569 < 29,96.1,END,result=STOPPED;mode=INF;target=2.30;p0=1.000;p=1.000;starts= 1;vents= 0;run_s=9.7;cmp_h=0.14;vent_h=0.08;adc_fail= 0;loop_max_ms=156;
+14:50:17.569 < 29,100.2,FAKE,bar=5.500;
+14:50:17.569 < 29,109.2,PUMP_STUCK,p=5.500;rise=0.000;high=1;
+14:50:17.569 < 29,109.3,END,result=ERR_PUMP_ON;mode=-;target=2.30;p0=5.500;p=5.500;starts= 1;vents= 0;run_s=0.0;cmp_h=0.14;vent_h=0.08;adc_fail= 0;loop_max_ms=402;
+14:50:17.569 < 29,109.4,ARM_CANCEL,reason=ERROR;
+14:50:17.569 < 29,127.9,FAKE,bar=1.000;
+14:50:17.569 < 29,131.5,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:50:17.569 < 29,132.5,RUN,target=2.30;fw=0.7.4;
+14:50:17.569 < 29,134.7,STATIC,after=START;p=1.000;settle_s=1.3;
+14:50:17.569 < 29,134.7,MODE,mode=INF;p0=1.000;target=2.30;
+14:50:17.569 < 29,138.6,FAKE,bar=4.000;
+14:50:17.569 < 29,138.7,END,result=ERR_OVER;mode=INF;target=2.30;p0=1.000;p=1.000;starts= 1;vents= 0;run_s=6.2;cmp_h=0.14;vent_h=0.08;adc_fail= 0;loop_max_ms=152;
+14:50:17.569 < 29,697.7,BT_DISCONNECT,n=0;reason=213;
+14:50:17.569 < 29,697.8,BT_CONNECT,n=1;
+14:50:17.569 < 29,755.5,BT_DISCONNECT,n=0;reason=213;
+14:50:17.569 < 29,755.6,BT_CONNECT,n=1;
+14:50:17.569 < 29,903.0,BT_DISCONNECT,n=0;reason=213;
+14:50:17.569 < 29,903.5,BT_CONNECT,n=1;
+14:50:17.569 < 29,911.5,FAKE,bar=1.000;
+14:50:17.569 < 29,914.0,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:50:17.569 < 29,914.1,ARM_CANCEL,reason=KNOB;
+14:50:17.569 < 29,916.0,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:50:17.569 < 29,917.1,RUN,target=1.20;fw=0.7.4;
+14:50:17.569 < 29,919.0,STATIC,after=START;p=1.000;settle_s=1.1;
+14:50:17.569 < 29,919.1,MODE,mode=INF;p0=1.000;target=1.20;
+14:50:17.569 < 29,922.2,STOP,phase=TOPUP;t_s=3.02;line_bar=1.000;est_bar=0.643;by=TIME;
+14:50:17.569 < 29,924.1,STATIC,after=AFTER_TOPUP;p=1.000;settle_s=1.1;
+14:50:17.569 < 29,924.2,LEARN_INF,from=TOPUP;k_meas=0.0000;kTop=0.0597>0.0597;
+14:50:17.569 < 29,926.3,FAKE,bar=4.000;
+14:50:17.569 < 29,926.3,END,result=ERR_OVER;mode=INF;target=1.20;p0=1.000;p=1.000;starts= 2;vents= 0;run_s=9.3;cmp_h=0.14;vent_h=0.08;adc_fail= 0;loop_max_ms=154;
+14:50:17.569 < 29,986.8,BT_DISCONNECT,n=0;reason=213;
+14:50:17.569 < 29,986.9,BT_CONNECT,n=1;
+14:50:17.569 < 29,1129.7,BT_DISCONNECT,n=0;reason=213;
+14:50:17.569 < 29,1129.9,BT_CONNECT,n=1;
+14:50:17.569 < 30,2.4,BOOT,fw=0.7.5;reset=USB;tyre=285/70R17;air_L=248;target=1.80;offset=0.357;c=0.00;offcap=0.800;rate=0.0702;kTop=0.0597;bias=0.000;dev=0.050;learned=1;tauD=118.0;learnedD=1;calA=1.0000;calB=0.000;cmp_h=0.14;vent_h=0.08;svc_h=0.14;
+14:50:17.569 < 30,2.5,BT,on=1;bonds=2;
+14:50:17.569 < 30,4.2,BT_CONNECT,n=1;
+14:50:17.569 < 31,2.3,BOOT,fw=0.7.6;reset=USB;tyre=285/70R17;air_L=248;target=1.80;offset=0.357;c=0.00;offcap=0.800;rate=0.0702;kTop=0.0597;bias=0.000;dev=0.050;learned=1;tauD=118.0;learnedD=1;calA=1.0000;calB=0.000;cmp_h=0.14;vent_h=0.08;svc_h=0.14;
+14:50:17.569 < 31,2.4,BT,on=1;bonds=2;
+14:50:17.569 < 31,4.1,BT_CONNECT,n=1;
+14:50:17.574 < 31,194.5,BT_DISCONNECT,n=0;reason=213;
+14:50:17.574 < 31,198.1,BT_CONNECT,n=1;
+14:50:17.574 < 31,225.9,CUSTOM_SET,custom=0.50;wheels=1;
+14:50:17.574 < 31,227.8,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:50:17.574 < 31,229.0,RUN,target=0.50;fw=0.7.6;
+14:50:17.574 < 31,233.1,STATIC,after=START;p=0.013;settle_s=1.3;
+14:50:17.574 < 31,235.2,MODE,mode=INF;p0=0.013;target=0.50;
+14:50:17.574 < 31,241.3,END,result=ERR_SENSOR;mode=INF;target=0.50;p0=0.013;p=0.013;starts= 1;vents= 0;run_s=10.4;cmp_h=0.14;vent_h=0.08;adc_fail= 0;loop_max_ms=6148;
+14:50:17.574 < 31,246.4,BT_DISCONNECT,n=0;reason=213;
+14:50:17.574 < 31,248.5,BT_CONNECT,n=1;
+14:50:17.574 < 31,252.9,FAKE,bar=1.000;
+14:50:17.574 < 31,256.4,CUSTOM_SET,custom=0.50;wheels=1;
+14:50:17.574 < 31,257.5,RUN,target=0.50;fw=0.7.6;
+14:50:17.574 < 31,259.7,STATIC,after=START;p=1.000;settle_s=1.4;
+14:50:17.574 < 31,259.8,MODE,mode=DEF;p0=1.000;target=0.50;
+14:50:17.574 < 31,259.8,VENT,p=1.000;aim=0.575;tauD=81.4;t_s=19.30;
+14:50:17.574 < 31,263.6,FAKE,bar=1.400;
+14:50:17.574 < 31,267.0,END,result=STOPPED;mode=DEF;target=0.50;p0=1.000;p=1.000;starts= 0;vents= 1;run_s=9.5;cmp_h=0.14;vent_h=0.08;adc_fail= 0;loop_max_ms=177;
+14:50:17.574 < 32,2.3,BOOT,fw=0.7.7;reset=USB;tyre=285/70R17;air_L=248;target=0.50;offset=0.357;c=0.00;offcap=0.800;rate=0.0702;kTop=0.0597;bias=0.000;dev=0.050;learned=1;tauD=118.0;learnedD=1;calA=1.0000;calB=0.000;cmp_h=0.14;vent_h=0.08;svc_h=0.14;
+14:50:17.574 < 32,2.4,BT,on=1;bonds=2;
+14:50:17.574 < 32,4.1,BT_CONNECT,n=1;
+14:50:17.574 < 32,32.3,BT_DISCONNECT,n=0;reason=213;
+14:50:17.574 < 32,32.5,BT_CONNECT,n=1;
+14:50:17.574 < 32,123.5,FAKE,bar=1.000;
+14:50:17.574 < 32,139.5,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:50:17.574 < 32,141.1,ARM_CANCEL,reason=KNOB;
+14:50:17.574 < 32,155.3,BT_DISCONNECT,n=0;reason=213;
+14:50:17.574 < 32,155.4,BT_CONNECT,n=1;
+14:50:17.574 < 32,268.0,FAKE,bar=1.000;
+14:50:17.574 < 32,270.6,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:50:17.574 < 32,271.7,RUN,target=2.30;fw=0.7.7;
+14:50:17.574 < 32,273.8,STATIC,after=START;p=1.000;settle_s=1.3;
+14:50:17.574 < 32,273.8,MODE,mode=INF;p0=1.000;target=2.30;
+14:50:17.574 < 32,277.9,FAKE,bar=4.000;
+14:50:17.574 < 32,278.0,END,result=ERR_OVER;mode=INF;target=2.30;p0=1.000;p=1.000;starts= 1;vents= 0;run_s=6.3;cmp_h=0.14;vent_h=0.08;adc_fail= 0;loop_max_ms=146;
+14:50:17.574 < 32,281.0,FAKE,bar=2.300;
+14:50:17.574 < 32,303.9,FAKE,bar=1.000;
+14:50:17.574 < 32,319.9,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:50:17.574 < 32,321.5,ARM_CANCEL,reason=KNOB;
+14:50:17.574 < 32,447.1,FAKE,bar=1.000;
+14:50:17.574 < 32,449.6,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:50:17.574 < 32,450.6,RUN,target=2.30;fw=0.7.7;
+14:50:17.574 < 32,452.7,STATIC,after=START;p=1.000;settle_s=1.1;
+14:50:17.574 < 32,452.7,MODE,mode=INF;p0=1.000;target=2.30;
+14:50:17.574 < 32,456.8,FAKE,bar=4.000;
+14:50:17.574 < 32,456.9,END,result=ERR_OVER;mode=INF;target=2.30;p0=1.000;p=1.000;starts= 1;vents= 0;run_s=6.3;cmp_h=0.14;vent_h=0.08;adc_fail= 0;loop_max_ms=235;
+14:50:17.574 < 32,459.9,FAKE,bar=2.300;
+14:50:17.574 < 32,474.6,DEMO,on=1;
+14:50:17.574 < 32,482.0,RUN,target=2.30;fw=0.7.7;
+14:50:17.574 < 32,482.0,LEARN_TEST,mode=INF;
+14:50:17.574 < 32,484.1,STATIC,after=START;p=1.000;settle_s=1.3;
+14:50:17.574 < 32,499.2,STOP,phase=CAL_PULSE;t_s=15.01;line_bar=2.187;est_bar=1.830;offset=0.357;rate=0.0506;margin=0.130;offcap=0.800;
+14:50:17.574 < 32,504.4,STATIC,after=AFTER_CAL;p=1.853;settle_s=4.3;
+14:50:17.574 < 32,504.4,LEARN_INF,from=CAL_PULSE;off_meas=0.335;c_meas=6.62;rate_meas=0.0568;miss=0.000;offset=0.357>0.351;c=0.00>6.62;rate=0.0702>0.0662;kTop=0.0597>0.0563;bias=0.000>0.000;dev=0.050>0.050;
+14:50:17.574 < 32,504.5,LEARN_INF_TEST,p_before=1.000;p_after=1.853;t_s=15.0;ok=1;rate=0.0702>0.0662;
+14:50:17.574 < 32,504.6,END,result=DONE;mode=INF;target=2.30;p0=1.000;p=1.853;starts= 1;vents= 0;run_s=22.6;cmp_h=0.15;vent_h=0.08;adc_fail= 0;loop_max_ms=132;
+14:50:17.574 < 32,512.5,RUN,target=2.30;fw=0.7.7;
+14:50:17.574 < 32,512.5,LEARN_TEST,mode=DEF;
+14:50:17.574 < 32,513.3,END,result=STOPPED;mode=-;target=2.30;p0=1.000;p=1.853;starts= 0;vents= 0;run_s=0.8;cmp_h=0.15;vent_h=0.08;adc_fail= 0;loop_max_ms=122;
+14:50:17.574 < 32,545.3,ARM_CANCEL,reason=KNOB;
+14:50:17.574 < 32,549.5,DEMO,on=0;
+14:50:17.574 < 32,551.8,FAKE,bar=0.000;
+14:50:17.574 < 32,556.1,ENGINE_CONFIRM,in=CAL;aux1=0.0;
+14:50:17.574 < 32,556.7,CAL_POINT,n= 0;raw=0.000;gauge=0.00;
+14:50:17.574 < 32,557.4,FAKE,bar=0.550;
+14:50:17.574 < 32,557.7,FAKE,bar=0.800;
+14:50:17.574 < 32,557.9,FAKE,bar=1.050;
+14:50:17.574 < 32,558.2,FAKE,bar=1.300;
+14:50:17.574 < 32,558.4,FAKE,bar=1.550;
+14:50:17.574 < 32,562.7,CAL_POINT,n= 1;raw=1.550;gauge=1.55;
+14:50:17.574 < 32,563.5,FAKE,bar=0.550;
+14:50:17.574 < 32,563.8,FAKE,bar=0.800;
+14:50:17.574 < 32,564.0,FAKE,bar=1.050;
+14:50:17.574 < 32,564.3,FAKE,bar=1.300;
+14:50:17.574 < 32,564.6,FAKE,bar=1.550;
+14:50:17.574 < 32,564.8,FAKE,bar=1.800;
+14:50:17.574 < 32,565.1,FAKE,bar=2.050;
+14:50:17.574 < 32,565.4,FAKE,bar=2.300;
+14:50:17.574 < 32,565.6,FAKE,bar=2.550;
+14:50:17.574 < 32,569.9,CAL_POINT,n= 2;raw=2.550;gauge=2.55;
+14:50:17.574 < 32,570.7,FAKE,bar=0.550;
+14:50:17.574 < 32,571.0,FAKE,bar=0.800;
+14:50:17.574 < 32,571.3,FAKE,bar=1.050;
+14:50:17.574 < 32,571.6,FAKE,bar=1.300;
+14:50:17.574 < 32,571.8,FAKE,bar=1.550;
+14:50:17.574 < 32,572.1,FAKE,bar=1.800;
+14:50:17.574 < 32,572.3,FAKE,bar=2.050;
+14:50:17.574 < 32,572.6,FAKE,bar=2.300;
+14:50:17.574 < 32,572.9,FAKE,bar=2.550;
+14:50:17.579 < 32,573.2,FAKE,bar=2.800;
+14:50:17.579 < 32,573.5,FAKE,bar=3.050;
+14:50:17.579 < 32,573.7,FAKE,bar=3.300;
+14:50:17.579 < 32,574.0,FAKE,bar=3.550;
+14:50:17.579 < 32,578.3,CAL_POINT,n= 3;raw=3.550;gauge=3.55;
+14:50:17.579 < 32,578.3,CAL_DONE,calA=1.0000>1.0000;calB=0.000>0.000;fit_err=0.000;
+14:50:17.579 < 32,586.1,RESET_LEARNING,
+14:50:17.579 < 32,836.8,FILTER_RESET,svc_h=0.15;cmp_h=0.15;
+14:50:17.579 < 32,838.7,FILTER_RESET,svc_h=0.00;cmp_h=0.15;
+14:50:17.579 < 32,840.5,FILTER_RESET,svc_h=0.00;cmp_h=0.15;
+14:50:17.579 < 32,845.2,FILTER_RESET,svc_h=0.00;cmp_h=0.15;
+14:50:17.579 < 32,845.8,FILTER_RESET,svc_h=0.00;cmp_h=0.15;
+14:50:17.579 < 32,847.3,FILTER_RESET,svc_h=0.00;cmp_h=0.15;
+14:50:17.579 < 32,907.8,BT_DISCONNECT,n=0;reason=213;
+14:50:17.579 < 32,907.9,BT_CONNECT,n=1;
+14:50:17.579 < 32,941.5,FILTER_RESET,svc_h=0.00;cmp_h=0.15;
+14:50:17.579 < 32,944.0,FILTER_RESET,svc_h=0.00;cmp_h=0.15;
+14:50:17.579 < 32,945.5,FILTER_RESET,svc_h=0.00;cmp_h=0.15;
+14:50:17.579 < 32,946.7,FILTER_RESET,svc_h=0.00;cmp_h=0.15;
+14:50:17.579 < 32,1094.0,BT_DISCONNECT,n=0;reason=213;
+14:50:17.579 < 32,1094.1,BT_CONNECT,n=1;
+14:50:17.579 < 33,2.3,BOOT,fw=0.7.7;reset=USB;tyre=285/70R17;air_L=248;target=2.30;offset=0.400;c=0.00;offcap=0.800;rate=0.0097;kTop=0.0058;bias=0.000;dev=0.050;learned=0;tauD=211.8;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.15;vent_h=0.08;svc_h=0.00;
+14:50:17.579 < 33,2.4,BT,on=1;bonds=2;
+14:50:17.579 < 33,4.1,BT_CONNECT,n=1;
+14:50:17.579 < 34,0.3,BOOT,fw=0.7.7;reset=POWERON;tyre=285/70R17;air_L=248;target=2.30;offset=0.400;c=0.00;offcap=0.800;rate=0.0097;kTop=0.0058;bias=0.000;dev=0.050;learned=0;tauD=211.8;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.15;vent_h=0.08;svc_h=0.00;
+14:50:17.579 < 34,0.4,BT,on=1;bonds=2;
+14:50:17.579 < 34,2.1,BT_CONNECT,n=1;
+14:50:17.579 < 34,17.3,CUSTOM_SET,custom=0.50;wheels=3;
+14:50:17.579 < 34,19.3,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:50:17.579 < 34,20.5,RUN,target=0.50;fw=0.7.7;
+14:50:17.579 < 34,22.6,STATIC,after=START;p=0.013;settle_s=1.3;
+14:50:17.579 < 34,22.7,MODE,mode=INF;p0=0.013;target=0.50;
+14:50:17.579 < 34,25.8,END,result=ERR_SENSOR;mode=INF;target=0.50;p0=0.013;p=0.013;starts= 1;vents= 0;run_s=5.3;cmp_h=0.15;vent_h=0.08;adc_fail= 0;loop_max_ms=156;
+14:50:17.579 < 35,0.6,BOOT,fw=0.7.7;reset=POWERON;tyre=285/70R17;air_L=248;target=0.80;offset=0.400;c=0.00;offcap=0.800;rate=0.0097;kTop=0.0058;bias=0.000;dev=0.050;learned=0;tauD=211.8;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.15;vent_h=0.08;svc_h=0.00;
+14:50:17.579 < 35,0.8,BT,on=1;bonds=2;
+14:50:17.579 < 35,48.6,BT_CONNECT,n=1;
+14:50:17.579 < 36,0.5,BOOT,fw=0.7.7;reset=POWERON;tyre=285/70R17;air_L=248;target=0.80;offset=0.400;c=0.00;offcap=0.800;rate=0.0097;kTop=0.0058;bias=0.000;dev=0.050;learned=0;tauD=211.8;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.15;vent_h=0.08;svc_h=0.00;
+14:50:17.579 < 36,0.6,BT,on=1;bonds=2;
+14:50:17.579 < 36,2.5,BT_CONNECT,n=1;
+14:50:17.579 < 36,66.7,BT_DISCONNECT,n=0;reason=213;
+14:50:17.579 < 36,66.8,BT_CONNECT,n=1;
+14:50:17.579 < 36,102.8,BT_DISCONNECT,n=0;reason=213;
+14:50:17.579 < 36,103.0,BT_CONNECT,n=1;
+14:50:17.579 < 36,126.2,BT_DISCONNECT,n=0;reason=213;
+14:50:17.579 < 36,126.3,BT_CONNECT,n=1;
+14:50:17.579 < 36,160.8,FAKE,bar=1.000;
+14:50:17.579 < 36,176.8,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:50:17.579 < 36,178.4,ARM_CANCEL,reason=KNOB;
+14:50:17.579 < 36,305.5,FAKE,bar=1.000;
+14:50:17.579 < 36,308.1,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:50:17.579 < 36,309.1,RUN,target=2.30;fw=0.7.7;
+14:50:17.579 < 36,311.3,STATIC,after=START;p=1.000;settle_s=1.3;
+14:50:17.579 < 36,311.3,MODE,mode=INF;p0=1.000;target=2.30;
+14:50:17.579 < 36,315.3,FAKE,bar=4.000;
+14:50:17.579 < 36,315.4,END,result=ERR_OVER;mode=INF;target=2.30;p0=1.000;p=1.000;starts= 1;vents= 0;run_s=6.2;cmp_h=0.15;vent_h=0.08;adc_fail= 0;loop_max_ms=151;
+14:50:17.579 < 36,318.4,FAKE,bar=2.300;
+14:50:17.579 < 36,341.3,FAKE,bar=1.000;
+14:50:17.579 < 36,357.3,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:50:17.580 < 36,358.9,ARM_CANCEL,reason=KNOB;
+14:50:17.580 < 36,484.3,FAKE,bar=1.000;
+14:50:17.580 < 36,486.9,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:50:17.580 < 36,488.0,RUN,target=2.30;fw=0.7.7;
+14:50:17.580 < 36,490.0,STATIC,after=START;p=1.000;settle_s=1.1;
+14:50:17.580 < 36,490.0,MODE,mode=INF;p0=1.000;target=2.30;
+14:50:17.580 < 36,494.2,FAKE,bar=4.000;
+14:50:17.580 < 36,494.3,END,result=ERR_OVER;mode=INF;target=2.30;p0=1.000;p=1.000;starts= 1;vents= 0;run_s=6.2;cmp_h=0.15;vent_h=0.08;adc_fail= 0;loop_max_ms=147;
+14:50:17.580 < 36,497.3,FAKE,bar=2.300;
+14:50:17.580 < 36,511.9,DEMO,on=1;
+14:50:17.580 < 36,519.4,RUN,target=2.30;fw=0.7.7;
+14:50:17.580 < 36,519.5,LEARN_TEST,mode=INF;
+14:50:17.580 < 36,521.6,STATIC,after=START;p=0.999;settle_s=1.3;
+14:50:17.580 < 36,536.7,STOP,phase=CAL_PULSE;t_s=15.04;line_bar=2.188;est_bar=1.788;offset=0.400;rate=0.0500;margin=0.100;offcap=0.800;
+14:50:17.580 < 36,541.6,STATIC,after=AFTER_CAL;p=1.854;settle_s=4.1;
+14:50:17.580 < 36,541.7,LEARN_INF,from=CAL_PULSE;off_meas=0.334;c_meas=6.68;rate_meas=0.0568;miss=0.000;offset=0.400>0.334;c=0.00>6.68;rate=0.0097>0.0568;kTop=0.0058>0.0483;bias=0.000>0.000;dev=0.050>0.050;
+14:50:17.584 < 36,541.7,LEARN_INF_TEST,p_before=0.999;p_after=1.854;t_s=15.0;ok=1;rate=0.0097>0.0568;
+14:50:17.584 < 36,541.8,END,result=DONE;mode=INF;target=2.30;p0=0.999;p=1.854;starts= 1;vents= 0;run_s=22.4;cmp_h=0.16;vent_h=0.08;adc_fail= 0;loop_max_ms=107;
+14:50:17.584 < 36,550.1,RUN,target=2.30;fw=0.7.7;
+14:50:17.584 < 36,550.2,LEARN_TEST,mode=DEF;
+14:50:17.584 < 36,552.3,STATIC,after=START;p=1.854;settle_s=1.3;
+14:50:17.584 < 36,572.4,STOP,phase=VENT;t_s=20.00;line_bar=1.028;
+14:50:17.584 < 36,575.0,STATIC,after=AFTER_VENT;p=1.471;settle_s=1.8;
+14:50:17.584 < 36,575.1,LEARN_DEF_TEST,p_before=1.854;p_after=1.471;t_s=20.0;tau_meas=139.5;ok=1;tau=211.8>139.5;
+14:50:17.584 < 36,575.2,END,result=DONE;mode=DEF;target=2.30;p0=1.854;p=1.471;starts= 0;vents= 1;run_s=25.1;cmp_h=0.16;vent_h=0.09;adc_fail= 0;loop_max_ms=123;
+14:50:17.584 < 36,585.7,DEMO,on=0;
+14:50:17.584 < 36,588.0,FAKE,bar=0.000;
+14:50:17.584 < 36,592.3,ENGINE_CONFIRM,in=CAL;aux1=0.0;
+14:50:17.584 < 36,592.9,CAL_POINT,n= 0;raw=0.000;gauge=0.00;
+14:50:17.584 < 36,593.6,FAKE,bar=0.550;
+14:50:17.584 < 36,593.9,FAKE,bar=0.800;
+14:50:17.585 < 36,594.1,FAKE,bar=1.050;
+14:50:17.585 < 36,594.4,FAKE,bar=1.300;
+14:50:17.585 < 36,594.7,FAKE,bar=1.550;
+14:50:17.585 < 36,599.0,CAL_POINT,n= 1;raw=1.550;gauge=1.55;
+14:50:17.585 < 36,599.7,FAKE,bar=0.550;
+14:50:17.585 < 36,600.0,FAKE,bar=0.800;
+14:50:17.585 < 36,600.3,FAKE,bar=1.050;
+14:50:17.585 < 36,600.6,FAKE,bar=1.300;
+14:50:17.585 < 36,600.9,FAKE,bar=1.550;
+14:50:17.585 < 36,601.1,FAKE,bar=1.800;
+14:50:17.585 < 36,601.3,FAKE,bar=2.050;
+14:50:17.585 < 36,601.6,FAKE,bar=2.300;
+14:50:17.585 < 36,601.9,FAKE,bar=2.550;
+14:50:17.585 < 36,606.2,CAL_POINT,n= 2;raw=2.550;gauge=2.55;
+14:50:17.585 < 36,607.0,FAKE,bar=0.550;
+14:50:17.585 < 36,607.3,FAKE,bar=0.800;
+14:50:17.585 < 36,607.6,FAKE,bar=1.050;
+14:50:17.585 < 36,607.8,FAKE,bar=1.300;
+14:50:17.585 < 36,608.1,FAKE,bar=1.550;
+14:50:17.585 < 36,608.4,FAKE,bar=1.800;
+14:50:17.585 < 36,608.6,FAKE,bar=2.050;
+14:50:17.585 < 36,608.9,FAKE,bar=2.300;
+14:50:17.585 < 36,609.2,FAKE,bar=2.550;
+14:50:17.585 < 36,609.5,FAKE,bar=2.800;
+14:50:17.585 < 36,609.8,FAKE,bar=3.050;
+14:50:17.585 < 36,610.0,FAKE,bar=3.300;
+14:50:17.585 < 36,610.2,FAKE,bar=3.550;
+14:50:17.585 < 36,614.6,CAL_POINT,n= 3;raw=3.550;gauge=3.55;
+14:50:17.585 < 36,614.6,CAL_DONE,calA=1.0000>1.0000;calB=0.000>0.000;fit_err=0.000;
+14:50:17.586 < 36,622.4,RESET_LEARNING,
+14:50:17.586 < 36,636.7,BT,on=0;
+14:50:17.586 < 37,2.5,BOOT,fw=0.7.7;reset=SW;tyre=285/70R17;air_L=248;target=2.30;offset=0.400;c=0.00;offcap=0.800;rate=0.0097;kTop=0.0058;bias=0.000;dev=0.050;learned=0;tauD=211.8;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.16;vent_h=0.09;svc_h=0.01;
+14:50:17.586 < 37,2.7,BT,on=1;bonds=2;
+14:50:17.586 < 37,4.4,BT_CONNECT,n=1;
+14:50:17.586 < 37,30.1,OTA,app_valid=1;
+14:50:17.586 < 37,91.9,BT_DISCONNECT,n=0;reason=213;
+14:50:17.586 < 37,92.1,BT_CONNECT,n=1;
+14:50:17.586 < 37,128.5,BT_DISCONNECT,n=0;reason=213;
+14:50:17.586 < 37,128.6,BT_CONNECT,n=1;
+14:50:17.586 < 38,0.3,BOOT,fw=0.7.7;reset=POWERON;tyre=285/70R17;air_L=248;target=2.30;offset=0.400;c=0.00;offcap=0.800;rate=0.0097;kTop=0.0058;bias=0.000;dev=0.050;learned=0;tauD=211.8;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.16;vent_h=0.09;svc_h=0.01;
+14:50:17.586 < 38,0.6,BT,on=1;bonds=2;
+14:50:17.586 < 38,30.3,OFFSET_MAX,auto=0;cap=1.000;
+14:50:17.586 < 38,91.5,ENGINE_CONFIRM,in=CAL;aux1=0.0;
+14:50:17.586 < 38,92.9,CAL_POINT,n= 0;raw=0.013;gauge=0.00;
+14:50:17.586 < 38,133.6,BT_CONNECT,n=1;
+14:50:17.586 < 39,0.5,BOOT,fw=0.7.7;reset=POWERON;tyre=285/70R17;air_L=248;target=2.30;offset=0.400;c=0.00;offcap=1.000;rate=0.0097;kTop=0.0058;bias=0.000;dev=0.050;learned=0;tauD=211.8;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.16;vent_h=0.09;svc_h=0.01;
+14:50:17.586 < 39,0.7,BT,on=1;bonds=2;
+14:50:17.586 < 40,0.3,BOOT,fw=0.7.7;reset=POWERON;tyre=285/70R17;air_L=248;target=1.00;offset=0.400;c=0.00;offcap=1.000;rate=0.0097;kTop=0.0058;bias=0.000;dev=0.050;learned=0;tauD=211.8;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.16;vent_h=0.09;svc_h=0.01;
+14:50:17.586 < 40,0.5,BT,on=1;bonds=2;
+14:50:17.586 < 41,0.5,BOOT,fw=0.7.7;reset=POWERON;tyre=285/70R17;air_L=248;target=1.80;offset=0.400;c=0.00;offcap=1.000;rate=0.0097;kTop=0.0058;bias=0.000;dev=0.050;learned=0;tauD=211.8;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.16;vent_h=0.09;svc_h=0.01;
+14:50:17.586 < 41,0.6,BT,on=1;bonds=2;
+14:50:17.586 < 42,0.5,BOOT,fw=0.7.7;reset=POWERON;tyre=285/70R17;air_L=248;target=1.00;offset=0.400;c=0.00;offcap=1.000;rate=0.0097;kTop=0.0058;bias=0.000;dev=0.050;learned=0;tauD=211.8;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.16;vent_h=0.09;svc_h=0.01;
+14:50:17.586 < 42,0.7,BT,on=1;bonds=2;
+14:50:17.587 < 43,0.3,BOOT,fw=0.7.7;reset=POWERON;tyre=285/70R17;air_L=248;target=1.00;offset=0.400;c=0.00;offcap=1.000;rate=0.0097;kTop=0.0058;bias=0.000;dev=0.050;learned=0;tauD=211.8;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.16;vent_h=0.09;svc_h=0.01;
+14:50:17.587 < 43,0.4,BT,on=1;bonds=2;
+14:50:17.588 < 44,0.3,BOOT,fw=0.7.7;reset=POWERON;tyre=285/70R17;air_L=248;target=1.00;offset=0.400;c=0.00;offcap=1.000;rate=0.0097;kTop=0.0058;bias=0.000;dev=0.050;learned=0;tauD=211.8;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.16;vent_h=0.09;svc_h=0.01;
+14:50:17.589 < 44,0.5,BT,on=1;bonds=2;
+14:50:17.589 < 45,0.3,BOOT,fw=0.7.7;reset=POWERON;tyre=285/70R17;air_L=248;target=1.00;offset=0.400;c=0.00;offcap=1.000;rate=0.0097;kTop=0.0058;bias=0.000;dev=0.050;learned=0;tauD=211.8;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.16;vent_h=0.09;svc_h=0.01;
+14:50:17.589 < 45,0.4,BT,on=1;bonds=2;
+14:50:17.589 < 46,0.3,BOOT,fw=0.7.7;reset=POWERON;tyre=285/70R17;air_L=248;target=1.00;offset=0.400;c=0.00;offcap=1.000;rate=0.0097;kTop=0.0058;bias=0.000;dev=0.050;learned=0;tauD=211.8;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.16;vent_h=0.09;svc_h=0.01;
+14:50:17.589 < 46,0.4,BT,on=1;bonds=2;
+14:50:17.589 < 47,0.3,BOOT,fw=0.7.7;reset=POWERON;tyre=285/70R17;air_L=248;target=1.00;offset=0.400;c=0.00;offcap=1.000;rate=0.0097;kTop=0.0058;bias=0.000;dev=0.050;learned=0;tauD=211.8;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.16;vent_h=0.09;svc_h=0.01;
+14:50:17.589 < 47,0.4,BT,on=1;bonds=2;
+14:50:17.589 < 48,0.3,BOOT,fw=0.7.7;reset=POWERON;tyre=285/70R17;air_L=248;target=1.00;offset=0.400;c=0.00;offcap=1.000;rate=0.0097;kTop=0.0058;bias=0.000;dev=0.050;learned=0;tauD=211.8;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.16;vent_h=0.09;svc_h=0.01;
+14:50:17.589 < 48,0.4,BT,on=1;bonds=2;
+14:50:17.589 < 49,0.3,BOOT,fw=0.7.7;reset=POWERON;tyre=285/70R17;air_L=248;target=1.00;offset=0.400;c=0.00;offcap=1.000;rate=0.0097;kTop=0.0058;bias=0.000;dev=0.050;learned=0;tauD=211.8;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.16;vent_h=0.09;svc_h=0.01;
+14:50:17.589 < 49,0.4,BT,on=1;bonds=2;
+14:50:17.589 < 49,112.3,OUTPUT_TEST,output=VALVE;p_before=0.012;p_after=0.012;fault=0;
+14:50:17.589 < 49,115.5,OUTPUT_TEST,output=K1;p_before=0.012;p_after=0.012;fault=0;
+14:50:17.589 < 49,4530.5,BT_CONNECT,n=1;
+14:50:17.589 < 49,4558.8,CUSTOM_SET,custom=0.50;wheels=3;
+14:50:17.589 < 49,4561.0,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:50:17.589 < 49,4562.9,RUN,target=0.50;fw=0.7.7;
+14:50:17.589 < 49,4565.1,STATIC,after=START;p=0.013;settle_s=1.3;
+14:50:17.589 < 49,4565.2,MODE,mode=INF;p0=0.013;target=0.50;
+14:50:17.589 < 49,4568.2,END,result=ERR_SENSOR;mode=INF;target=0.50;p0=0.013;p=0.013;starts= 1;vents= 0;run_s=5.4;cmp_h=0.16;vent_h=0.09;adc_fail= 0;loop_max_ms=190;
+14:50:17.589 < 50,0.5,BOOT,fw=0.7.7;reset=POWERON;tyre=285/70R17;air_L=248;target=0.80;offset=0.400;c=0.00;offcap=1.000;rate=0.0097;kTop=0.0058;bias=0.000;dev=0.050;learned=0;tauD=211.8;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.16;vent_h=0.09;svc_h=0.01;
+14:50:17.589 < 50,0.7,BT,on=1;bonds=2;
+14:50:17.589 < 50,27.2,CUSTOM_SET,custom=3.00;wheels=1;
+14:50:17.589 < 50,28.9,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:50:17.589 < 50,30.1,RUN,target=3.00;fw=0.7.7;
+14:50:17.589 < 50,32.1,STATIC,after=START;p=0.013;settle_s=1.1;
+14:50:17.589 < 50,32.2,MODE,mode=INF;p0=0.013;target=3.00;
+14:50:17.589 < 50,34.8,END,result=STOPPED;mode=INF;target=3.00;p0=0.013;p=0.013;starts= 1;vents= 0;run_s=4.7;cmp_h=0.16;vent_h=0.09;adc_fail= 0;loop_max_ms=159;
+14:50:17.589 < 50,60.4,ENGINE_CONFIRM,in=CAL;aux1=0.0;
+14:50:17.589 < 50,61.1,CAL_POINT,n= 0;raw=0.012;gauge=0.00;
+14:50:17.589 < 51,0.5,BOOT,fw=0.7.7;reset=POWERON;tyre=285/70R17;air_L=248;target=1.20;offset=0.400;c=0.00;offcap=1.000;rate=0.0097;kTop=0.0058;bias=0.000;dev=0.050;learned=0;tauD=211.8;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.16;vent_h=0.09;svc_h=0.01;
+14:50:17.589 < 51,0.7,BT,on=1;bonds=2;
+14:50:17.589 < 52,0.6,BOOT,fw=0.7.7;reset=POWERON;tyre=285/70R17;air_L=248;target=2.30;offset=0.400;c=0.00;offcap=1.000;rate=0.0097;kTop=0.0058;bias=0.000;dev=0.050;learned=0;tauD=211.8;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.16;vent_h=0.09;svc_h=0.01;
+14:50:17.589 < 52,0.8,BT,on=1;bonds=2;
+14:50:17.589 < 52,506.7,BT_CONNECT,n=1;
+14:50:17.589 < 52,3185.0,TYRE,from=285/70R17;to=255/75R17;air_L=210;rate=0.0114;tauD=179.3;
+14:50:17.589 < 52,3186.3,TYRE,from=255/75R17;to=285/70R17;air_L=248;rate=0.0097;tauD=211.8;
+14:50:17.589 < 52,3187.0,TYRE,from=285/70R17;to=255/75R17;air_L=210;rate=0.0114;tauD=179.3;
+14:50:17.589 < 52,3187.7,TYRE,from=255/75R17;to=285/70R17;air_L=248;rate=0.0097;tauD=211.8;
+14:50:17.589 < 52,3229.3,TYRE,from=285/70R17;to=255/75R17;air_L=210;rate=0.0114;tauD=179.3;
+14:50:17.589 < 53,0.5,BOOT,fw=0.7.7;reset=POWERON;tyre=255/75R17;air_L=210;target=0.50;offset=0.400;c=0.00;offcap=1.000;rate=0.0114;kTop=0.0069;bias=0.000;dev=0.050;learned=0;tauD=179.3;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.16;vent_h=0.09;svc_h=0.01;
+14:50:17.589 < 53,0.6,BT,on=1;bonds=2;
+14:50:17.589 < 54,0.5,BOOT,fw=0.7.7;reset=POWERON;tyre=255/75R17;air_L=210;target=0.50;offset=0.400;c=0.00;offcap=1.000;rate=0.0114;kTop=0.0069;bias=0.000;dev=0.050;learned=0;tauD=179.3;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.16;vent_h=0.09;svc_h=0.01;
+14:50:17.589 < 54,0.7,BT,on=1;bonds=2;
+14:50:17.645 < 55,0.5,BOOT,fw=0.7.7;reset=POWERON;tyre=255/75R17;air_L=210;target=0.50;offset=0.400;c=0.00;offcap=1.000;rate=0.0114;kTop=0.0069;bias=0.000;dev=0.050;learned=0;tauD=179.3;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.16;vent_h=0.09;svc_h=0.01;
+14:50:17.645 < 55,0.7,BT,on=1;bonds=2;
+14:50:17.645 < 56,0.5,BOOT,fw=0.7.7;reset=POWERON;tyre=255/75R17;air_L=210;target=0.50;offset=0.400;c=0.00;offcap=1.000;rate=0.0114;kTop=0.0069;bias=0.000;dev=0.050;learned=0;tauD=179.3;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.16;vent_h=0.09;svc_h=0.01;
+14:50:17.645 < 56,0.7,BT,on=1;bonds=2;
+14:50:17.645 < 57,0.6,BOOT,fw=0.7.7;reset=POWERON;tyre=255/75R17;air_L=210;target=0.50;offset=0.400;c=0.00;offcap=1.000;rate=0.0114;kTop=0.0069;bias=0.000;dev=0.050;learned=0;tauD=179.3;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.16;vent_h=0.09;svc_h=0.01;
+14:50:17.645 < 57,0.7,BT,on=1;bonds=2;
+14:50:17.645 < 58,0.5,BOOT,fw=0.7.7;reset=POWERON;tyre=255/75R17;air_L=210;target=1.00;offset=0.400;c=0.00;offcap=1.000;rate=0.0114;kTop=0.0069;bias=0.000;dev=0.050;learned=0;tauD=179.3;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.16;vent_h=0.09;svc_h=0.01;
+14:50:17.645 < 58,0.6,BT,on=1;bonds=2;
+14:50:17.645 < 59,0.5,BOOT,fw=0.7.7;reset=POWERON;tyre=255/75R17;air_L=210;target=1.00;offset=0.400;c=0.00;offcap=1.000;rate=0.0114;kTop=0.0069;bias=0.000;dev=0.050;learned=0;tauD=179.3;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.16;vent_h=0.09;svc_h=0.01;
+14:50:17.645 < 59,0.6,BT,on=1;bonds=2;
+14:50:17.645 < 60,2.5,BOOT,fw=0.8.0;reset=USB;tyre=255/75R17;air_L=210;target=1.00;offset=0.400;c=0.00;offcap=1.000;rate=0.0114;kTop=0.0069;bias=0.000;dev=0.050;learned=0;tauD=179.3;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.16;vent_h=0.09;svc_h=0.01;p_highway=2.50;p_rough_road=1.80;p_gravel=1.50;p_trail=1.20;p_rock=1.00;p_sand=0.80;p_recovery=0.50;p_custom=3.00;
+14:50:17.646 < 60,2.7,BT,on=1;bonds=2;
+14:50:17.646 < # ---- end
+14:50:22.840 > presets
+14:50:22.891 < # 255/75R17 (in use):  HIGHWAY 2.50  ROUGH ROAD 1.80  GRAVEL 1.50  TRAIL 1.20  ROCK 1.00  SAND 0.80  RECOVERY 0.50
+14:50:22.891 < # 285/70R17:  HIGHWAY 2.30  ROUGH ROAD 1.80  GRAVEL 1.50  TRAIL 1.20  ROCK 1.00  SAND 0.80  RECOVERY 0.50
+14:50:22.891 < # CUSTOM 3.00  preset ROCK  target 1.00 bar
+14:50:23.487 > ui
+14:50:23.540 < UI,416,0,0,4,0,0,0,0.013,0.013,1.00,0.000,0.00,0,0,1,0,0,0,22305
+14:51:16.599 > ui
+14:51:16.655 < UI,123,0,0,4,0,0,0,0.015,0.015,1.00,0.000,0.00,0,0,1,0,0,0,9580
+14:51:17.240 > hold
+14:51:18.250 > ui
+14:51:18.305 < UI,166,1,0,4,0,0,0,0.014,0.014,1.00,0.000,0.00,0,0,1,0,0,0,11252
+14:51:18.899 > right
+14:51:19.540 > press
+14:51:20.547 > ui
+14:51:20.603 < UI,228,1,0,4,0,0,0,0.012,0.012,1.00,0.000,0.00,0,0,1,0,0,0,13544
+14:51:21.183 > dl
+14:51:21.235 < # dl: recording on, ask again
+14:51:28.217 > dl
+14:51:28.273 < DL,240,135,6,1
+14:51:28.274 < DLT,120,117,142,18,1,3,PRESS: SELECT
+14:51:28.274 < DLT,8,2,133,16,0,1,PRESETS 255/75R17
+14:51:28.274 < DLT,8,32,154,18,4,3,HIGHWAY: 2.5 bar
+14:51:28.274 < DLT,8,58,191,18,4,3,ROUGH ROAD: 1.8 bar
+14:51:28.274 < DLT,8,84,141,18,4,3,GRAVEL: 1.5 bar
+14:51:37.507 > right
+14:51:38.142 > press
+14:51:38.984 > ui
+14:51:39.037 < UI,714,16,1,4,0,0,0,0.011,0.011,1.00,0.000,0.00,0,0,1,0,0,0,31979
+14:51:39.624 > right
+14:51:40.259 > right
+14:51:40.902 > dl
+14:51:40.957 < DL,240,135,5,16
+14:51:40.957 < DLT,120,6,125,18,1,3,ROUGH ROAD
+14:51:40.957 < DLT,120,30,113,33,1,5,2.0 bar
+14:51:40.957 < DLT,120,69,213,18,1,2,DEFAULT 1.8: PRESS 1 S
+14:51:40.957 < DLT,120,93,140,18,1,2,TYRE 255/75R17
+14:51:40.957 < DLT,120,117,119,18,1,3,PRESS: SAVE
+14:51:41.754 > press
+14:51:41.806 < 61,34.8,PRESET_SET,name=ROUGH ROAD;tyre=255/75R17;bar=1.80>2.00;target=1.00;
+14:51:42.559 > ui
+14:51:42.610 < UI,808,1,1,4,0,0,0,0.012,0.012,1.00,0.000,0.00,0,0,1,0,0,0,35538
+14:51:43.192 > right
+14:51:43.836 > right
+14:51:44.484 > right
+14:51:45.128 > press
+14:51:45.932 > right
+14:51:46.576 > press
+14:51:46.627 < 61,39.6,PRESET_SET,name=ROCK;tyre=255/75R17;bar=1.00>1.10;target=1.10;
+14:51:47.421 > ui
+14:51:47.477 < UI,936,1,4,4,0,0,0,0.013,0.013,1.10,0.000,0.00,0,0,1,0,0,0,40410
+14:51:48.073 > right
+14:51:48.709 > right
+14:51:49.343 > right
+14:51:49.987 > press
+14:51:50.839 > dl
+14:51:50.895 < DL,240,135,5,16
+14:51:50.895 < DLT,120,6,80,18,1,3,CUSTOM
+14:51:50.895 < DLT,120,30,113,33,1,5,3.0 bar
+14:51:50.895 < DLT,120,69,213,18,1,2,DEFAULT 2.0: PRESS 1 S
+14:51:50.895 < DLT,120,93,140,18,1,2,TYRE 255/75R17
+14:51:50.895 < DLT,120,117,119,18,1,3,PRESS: SAVE
+14:51:51.476 > mid
+14:51:52.327 > dl
+14:51:52.382 < DL,240,135,5,16
+14:51:52.383 < DLT,120,6,80,18,1,3,CUSTOM
+14:51:52.383 < DLT,120,30,113,33,1,5,2.0 bar
+14:51:52.383 < DLT,120,69,97,18,1,2,= DEFAULT
+14:51:52.383 < DLT,120,93,140,18,1,2,TYRE 255/75R17
+14:51:52.383 < DLT,120,117,119,18,1,3,PRESS: SAVE
+14:51:53.144 > press
+14:51:53.200 < 61,46.2,PRESET_SET,name=CUSTOM;tyre=255/75R17;bar=3.00>2.00;target=1.10;
+14:51:53.990 > presets
+14:51:54.041 < # 255/75R17 (in use):  HIGHWAY 2.50  ROUGH ROAD 2.00  GRAVEL 1.50  TRAIL 1.20  ROCK 1.10  SAND 0.80  RECOVERY 0.50
+14:51:54.041 < # 285/70R17:  HIGHWAY 2.30  ROUGH ROAD 1.80  GRAVEL 1.50  TRAIL 1.20  ROCK 1.00  SAND 0.80  RECOVERY 0.50
+14:51:54.041 < # CUSTOM 2.00  preset ROCK  target 1.10 bar
+14:51:54.626 > log
+14:51:54.676 < # /log_old.csv: none
+14:51:54.676 < # ---- /log.csv (52433 bytes)
+14:51:54.676 < boot,t_s,event,data
+14:51:54.676 < 1,2.6,BOOT,fw=0.6.1;reset=USB;tyre=255/75R17;air_L=210;target=2.50;offset=0.400;c=0.00;offcap=0.600;rate=0.0114;kTop=0.0069;bias=0.000;dev=0.050;learned=0;tauD=179.3;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.00;vent_h=0.00;svc_h=0.00;
+14:51:54.676 < 2,0.5,BOOT,fw=0.6.1;reset=USB;tyre=255/75R17;air_L=210;target=2.50;offset=0.400;c=0.00;offcap=0.600;rate=0.0114;kTop=0.0069;bias=0.000;dev=0.050;learned=0;tauD=179.3;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.00;vent_h=0.00;svc_h=0.00;
+14:51:54.676 < 3,0.5,BOOT,fw=0.6.1;reset=USB;tyre=255/75R17;air_L=210;target=2.50;offset=0.400;c=0.00;offcap=0.600;rate=0.0114;kTop=0.0069;bias=0.000;dev=0.050;learned=0;tauD=179.3;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.00;vent_h=0.00;svc_h=0.00;
+14:51:54.677 < 3,2.2,FAKE,bar=1.000;
+14:51:54.677 < 4,0.5,BOOT,fw=0.6.1;reset=USB;tyre=255/75R17;air_L=210;target=2.50;offset=0.400;c=0.00;offcap=0.600;rate=0.0114;kTop=0.0069;bias=0.000;dev=0.050;learned=0;tauD=179.3;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.00;vent_h=0.00;svc_h=0.00;
+14:51:54.677 < 4,14.4,FAKE,bar=1.000;
+14:51:54.677 < 4,38.2,FAKE,bar=1.000;
+14:51:54.677 < 4,41.5,OUTPUT_TEST,output=K1;p_before=1.000;p_after=1.000;fault=0;
+14:51:54.677 < 4,43.1,OUTPUT_TEST,output=VALVE;p_before=1.000;p_after=1.000;fault=0;
+14:51:54.677 < 4,46.2,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:51:54.677 < 4,47.5,OUTPUT_TEST,output=K1;p_before=1.000;p_after=1.000;fault=0;cut=RUN_START;
+14:51:54.677 < 4,47.5,RUN,target=2.50;fw=0.6.1;
+14:51:54.677 < 4,49.6,STATIC,after=START;p=1.000;settle_s=1.3;
+14:51:54.677 < 4,49.7,MODE,mode=INF;p0=1.000;target=2.50;
+14:51:54.677 < 4,64.7,STOP,phase=CAL_PULSE;t_s=15.00;line_bar=1.000;est_bar=0.600;offset=0.400;rate=0.0000;margin=0.100;offcap=0.600;
+14:51:54.677 < 4,71.6,STATIC,after=AFTER_CAL;p=1.000;settle_s=6.0;
+14:51:54.677 < 4,71.7,LEARN_INF,from=CAL_PULSE;off_meas=0.000;c_meas=0.00;rate_meas=0.0000;miss=0.000;offset=0.400>0.400;c=0.00>0.00;rate=0.0114>0.0114;kTop=0.0069>0.0097;bias=0.000>0.000;dev=0.050>0.050;
+14:51:54.677 < 4,80.0,FAKE,bar=1.200;
+14:51:54.677 < 4,81.1,FAKE,bar=1.400;
+14:51:54.677 < 4,82.1,FAKE,bar=1.600;
+14:51:54.677 < 4,83.1,FAKE,bar=1.800;
+14:51:54.677 < 4,84.2,FAKE,bar=2.000;
+14:51:54.677 < 4,85.2,FAKE,bar=2.200;
+14:51:54.677 < 4,86.2,FAKE,bar=2.400;
+14:51:54.677 < 4,87.3,FAKE,bar=2.500;
+14:51:54.677 < 4,88.3,FAKE,bar=2.600;
+14:51:54.677 < 4,89.4,FAKE,bar=2.700;
+14:51:54.677 < 4,90.4,FAKE,bar=2.800;
+14:51:54.677 < 4,90.5,STOP,phase=MAIN;t_s=18.76;line_bar=2.800;est_bar=2.400;offset=0.400;rate=0.1023;margin=0.130;offcap=0.700;
+14:51:54.678 < 4,91.4,FAKE,bar=2.900;
+14:51:54.678 < 4,93.7,STATIC,after=AFTER_MAIN;p=2.900;settle_s=2.4;
+14:51:54.678 < 4,93.7,LEARN_INF,from=MAIN;off_meas=-0.100;c_meas=0.00;rate_meas=0.1013;miss=0.500;offset=0.400>0.400;c=0.00>0.00;rate=0.0114>0.0384;kTop=0.0097>0.0326;bias=0.000>0.150;dev=0.050>0.140;
+14:51:54.678 < 4,93.8,VENT,p=2.900;aim=2.660;tauD=179.3;t_s=11.35;
+14:51:54.678 < 4,97.0,FAKE,bar=2.500;
+14:51:54.678 < 4,105.2,STOP,phase=VENT;t_s=11.35;line_bar=2.500;
+14:51:54.678 < 4,112.1,STATIC,after=AFTER_VENT;p=2.500;settle_s=6.0;
+14:51:54.678 < 4,112.2,LEARN_DEF,t_s=11.35;p_before=2.900;p_after=2.500;aim=2.660;miss=-0.160;tau_meas=105.2;tauD=179.3>105.2;
+14:51:54.678 < 4,112.2,END,result=DONE;mode=INF;target=2.50;p0=1.000;p=2.500;starts= 2;vents= 1;run_s=64.7;cmp_h=0.01;vent_h=0.00;adc_fail= 0;loop_max_ms=1144;
+14:51:54.678 < 4,190.8,FAKE,bar=1.000;
+14:51:54.678 < 4,195.4,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:51:54.678 < 4,196.9,RUN,target=2.50;fw=0.6.1;
+14:51:54.678 < 4,199.1,STATIC,after=START;p=1.000;settle_s=1.3;
+14:51:54.678 < 4,199.1,MODE,mode=INF;p0=1.000;target=2.50;
+14:51:54.678 < 4,204.4,FAKE,bar=0.000;
+14:51:54.678 < 4,204.5,END,result=ERR_SENSOR;mode=INF;target=2.50;p0=1.000;p=1.000;starts= 1;vents= 0;run_s=7.6;cmp_h=0.01;vent_h=0.00;adc_fail= 0;loop_max_ms=193;
+14:51:54.678 < 4,225.5,FAKE,bar=1.000;
+14:51:54.678 < 4,229.1,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:51:54.678 < 4,229.9,RUN,target=2.50;fw=0.6.1;
+14:51:54.678 < 4,232.1,STATIC,after=START;p=1.000;settle_s=1.3;
+14:51:54.678 < 4,232.1,MODE,mode=INF;p0=1.000;target=2.50;
+14:51:54.678 < 4,235.0,FAKE,bar=4.000;
+14:51:54.678 < 4,235.1,END,result=ERR_OVER;mode=INF;target=2.50;p0=1.000;p=1.000;starts= 1;vents= 0;run_s=5.2;cmp_h=0.01;vent_h=0.00;adc_fail= 0;loop_max_ms=133;
+14:51:54.678 < 4,241.1,FAKE,bar=1.000;
+14:51:54.678 < 4,244.7,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:51:54.678 < 4,245.5,RUN,target=2.50;fw=0.6.1;
+14:51:54.678 < 4,247.7,STATIC,after=START;p=1.000;settle_s=1.3;
+14:51:54.679 < 4,247.8,MODE,mode=INF;p0=1.000;target=2.50;
+14:51:54.679 < 4,250.6,END,result=STOPPED;mode=INF;target=2.50;p0=1.000;p=1.000;starts= 1;vents= 0;run_s=5.0;cmp_h=0.01;vent_h=0.00;adc_fail= 0;loop_max_ms=150;
+14:51:54.679 < 4,258.1,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:51:54.679 < 4,258.9,RUN,target=2.50;fw=0.6.1;
+14:51:54.682 < 4,259.8,END,result=STOPPED;mode=-;target=2.50;p0=1.000;p=1.000;starts= 0;vents= 0;run_s=0.9;cmp_h=0.01;vent_h=0.00;adc_fail= 0;loop_max_ms=85;
+14:51:54.682 < 4,341.0,FAKE,bar=1.000;
+14:51:54.682 < 4,343.7,RUN,target=0.50;fw=0.6.1;
+14:51:54.682 < 4,345.8,STATIC,after=START;p=1.000;settle_s=1.3;
+14:51:54.682 < 4,345.9,MODE,mode=DEF;p0=1.000;target=0.50;
+14:51:54.682 < 4,345.9,VENT,p=1.000;aim=0.575;tauD=105.2;t_s=24.96;
+14:51:54.682 < 4,370.9,STOP,phase=VENT;t_s=24.96;line_bar=1.000;
+14:51:54.682 < 4,373.0,STATIC,after=AFTER_VENT;p=1.000;settle_s=1.3;
+14:51:54.682 < 4,373.1,LEARN_DEF,t_s=24.96;p_before=1.000;p_after=1.000;aim=0.575;miss=0.425;tau_meas=0.0;tauD=105.2>105.2;
+14:51:54.682 < 4,373.1,VENT,p=1.000;aim=0.575;tauD=105.2;t_s=24.96;
+14:51:54.682 < 4,398.1,STOP,phase=VENT;t_s=24.96;line_bar=1.000;
+14:51:54.682 < 4,400.2,STATIC,after=AFTER_VENT;p=1.000;settle_s=1.3;
+14:51:54.682 < 4,400.3,LEARN_DEF,t_s=24.96;p_before=1.000;p_after=1.000;aim=0.575;miss=0.425;tau_meas=0.0;tauD=105.2>105.2;
+14:51:54.682 < 4,400.4,VENT,p=1.000;aim=0.575;tauD=105.2;t_s=24.96;
+14:51:54.682 < 4,423.1,END,result=STOPPED;mode=DEF;target=0.50;p0=1.000;p=1.000;starts= 0;vents= 3;run_s=79.4;cmp_h=0.01;vent_h=0.02;adc_fail= 0;loop_max_ms=2043;
+14:51:54.682 < 4,440.8,FAKE,bar=1.000;
+14:51:54.682 < 4,443.6,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:51:54.682 < 4,446.6,ARM_CANCEL,reason=TIMEOUT;
+14:51:54.682 < 4,525.0,FAKE,bar=1.000;
+14:51:54.682 < 4,528.1,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:51:54.682 < 4,529.2,RUN,target=2.50;fw=0.6.1;
+14:51:54.682 < 4,531.3,STATIC,after=START;p=1.000;settle_s=1.3;
+14:51:54.682 < 4,531.4,MODE,mode=INF;p0=1.000;target=2.50;
+14:51:54.683 < 4,591.4,END,result=ERR_LEAK;mode=INF;target=2.50;p0=1.000;p=1.000;starts= 1;vents= 0;run_s=62.2;cmp_h=0.03;vent_h=0.02;adc_fail= 0;loop_max_ms=123;
+14:51:54.683 < 4,611.6,FAKE,bar=1.500;
+14:51:54.683 < 4,624.3,FAKE,bar=1.480;
+14:51:54.683 < 4,625.4,FAKE,bar=1.460;
+14:51:54.683 < 4,626.4,FAKE,bar=1.440;
+14:51:54.683 < 4,627.4,FAKE,bar=1.420;
+14:51:54.683 < 4,628.5,FAKE,bar=1.400;
+14:51:54.683 < 4,629.5,FAKE,bar=1.380;
+14:51:54.683 < 4,630.5,FAKE,bar=1.360;
+14:51:54.683 < 4,631.6,FAKE,bar=1.340;
+14:51:54.683 < 4,632.6,FAKE,bar=1.320;
+14:51:54.683 < 4,633.7,FAKE,bar=1.300;
+14:51:54.683 < 4,634.2,VALVE_STUCK,p=1.300;rate=0.0133;
+14:51:54.683 < 4,634.3,END,result=ERR_VALVE;mode=-;target=2.50;p0=1.300;p=1.300;starts= 1;vents= 0;run_s=0.0;cmp_h=0.03;vent_h=0.02;adc_fail= 0;loop_max_ms=273;
+14:51:54.683 < 4,634.7,FAKE,bar=1.280;
+14:51:54.683 < 4,635.7,FAKE,bar=1.260;
+14:51:54.683 < 4,636.8,FAKE,bar=1.240;
+14:51:54.683 < 4,637.8,FAKE,bar=1.220;
+14:51:54.683 < 4,638.9,FAKE,bar=1.200;
+14:51:54.683 < 4,639.9,FAKE,bar=1.180;
+14:51:54.683 < 4,640.9,FAKE,bar=1.160;
+14:51:54.683 < 4,642.0,FAKE,bar=1.140;
+14:51:54.683 < 4,643.1,FAKE,bar=1.120;
+14:51:54.683 < 4,644.1,FAKE,bar=1.100;
+14:51:54.683 < 4,645.1,FAKE,bar=1.080;
+14:51:54.683 < 4,646.1,FAKE,bar=1.060;
+14:51:54.683 < 4,647.2,FAKE,bar=1.040;
+14:51:54.683 < 4,648.2,FAKE,bar=1.020;
+14:51:54.683 < 4,649.3,FAKE,bar=1.000;
+14:51:54.683 < 4,650.3,FAKE,bar=0.980;
+14:51:54.684 < 4,651.3,FAKE,bar=0.960;
+14:51:54.684 < 4,652.4,FAKE,bar=0.940;
+14:51:54.684 < 4,653.4,FAKE,bar=0.920;
+14:51:54.684 < 4,654.5,FAKE,bar=0.900;
+14:51:54.684 < 4,655.5,FAKE,bar=0.880;
+14:51:54.684 < 4,656.5,FAKE,bar=0.860;
+14:51:54.684 < 4,657.6,FAKE,bar=0.840;
+14:51:54.684 < 4,658.6,FAKE,bar=0.820;
+14:51:54.684 < 4,659.7,FAKE,bar=0.800;
+14:51:54.684 < 4,660.7,FAKE,bar=0.780;
+14:51:54.684 < 4,661.7,FAKE,bar=0.760;
+14:51:54.684 < 4,662.8,FAKE,bar=0.740;
+14:51:54.684 < 4,663.8,FAKE,bar=0.720;
+14:51:54.684 < 4,664.8,FAKE,bar=0.700;
+14:51:54.684 < 4,665.9,FAKE,bar=0.680;
+14:51:54.684 < 4,666.9,FAKE,bar=0.660;
+14:51:54.684 < 4,668.0,FAKE,bar=0.640;
+14:51:54.684 < 4,669.0,FAKE,bar=0.620;
+14:51:54.684 < 4,670.0,FAKE,bar=0.600;
+14:51:54.684 < 4,674.3,FAKE,bar=1.000;
+14:51:54.684 < 4,688.0,FAKE,bar=1.040;
+14:51:54.684 < 4,689.0,FAKE,bar=1.080;
+14:51:54.684 < 4,690.1,FAKE,bar=1.120;
+14:51:54.684 < 4,691.1,FAKE,bar=1.160;
+14:51:54.684 < 4,692.2,FAKE,bar=1.200;
+14:51:54.684 < 4,693.0,PUMP_STUCK,p=1.200;rise=0.600;high=0;
+14:51:54.684 < 4,693.0,END,result=ERR_PUMP_ON;mode=-;target=2.50;p0=1.200;p=1.200;starts= 1;vents= 0;run_s=0.0;cmp_h=0.03;vent_h=0.02;adc_fail= 0;loop_max_ms=273;
+14:51:54.684 < 4,693.2,FAKE,bar=1.240;
+14:51:54.684 < 4,694.2,FAKE,bar=1.280;
+14:51:54.684 < 4,695.3,FAKE,bar=1.320;
+14:51:54.684 < 4,696.3,FAKE,bar=1.360;
+14:51:54.685 < 4,697.3,FAKE,bar=1.400;
+14:51:54.685 < 4,698.4,FAKE,bar=1.440;
+14:51:54.685 < 4,699.4,FAKE,bar=1.480;
+14:51:54.685 < 4,700.5,FAKE,bar=1.520;
+14:51:54.685 < 4,701.5,FAKE,bar=1.560;
+14:51:54.685 < 4,702.5,FAKE,bar=1.600;
+14:51:54.685 < 4,703.6,FAKE,bar=1.640;
+14:51:54.685 < 4,704.6,FAKE,bar=1.680;
+14:51:54.685 < 4,705.6,FAKE,bar=1.720;
+14:51:54.685 < 4,706.8,FAKE,bar=1.760;
+14:51:54.685 < 4,707.7,FAKE,bar=1.800;
+14:51:54.685 < 4,708.8,FAKE,bar=1.840;
+14:51:54.685 < 4,709.8,FAKE,bar=1.880;
+14:51:54.685 < 4,710.9,FAKE,bar=1.920;
+14:51:54.685 < 4,711.9,FAKE,bar=1.960;
+14:51:54.685 < 4,712.9,FAKE,bar=2.000;
+14:51:54.685 < 4,713.9,FAKE,bar=2.040;
+14:51:54.685 < 4,747.3,FAKE,bar=5.500;
+14:51:54.685 < 4,750.8,PUMP_STUCK,p=5.500;rise=3.460;high=1;
+14:51:54.685 < 4,750.9,END,result=ERR_PUMP_ON;mode=-;target=2.50;p0=5.500;p=5.500;starts= 1;vents= 0;run_s=0.0;cmp_h=0.03;vent_h=0.02;adc_fail= 0;loop_max_ms=273;
+14:51:54.685 < 4,768.6,FAKE,bar=1.000;
+14:51:54.685 < 4,776.6,ENGINE_CONFIRM,in=CAL;aux1=0.0;
+14:51:54.685 < 4,779.8,CAL_POINT,n= 0;raw=1.000;gauge=0.00;
+14:51:54.685 < 4,822.8,OFFSET_MAX,auto=0;cap=0.800;
+14:51:54.685 < 4,829.3,OFFSET_MAX,auto=1;cap=0.700;
+14:51:54.685 < 4,1143.8,OUTPUT_TEST,output=K1;p_before=0.015;p_after=0.015;fault=0;
+14:51:54.687 < 4,1173.9,OUTPUT_TEST,output=K1;p_before=0.015;p_after=0.011;fault=0;
+14:51:54.687 < 4,1215.0,OUTPUT_TEST,output=K1;p_before=0.011;p_after=0.016;fault=0;
+14:51:54.687 < 4,1240.7,OUTPUT_TEST,output=VALVE;p_before=0.016;p_after=0.012;fault=0;
+14:51:54.687 < 4,1242.3,OUTPUT_TEST,output=K1;p_before=0.012;p_after=0.015;fault=0;
+14:51:54.687 < 4,1244.1,OUTPUT_TEST,output=VALVE;p_before=0.015;p_after=0.013;fault=0;
+14:51:54.687 < 4,1397.6,OUTPUT_TEST,output=K1;p_before=0.013;p_after=0.013;fault=0;
+14:51:54.687 < 4,1423.4,OUTPUT_TEST,output=VALVE;p_before=0.013;p_after=0.016;fault=0;
+14:51:54.687 < 4,1491.8,OUTPUT_TEST,output=K1;p_before=0.013;p_after=0.013;fault=0;
+14:51:54.687 < 4,1573.6,DEMO,on=1;
+14:51:54.687 < 4,1598.1,RESET_LEARNING,
+14:51:54.687 < 4,1602.9,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:51:54.687 < 4,1604.0,RUN,target=2.50;fw=0.6.1;
+14:51:54.687 < 4,1606.1,STATIC,after=START;p=1.000;settle_s=1.3;
+14:51:54.687 < 4,1606.2,MODE,mode=INF;p0=1.000;target=2.50;
+14:51:54.687 < 4,1625.0,STOP,phase=CAL_PULSE;t_s=16.83;line_bar=2.286;est_bar=1.886;offset=0.400;rate=0.0000;margin=0.100;offcap=0.600;
+14:51:54.687 < 4,1631.7,STATIC,after=AFTER_CAL;p=1.917;settle_s=5.7;
+14:51:54.687 < 4,1631.8,LEARN_INF,from=CAL_PULSE;off_meas=0.369;c_meas=0.00;rate_meas=0.0545;miss=0.000;offset=0.400>0.369;c=0.00>0.00;rate=0.0114>0.0545;kTop=0.0069>0.0463;bias=0.000>0.000;dev=0.050>0.050;
+14:51:54.687 < 4,1641.4,END,result=STOPPED;mode=INF;target=2.50;p0=1.000;p=1.917;starts= 2;vents= 0;run_s=37.4;cmp_h=0.08;vent_h=0.04;adc_fail= 0;loop_max_ms=4088;
+14:51:54.687 < 4,1672.4,FAKE,bar=1.500;
+14:51:54.687 < 4,1678.3,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:51:54.688 < 4,1680.6,RUN,target=2.50;fw=0.6.1;
+14:51:54.688 < 4,1682.7,STATIC,after=START;p=1.500;settle_s=1.3;
+14:51:54.688 < 4,1682.8,MODE,mode=INF;p0=1.500;target=2.50;
+14:51:54.688 < 4,1724.1,END,result=STOPPED;mode=INF;target=2.50;p0=1.500;p=1.500;starts= 1;vents= 0;run_s=43.5;cmp_h=0.09;vent_h=0.04;adc_fail= 0;loop_max_ms=122;
+14:51:54.688 < 4,1734.6,RUN,target=1.00;fw=0.6.1;
+14:51:54.688 < 4,1736.7,STATIC,after=START;p=1.500;settle_s=1.3;
+14:51:54.688 < 4,1736.8,MODE,mode=DEF;p0=1.500;target=1.00;
+14:51:54.688 < 4,1736.8,VENT,p=1.500;aim=1.200;tauD=179.3;t_s=22.80;
+14:51:54.688 < 4,1738.1,END,result=STOPPED;mode=DEF;target=1.00;p0=1.500;p=1.500;starts= 0;vents= 1;run_s=3.5;cmp_h=0.09;vent_h=0.04;adc_fail= 0;loop_max_ms=171;
+14:51:54.688 < 4,1752.2,TYRE,from=255/75R17;to=285/70R17;air_L=248;rate=0.0461;tauD=211.8;
+14:51:54.688 < 4,1753.5,TYRE,from=285/70R17;to=255/75R17;air_L=210;rate=0.0545;tauD=179.3;
+14:51:54.688 < 4,1756.0,TYRE,from=255/75R17;to=285/70R17;air_L=248;rate=0.0461;tauD=211.8;
+14:51:54.688 < 4,1771.8,TYRE,from=285/70R17;to=255/75R17;air_L=210;rate=0.0545;tauD=179.3;
+14:51:54.688 < 4,1774.6,TYRE,from=255/75R17;to=285/70R17;air_L=248;rate=0.0461;tauD=211.8;
+14:51:54.688 < 4,1782.1,DEMO,on=0;
+14:51:54.688 < 4,1785.3,TYRE,from=285/70R17;to=255/75R17;air_L=210;rate=0.0545;tauD=179.3;
+14:51:54.688 < 4,1786.2,TYRE,from=255/75R17;to=285/70R17;air_L=248;rate=0.0461;tauD=211.8;
+14:51:54.688 < 4,1787.3,TYRE,from=285/70R17;to=255/75R17;air_L=210;rate=0.0545;tauD=179.3;
+14:51:54.688 < 4,1788.0,TYRE,from=255/75R17;to=285/70R17;air_L=248;rate=0.0461;tauD=211.8;
+14:51:54.688 < 4,1789.0,TYRE,from=285/70R17;to=255/75R17;air_L=210;rate=0.0545;tauD=179.3;
+14:51:54.688 < 4,1789.5,TYRE,from=255/75R17;to=285/70R17;air_L=248;rate=0.0461;tauD=211.8;
+14:51:54.688 < 4,1792.4,DEMO,on=1;
+14:51:54.688 < 4,1798.8,DEMO,on=0;
+14:51:54.688 < 4,1799.4,DEMO,on=1;
+14:51:54.688 < 4,1799.8,DEMO,on=0;
+14:51:54.688 < 4,1800.0,DEMO,on=1;
+14:51:54.688 < 4,1800.3,DEMO,on=0;
+14:51:54.688 < 4,1800.6,DEMO,on=1;
+14:51:54.688 < 4,1800.7,DEMO,on=0;
+14:51:54.688 < 4,1800.9,DEMO,on=1;
+14:51:54.688 < 4,1801.1,DEMO,on=0;
+14:51:54.688 < 4,1803.6,DEMO,on=1;
+14:51:54.688 < 4,1808.6,TYRE,from=285/70R17;to=255/75R17;air_L=210;rate=0.0545;tauD=179.3;
+14:51:54.688 < 4,1809.2,TYRE,from=255/75R17;to=285/70R17;air_L=248;rate=0.0461;tauD=211.8;
+14:51:54.688 < 4,1809.8,TYRE,from=285/70R17;to=255/75R17;air_L=210;rate=0.0545;tauD=179.3;
+14:51:54.688 < 4,1810.3,TYRE,from=255/75R17;to=285/70R17;air_L=248;rate=0.0461;tauD=211.8;
+14:51:54.688 < 4,1882.5,FAKE,bar=2.950;
+14:51:54.688 < 4,1927.7,RESET_LEARNING,
+14:51:54.688 < 4,1933.4,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:51:54.688 < 4,1934.4,RUN,target=2.30;fw=0.6.1;
+14:51:54.688 < 4,1936.6,STATIC,after=START;p=1.000;settle_s=1.3;
+14:51:54.688 < 4,1936.7,MODE,mode=INF;p0=1.000;target=2.30;
+14:51:54.688 < 4,1951.7,STOP,phase=CAL_PULSE;t_s=15.00;line_bar=2.190;est_bar=1.790;offset=0.400;rate=0.0508;margin=0.100;offcap=0.600;
+14:51:54.689 < 4,1958.7,STATIC,after=AFTER_CAL;p=1.857;settle_s=6.0;
+14:51:54.689 < 4,1958.8,LEARN_INF,from=CAL_PULSE;off_meas=0.333;c_meas=6.56;rate_meas=0.0571;miss=0.000;offset=0.400>0.333;c=0.00>6.56;rate=0.0097>0.0571;kTop=0.0058>0.0485;bias=0.000>0.000;dev=0.050>0.050;
+14:51:54.689 < 4,1964.6,STOP,phase=MAIN;t_s=5.72;line_bar=2.482;est_bar=2.172;offset=0.309;rate=0.0471;margin=0.130;offcap=0.600;
+14:51:54.689 < 4,1971.5,STATIC,after=AFTER_MAIN;p=2.169;settle_s=6.0;
+14:51:54.692 < 4,1971.6,LEARN_INF,from=MAIN;off_meas=0.312;c_meas=6.63;rate_meas=0.0546;miss=-0.003;offset=0.333>0.327;c=6.56>6.58;rate=0.0571>0.0564;kTop=0.0485>0.0479;bias=0.000>-0.001;dev=0.050>0.036;
+14:51:54.692 < 4,1974.0,STOP,phase=TOPUP;t_s=2.33;line_bar=2.591;est_bar=2.264;by=TIME;
+14:51:54.692 < 4,1980.9,STATIC,after=AFTER_TOPUP;p=2.292;settle_s=6.0;
+14:51:54.692 < 4,1980.9,LEARN_INF,from=TOPUP;k_meas=0.0526;kTop=0.0479>0.0526;
+14:51:54.692 < 4,1981.0,END,result=DONE;mode=INF;target=2.30;p0=1.000;p=2.292;starts= 3;vents= 0;run_s=46.6;cmp_h=0.10;vent_h=0.04;adc_fail= 0;loop_max_ms=310;
+14:51:54.692 < 4,2235.0,FAKE,bar=0.000;
+14:51:54.692 < 4,2243.4,FAKE,bar=5.500;
+14:51:54.692 < 5,2.5,BOOT,fw=0.6.2;reset=USB;tyre=285/70R17;air_L=248;target=2.30;offset=0.327;c=6.58;offcap=0.590;rate=0.0564;kTop=0.0526;bias=-0.001;dev=0.036;learned=1;tauD=211.8;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.10;vent_h=0.04;svc_h=0.10;
+14:51:54.692 < 5,26.5,DEMO,on=1;
+14:51:54.692 < 5,32.5,RESET_LEARNING,
+14:51:54.692 < 5,36.7,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:51:54.692 < 5,37.8,RUN,target=2.30;fw=0.6.2;
+14:51:54.692 < 5,40.0,STATIC,after=START;p=0.999;settle_s=1.3;
+14:51:54.692 < 5,40.1,MODE,mode=INF;p0=0.999;target=2.30;
+14:51:54.692 < 5,55.1,STOP,phase=CAL_PULSE;t_s=15.00;line_bar=2.193;est_bar=1.793;offset=0.400;rate=0.0500;margin=0.100;offcap=0.600;
+14:51:54.692 < 5,60.0,STATIC,after=AFTER_CAL;p=1.861;settle_s=4.0;
+14:51:54.692 < 5,60.0,LEARN_INF,from=CAL_PULSE;off_meas=0.332;c_meas=6.64;rate_meas=0.0574;miss=0.000;offset=0.400>0.332;c=0.00>6.64;rate=0.0097>0.0574;kTop=0.0058>0.0488;bias=0.000>0.000;dev=0.050>0.050;
+14:51:54.692 < 5,66.1,STOP,phase=MAIN;t_s=6.03;line_bar=2.488;est_bar=2.170;offset=0.318;rate=0.0478;margin=0.130;offcap=0.598;
+14:51:54.692 < 5,70.9,STATIC,after=AFTER_MAIN;p=2.175;settle_s=4.0;
+14:51:54.692 < 5,71.0,LEARN_INF,from=MAIN;off_meas=0.312;c_meas=6.53;rate_meas=0.0521;miss=0.005;offset=0.332>0.326;c=6.64>6.61;rate=0.0574>0.0559;kTop=0.0488>0.0475;bias=0.000>0.002;dev=0.050>0.036;
+14:51:54.693 < 5,73.3,STOP,phase=TOPUP;t_s=2.24;line_bar=2.591;est_bar=2.265;by=TIME;
+14:51:54.693 < 5,78.4,STATIC,after=AFTER_TOPUP;p=2.294;settle_s=4.2;
+14:51:54.693 < 5,78.5,LEARN_INF,from=TOPUP;k_meas=0.0529;kTop=0.0475>0.0529;
+14:51:54.693 < 5,78.5,END,result=DONE;mode=INF;target=2.30;p0=0.999;p=2.294;starts= 3;vents= 0;run_s=40.7;cmp_h=0.10;vent_h=0.04;adc_fail= 0;loop_max_ms=209;
+14:51:54.693 < 6,2.5,BOOT,fw=0.6.2;reset=USB;tyre=285/70R17;air_L=248;target=2.30;offset=0.326;c=6.61;offcap=0.589;rate=0.0559;kTop=0.0529;bias=0.002;dev=0.036;learned=1;tauD=211.8;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.10;vent_h=0.04;svc_h=0.10;
+14:51:54.693 < 6,8.2,WATCHDOG,on=0;
+14:51:54.693 < 6,43.6,DEMO,on=1;
+14:51:54.693 < 6,68.4,ARM_CANCEL,reason=TIMEOUT;
+14:51:54.693 < 6,70.8,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:51:54.693 < 6,72.4,RUN,target=1.80;fw=0.6.2;
+14:51:54.693 < 6,74.4,STATIC,after=START;p=1.000;settle_s=1.1;
+14:51:54.693 < 6,74.4,MODE,mode=INF;p0=1.000;target=1.80;
+14:51:54.693 < 6,86.5,STOP,phase=MAIN;t_s=12.04;line_bar=2.040;est_bar=1.700;offset=0.341;rate=0.0516;margin=0.102;offcap=0.589;
+14:51:54.693 < 6,91.7,STATIC,after=AFTER_MAIN;p=1.697;settle_s=4.3;
+14:51:54.693 < 6,91.8,LEARN_INF,from=MAIN;off_meas=0.343;c_meas=6.65;rate_meas=0.0579;miss=-0.002;offset=0.326>0.331;c=6.61>6.62;rate=0.0559>0.0565;kTop=0.0529>0.0529;bias=0.002>0.000;dev=0.036>0.026;
+14:51:54.693 < 6,93.4,STOP,phase=TOPUP;t_s=1.56;line_bar=2.091;est_bar=1.760;by=TIME;
+14:51:54.693 < 6,98.3,STATIC,after=AFTER_TOPUP;p=1.788;settle_s=4.0;
+14:51:54.693 < 6,98.3,LEARN_INF,from=TOPUP;k_meas=0.0583;kTop=0.0529>0.0546;
+14:51:54.693 < 6,98.4,END,result=DONE;mode=INF;target=1.80;p0=1.000;p=1.788;starts= 2;vents= 0;run_s=26.0;cmp_h=0.11;vent_h=0.04;adc_fail= 0;loop_max_ms=161;
+14:51:54.693 < 7,2.5,BOOT,fw=0.6.2;reset=USB;tyre=285/70R17;air_L=248;target=1.00;offset=0.331;c=6.62;offcap=0.597;rate=0.0565;kTop=0.0546;bias=0.000;dev=0.026;learned=1;tauD=211.8;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.11;vent_h=0.04;svc_h=0.11;
+14:51:54.693 < 7,36.2,DEMO,on=1;
+14:51:54.693 < 7,42.7,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:51:54.693 < 7,43.6,RUN,target=2.30;fw=0.6.2;
+14:51:54.693 < 7,45.8,STATIC,after=START;p=1.000;settle_s=1.3;
+14:51:54.693 < 7,45.9,MODE,mode=INF;p0=1.000;target=2.30;
+14:51:54.693 < 7,62.3,END,result=STOPPED;mode=INF;target=2.30;p0=1.000;p=1.000;starts= 1;vents= 0;run_s=18.7;cmp_h=0.11;vent_h=0.04;adc_fail= 0;loop_max_ms=255;
+14:51:54.693 < 7,68.7,RUN,target=1.50;fw=0.6.2;
+14:51:54.693 < 7,70.7,STATIC,after=START;p=1.932;settle_s=1.1;
+14:51:54.693 < 7,70.7,MODE,mode=DEF;p0=1.932;target=1.50;
+14:51:54.693 < 7,70.8,VENT,p=1.932;aim=1.673;tauD=211.8;t_s=19.52;
+14:51:54.697 < 7,79.6,END,result=STOPPED;mode=DEF;target=1.50;p0=1.932;p=1.932;starts= 0;vents= 1;run_s=11.0;cmp_h=0.11;vent_h=0.04;adc_fail= 0;loop_max_ms=207;
+14:51:54.697 < 8,2.5,BOOT,fw=0.6.2;reset=USB;tyre=285/70R17;air_L=248;target=1.50;offset=0.331;c=6.62;offcap=0.597;rate=0.0565;kTop=0.0546;bias=0.000;dev=0.026;learned=1;tauD=211.8;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.11;vent_h=0.04;svc_h=0.11;
+14:51:54.697 < 8,21.2,DEMO,on=1;
+14:51:54.697 < 8,34.7,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:51:54.697 < 8,37.3,RUN,target=1.50;fw=0.6.2;
+14:51:54.698 < 8,39.3,STATIC,after=START;p=1.000;settle_s=1.2;
+14:51:54.698 < 8,39.3,MODE,mode=INF;p0=1.000;target=1.50;
+14:51:54.698 < 8,45.2,END,result=STOPPED;mode=INF;target=1.50;p0=1.000;p=1.000;starts= 1;vents= 0;run_s=7.9;cmp_h=0.11;vent_h=0.04;adc_fail= 0;loop_max_ms=123;
+14:51:54.698 < 8,50.7,RUN,target=1.00;fw=0.6.2;
+14:51:54.698 < 8,52.7,STATIC,after=START;p=1.344;settle_s=1.1;
+14:51:54.698 < 8,52.8,MODE,mode=DEF;p0=1.344;target=1.00;
+14:51:54.698 < 8,52.8,VENT,p=1.344;aim=1.138;tauD=211.8;t_s=19.43;
+14:51:54.698 < 8,60.7,END,result=STOPPED;mode=DEF;target=1.00;p0=1.344;p=1.344;starts= 0;vents= 1;run_s=10.0;cmp_h=0.11;vent_h=0.04;adc_fail= 0;loop_max_ms=241;
+14:51:54.698 < 8,80.5,ARM_CANCEL,reason=KNOB;
+14:51:54.698 < 8,82.5,RUN,target=0.50;fw=0.6.2;
+14:51:54.698 < 8,84.5,STATIC,after=START;p=1.213;settle_s=1.2;
+14:51:54.698 < 8,84.5,MODE,mode=DEF;p0=1.213;target=0.50;
+14:51:54.698 < 8,84.6,VENT,p=1.213;aim=0.785;tauD=211.8;t_s=45.20;
+14:51:54.698 < 8,129.8,STOP,phase=VENT;t_s=45.20;line_bar=0.312;
+14:51:54.698 < 8,132.4,STATIC,after=AFTER_VENT;p=0.597;settle_s=1.7;
+14:51:54.698 < 8,132.5,LEARN_DEF,t_s=45.20;p_before=1.213;p_after=0.597;aim=0.785;miss=-0.188;tau_meas=139.7;tauD=211.8>139.7;
+14:51:54.698 < 8,132.5,VENT,p=0.597;aim=0.520;tauD=139.7;t_s=6.89;
+14:51:54.698 < 8,139.4,STOP,phase=VENT;t_s=6.89;line_bar=0.246;
+14:51:54.698 < 8,142.0,STATIC,after=AFTER_VENT;p=0.519;settle_s=1.7;
+14:51:54.698 < 8,142.1,LEARN_DEF,t_s=6.89;p_before=0.597;p_after=0.519;aim=0.520;miss=-0.001;tau_meas=137.6;tauD=139.7>139.1;
+14:51:54.698 < 8,142.2,END,result=DONE;mode=DEF;target=0.50;p0=1.213;p=0.519;starts= 0;vents= 2;run_s=59.7;cmp_h=0.11;vent_h=0.06;adc_fail= 0;loop_max_ms=184;
+14:51:54.698 < 8,157.8,CUSTOM_SET,custom=2.00;wheels=4;
+14:51:54.698 < 8,158.8,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:51:54.698 < 8,159.8,RUN,target=2.00;fw=0.6.2;
+14:51:54.698 < 8,161.9,STATIC,after=START;p=0.519;settle_s=1.2;
+14:51:54.698 < 8,161.9,MODE,mode=INF;p0=0.519;target=2.00;
+14:51:54.698 < 8,185.8,STOP,phase=MAIN;t_s=23.83;line_bar=2.247;est_bar=1.919;offset=0.328;rate=0.0496;margin=0.082;offcap=0.597;
+14:51:54.698 < 8,190.7,STATIC,after=AFTER_MAIN;p=1.916;settle_s=4.0;
+14:51:54.698 < 8,190.8,LEARN_INF,from=MAIN;off_meas=0.331;c_meas=6.67;rate_meas=0.0587;miss=-0.002;offset=0.331>0.331;c=6.62>6.64;rate=0.0565>0.0571;kTop=0.0546>0.0546;bias=0.000>-0.000;dev=0.026>0.019;
+14:51:54.699 < 8,192.0,STOP,phase=TOPUP;t_s=1.20;line_bar=2.261;est_bar=1.930;by=TIME;
+14:51:54.699 < 8,196.6,STATIC,after=AFTER_TOPUP;p=1.986;settle_s=3.7;
+14:51:54.699 < 8,196.7,LEARN_INF,from=TOPUP;k_meas=0.0583;kTop=0.0546>0.0557;
+14:51:54.699 < 8,196.7,END,result=DONE;mode=INF;target=2.00;p0=0.519;p=1.986;starts= 2;vents= 0;run_s=36.9;cmp_h=0.12;vent_h=0.06;adc_fail= 0;loop_max_ms=158;
+14:51:54.699 < 9,2.3,BOOT,fw=0.6.2;reset=USB;tyre=285/70R17;air_L=248;target=2.00;offset=0.331;c=6.64;offcap=0.597;rate=0.0571;kTop=0.0557;bias=-0.000;dev=0.019;learned=1;tauD=139.1;learnedD=1;calA=1.0000;calB=0.000;cmp_h=0.12;vent_h=0.06;svc_h=0.12;
+14:51:54.699 < 9,62.7,RESET_LEARNING,
+14:51:54.699 < 9,133.9,OFFSET_MAX,auto=0;cap=0.800;
+14:51:54.699 < 10,2.5,BOOT,fw=0.6.2;reset=USB;tyre=285/70R17;air_L=248;target=2.00;offset=0.400;c=0.00;offcap=0.800;rate=0.0097;kTop=0.0058;bias=0.000;dev=0.050;learned=0;tauD=211.8;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.12;vent_h=0.06;svc_h=0.12;
+14:51:54.699 < 11,2.6,BOOT,fw=0.6.2;reset=USB;tyre=285/70R17;air_L=248;target=2.00;offset=0.400;c=0.00;offcap=0.800;rate=0.0097;kTop=0.0058;bias=0.000;dev=0.050;learned=0;tauD=211.8;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.12;vent_h=0.06;svc_h=0.12;
+14:51:54.699 < 11,28.6,CUSTOM_SET,custom=1.00;wheels=1;
+14:51:54.699 < 11,31.7,ARM_CANCEL,reason=TIMEOUT;
+14:51:54.699 < 11,35.4,CUSTOM_SET,custom=1.00;wheels=1;
+14:51:54.699 < 11,37.6,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:51:54.699 < 11,40.6,ARM_CANCEL,reason=TIMEOUT;
+14:51:54.699 < 11,42.1,CUSTOM_SET,custom=1.00;wheels=1;
+14:51:54.699 < 11,44.9,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:51:54.699 < 11,47.7,RUN,target=1.00;fw=0.6.2;
+14:51:54.699 < 11,58.5,STATIC,after=START;p=0.019;settle_s=6.7;
+14:51:54.699 < 11,60.6,MODE,mode=INF;p0=0.019;target=1.00;
+14:51:54.699 < 11,66.7,END,result=ERR_SENSOR;mode=INF;target=1.00;p0=0.019;p=0.019;starts= 1;vents= 0;run_s=19.0;cmp_h=0.12;vent_h=0.06;adc_fail= 0;loop_max_ms=6159;
+14:51:54.699 < 11,109.5,CUSTOM_SET,custom=1.00;wheels=1;
+14:51:54.699 < 11,112.6,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:51:54.702 < 11,115.5,RUN,target=1.00;fw=0.6.2;
+14:51:54.702 < 11,125.8,STATIC,after=START;p=0.020;settle_s=6.2;
+14:51:54.702 < 11,127.9,MODE,mode=INF;p0=0.020;target=1.00;
+14:51:54.702 < 11,134.1,END,result=ERR_SENSOR;mode=INF;target=1.00;p0=0.020;p=0.020;starts= 1;vents= 0;run_s=18.6;cmp_h=0.12;vent_h=0.06;adc_fail= 0;loop_max_ms=6267;
+14:51:54.703 < 12,0.3,BOOT,fw=0.6.2;reset=POWERON;tyre=285/70R17;air_L=248;target=1.00;offset=0.400;c=0.00;offcap=0.800;rate=0.0097;kTop=0.0058;bias=0.000;dev=0.050;learned=0;tauD=211.8;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.12;vent_h=0.06;svc_h=0.12;
+14:51:54.703 < 13,0.3,BOOT,fw=0.6.2;reset=POWERON;tyre=285/70R17;air_L=248;target=0.80;offset=0.400;c=0.00;offcap=0.800;rate=0.0097;kTop=0.0058;bias=0.000;dev=0.050;learned=0;tauD=211.8;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.12;vent_h=0.06;svc_h=0.12;
+14:51:54.703 < 14,2.3,BOOT,fw=0.7.0;reset=USB;tyre=285/70R17;air_L=248;target=0.80;offset=0.400;c=0.00;offcap=0.800;rate=0.0097;kTop=0.0058;bias=0.000;dev=0.050;learned=0;tauD=211.8;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.12;vent_h=0.06;svc_h=0.12;
+14:51:54.703 < 14,45.6,CUSTOM_SET,custom=3.00;wheels=1;
+14:51:54.703 < 14,47.4,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:51:54.703 < 14,48.9,RUN,target=3.00;fw=0.7.0;
+14:51:54.703 < 14,49.2,END,result=STOPPED;mode=-;target=3.00;p0=0.000;p=0.000;starts= 0;vents= 0;run_s=0.3;cmp_h=0.12;vent_h=0.06;adc_fail= 0;loop_max_ms=85;
+14:51:54.703 < 14,64.1,BT,on=1;bonds=0;
+14:51:54.703 < 14,103.7,FAKE,bar=1.000;
+14:51:54.703 < 14,106.8,RUN,target=0.50;fw=0.7.0;
+14:51:54.703 < 14,108.8,STATIC,after=START;p=1.000;settle_s=1.2;
+14:51:54.703 < 14,108.9,MODE,mode=DEF;p0=1.000;target=0.50;
+14:51:54.703 < 14,108.9,VENT,p=1.000;aim=0.700;tauD=211.8;t_s=34.18;
+14:51:54.703 < 14,115.9,FAKE,bar=1.600;
+14:51:54.703 < 14,118.0,FAKE,bar=2.200;
+14:51:54.703 < 14,120.0,FAKE,bar=3.000;
+14:51:54.703 < 14,143.0,END,result=STOPPED;mode=DEF;target=0.50;p0=1.000;p=1.000;starts= 0;vents= 1;run_s=36.2;cmp_h=0.12;vent_h=0.07;adc_fail= 0;loop_max_ms=2009;
+14:51:54.703 < 14,346.0,BT_PAIR,window=60;
+14:51:54.703 < 14,475.4,BT_CONNECT,n=1;
+14:51:54.703 < 14,482.6,BT_DISCONNECT,n=0;
+14:51:54.703 < 14,534.6,BT_PAIR,window=60;
+14:51:54.703 < 14,560.1,BT_CONNECT,n=1;
+14:51:54.703 < 14,579.3,BT_DISCONNECT,n=0;
+14:51:54.703 < 14,579.3,BT_PAIRED,bonds=0;
+14:51:54.703 < 14,653.3,BT_PAIR,window=60;
+14:51:54.703 < 14,670.2,BT_CONNECT,n=1;
+14:51:54.703 < 14,691.7,BT_DISCONNECT,n=0;
+14:51:54.703 < 14,691.8,BT_PAIRED,bonds=0;
+14:51:54.703 < 14,733.9,BT_CONNECT,n=1;
+14:51:54.703 < 14,749.8,BT_PAIR,window=60;
+14:51:54.703 < 15,2.4,BOOT,fw=0.7.0;reset=USB;tyre=285/70R17;air_L=248;target=0.50;offset=0.400;c=0.00;offcap=0.800;rate=0.0097;kTop=0.0058;bias=0.000;dev=0.050;learned=0;tauD=211.8;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.12;vent_h=0.07;svc_h=0.12;
+14:51:54.703 < 15,2.5,BT,on=1;bonds=0;
+14:51:54.703 < 15,36.3,BT_PAIR,window=60;
+14:51:54.703 < 15,59.0,BT_CONNECT,n=1;
+14:51:54.703 < 15,78.4,BT_PAIRED,bonds=1;auth=107;
+14:51:54.703 < 15,78.5,BT_DISCONNECT,n=0;reason=213;
+14:51:54.703 < 15,80.6,BT_CONNECT,n=1;
+14:51:54.703 < 15,85.9,BT_DISCONNECT,n=0;reason=213;
+14:51:54.703 < 15,482.7,BT,on=0;
+14:51:54.703 < 15,488.9,BT,on=1;bonds=1;
+14:51:54.703 < 16,2.5,BOOT,fw=0.7.1;reset=USB;tyre=285/70R17;air_L=248;target=0.50;offset=0.400;c=0.00;offcap=0.800;rate=0.0097;kTop=0.0058;bias=0.000;dev=0.050;learned=0;tauD=211.8;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.12;vent_h=0.07;svc_h=0.12;
+14:51:54.703 < 16,2.7,BT,on=1;bonds=1;
+14:51:54.704 < 16,67.3,DEMO,on=1;
+14:51:54.704 < 16,83.5,RUN,target=0.80;fw=0.7.1;
+14:51:54.704 < 16,87.5,STATIC,after=START;p=1.000;settle_s=1.1;
+14:51:54.704 < 16,89.5,MODE,mode=DEF;p0=1.000;target=0.80;
+14:51:54.704 < 16,91.7,VENT,p=1.000;aim=0.880;tauD=211.8;t_s=13.04;
+14:51:54.704 < 17,2.3,BOOT,fw=0.7.1;reset=USB;tyre=285/70R17;air_L=248;target=0.80;offset=0.400;c=0.00;offcap=0.800;rate=0.0097;kTop=0.0058;bias=0.000;dev=0.050;learned=0;tauD=211.8;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.12;vent_h=0.07;svc_h=0.12;
+14:51:54.704 < 17,2.4,BT,on=1;bonds=1;
+14:51:54.704 < 17,45.1,DEMO,on=1;
+14:51:54.704 < 17,56.4,ARM_CANCEL,reason=KNOB;
+14:51:54.704 < 17,57.6,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:51:54.704 < 17,58.6,RUN,target=1.20;fw=0.7.1;
+14:51:54.704 < 17,69.9,STATIC,after=START;p=0.997;settle_s=7.2;
+14:51:54.704 < 17,72.0,MODE,mode=INF;p0=0.997;target=1.20;
+14:51:54.704 < 17,90.4,STOP,phase=CAL_PULSE;t_s=16.36;line_bar=2.503;est_bar=2.103;offset=0.400;rate=0.0000;margin=0.100;offcap=0.800;
+14:51:54.704 < 17,100.6,STATIC,after=AFTER_CAL;p=2.146;settle_s=6.1;
+14:51:54.704 < 17,102.7,LEARN_INF,from=CAL_PULSE;off_meas=0.357;c_meas=0.00;rate_meas=0.0702;miss=0.000;offset=0.400>0.357;c=0.00>0.00;rate=0.0097>0.0702;kTop=0.0058>0.0597;bias=0.000>0.000;dev=0.050>0.050;
+14:51:54.704 < 17,104.8,VENT,p=2.146;aim=1.578;tauD=211.8;t_s=41.96;
+14:51:54.704 < 17,149.8,STOP,phase=VENT;t_s=41.96;line_bar=0.799;
+14:51:54.704 < 17,160.0,STATIC,after=AFTER_VENT;p=1.201;settle_s=6.1;
+14:51:54.708 < 17,162.1,LEARN_DEF,t_s=41.96;p_before=2.146;p_after=1.201;aim=1.578;miss=-0.377;tau_meas=118.0;tauD=211.8>118.0;
+14:51:54.708 < 17,164.3,END,result=DONE;mode=INF;target=1.20;p0=0.997;p=1.201;starts= 1;vents= 1;run_s=103.6;cmp_h=0.13;vent_h=0.08;adc_fail= 0;loop_max_ms=8244;
+14:51:54.708 < 18,2.3,BOOT,fw=0.7.1;reset=USB;tyre=285/70R17;air_L=248;target=1.20;offset=0.357;c=0.00;offcap=0.800;rate=0.0702;kTop=0.0597;bias=0.000;dev=0.050;learned=1;tauD=118.0;learnedD=1;calA=1.0000;calB=0.000;cmp_h=0.13;vent_h=0.08;svc_h=0.13;
+14:51:54.708 < 18,2.4,BT,on=1;bonds=1;
+14:51:54.708 < 19,0.3,BOOT,fw=0.7.1;reset=POWERON;tyre=285/70R17;air_L=248;target=1.20;offset=0.357;c=0.00;offcap=0.800;rate=0.0702;kTop=0.0597;bias=0.000;dev=0.050;learned=1;tauD=118.0;learnedD=1;calA=1.0000;calB=0.000;cmp_h=0.13;vent_h=0.08;svc_h=0.13;
+14:51:54.708 < 19,0.5,BT,on=1;bonds=1;
+14:51:54.708 < 19,2.1,BT_CONNECT,n=1;
+14:51:54.708 < 19,43.9,BT_PAIR,window=60;
+14:51:54.708 < 19,136.8,BT_PAIR,window=60;
+14:51:54.708 < 19,146.0,BT_DENIED,auth=0;
+14:51:54.708 < 19,149.0,BT_DISCONNECT,n=0;reason=213;
+14:51:54.708 < 19,149.2,BT_CONNECT,n=1;
+14:51:54.708 < 19,196.0,BT_PAIR,window=60;
+14:51:54.708 < 19,266.5,BT_DISCONNECT,n=0;reason=213;
+14:51:54.708 < 19,279.3,BT_CONNECT,n=1;
+14:51:54.708 < 19,306.2,BT,on=0;
+14:51:54.708 < 19,310.0,BT,on=1;bonds=1;
+14:51:54.708 < 19,310.2,BT_DISCONNECT,n=0;reason=216;
+14:51:54.708 < 19,310.3,BT_CONNECT,n=1;
+14:51:54.708 < 19,314.1,BT_PAIR,window=60;
+14:51:54.708 < 19,338.5,BT_PAIRED,bonds=2;auth=107;
+14:51:54.708 < 20,0.3,BOOT,fw=0.7.1;reset=POWERON;tyre=285/70R17;air_L=248;target=2.30;offset=0.357;c=0.00;offcap=0.800;rate=0.0702;kTop=0.0597;bias=0.000;dev=0.050;learned=1;tauD=118.0;learnedD=1;calA=1.0000;calB=0.000;cmp_h=0.13;vent_h=0.08;svc_h=0.13;
+14:51:54.708 < 20,0.4,BT,on=1;bonds=2;
+14:51:54.708 < 20,4.2,BT_CONNECT,n=1;
+14:51:54.708 < 21,2.3,BOOT,fw=0.7.2;reset=USB;tyre=285/70R17;air_L=248;target=2.30;offset=0.357;c=0.00;offcap=0.800;rate=0.0702;kTop=0.0597;bias=0.000;dev=0.050;learned=1;tauD=118.0;learnedD=1;calA=1.0000;calB=0.000;cmp_h=0.13;vent_h=0.08;svc_h=0.13;
+14:51:54.708 < 21,2.4,BT,on=1;bonds=2;
+14:51:54.708 < 21,4.1,BT_CONNECT,n=1;
+14:51:54.708 < 22,2.3,BOOT,fw=0.7.2;reset=USB;tyre=285/70R17;air_L=248;target=3.00;offset=0.357;c=0.00;offcap=0.800;rate=0.0702;kTop=0.0597;bias=0.000;dev=0.050;learned=1;tauD=118.0;learnedD=1;calA=1.0000;calB=0.000;cmp_h=0.13;vent_h=0.08;svc_h=0.13;
+14:51:54.708 < 22,2.4,BT,on=1;bonds=2;
+14:51:54.708 < 22,4.1,BT_CONNECT,n=1;
+14:51:54.708 < 22,163.2,BT_DISCONNECT,n=0;reason=213;
+14:51:54.708 < 22,163.3,BT_CONNECT,n=1;
+14:51:54.708 < 23,2.5,BOOT,fw=0.7.2;reset=USB;tyre=285/70R17;air_L=248;target=1.00;offset=0.357;c=0.00;offcap=0.800;rate=0.0702;kTop=0.0597;bias=0.000;dev=0.050;learned=1;tauD=118.0;learnedD=1;calA=1.0000;calB=0.000;cmp_h=0.13;vent_h=0.08;svc_h=0.13;
+14:51:54.708 < 23,2.7,BT,on=1;bonds=2;
+14:51:54.708 < 23,4.4,BT_CONNECT,n=1;
+14:51:54.708 < 23,24.2,BT_DISCONNECT,n=0;reason=213;
+14:51:54.708 < 23,43.1,BT_CONNECT,n=1;
+14:51:54.708 < 23,77.4,BT_DISCONNECT,n=0;reason=213;
+14:51:54.708 < 23,77.6,BT_CONNECT,n=1;
+14:51:54.708 < 24,2.5,BOOT,fw=0.7.2;reset=USB;tyre=285/70R17;air_L=248;target=1.00;offset=0.357;c=0.00;offcap=0.800;rate=0.0702;kTop=0.0597;bias=0.000;dev=0.050;learned=1;tauD=118.0;learnedD=1;calA=1.0000;calB=0.000;cmp_h=0.13;vent_h=0.08;svc_h=0.13;
+14:51:54.709 < 24,2.7,BT,on=1;bonds=2;
+14:51:54.709 < 24,4.3,BT_CONNECT,n=1;
+14:51:54.709 < 24,55.2,BT_DISCONNECT,n=0;reason=213;
+14:51:54.709 < 24,55.3,BT_CONNECT,n=1;
+14:51:54.709 < 25,2.5,BOOT,fw=0.7.3;reset=USB;tyre=285/70R17;air_L=248;target=1.80;offset=0.357;c=0.00;offcap=0.800;rate=0.0702;kTop=0.0597;bias=0.000;dev=0.050;learned=1;tauD=118.0;learnedD=1;calA=1.0000;calB=0.000;cmp_h=0.13;vent_h=0.08;svc_h=0.13;
+14:51:54.709 < 25,2.7,BT,on=1;bonds=2;
+14:51:54.709 < 25,94.4,BT_CONNECT,n=1;
+14:51:54.709 < 26,2.5,BOOT,fw=0.7.3;reset=USB;tyre=285/70R17;air_L=248;target=2.30;offset=0.357;c=0.00;offcap=0.800;rate=0.0702;kTop=0.0597;bias=0.000;dev=0.050;learned=1;tauD=118.0;learnedD=1;calA=1.0000;calB=0.000;cmp_h=0.13;vent_h=0.08;svc_h=0.13;
+14:51:54.709 < 26,2.7,BT,on=1;bonds=2;
+14:51:54.709 < 26,4.4,BT_CONNECT,n=1;
+14:51:54.709 < 26,159.6,BT_DISCONNECT,n=0;reason=213;
+14:51:54.709 < 26,173.1,BT_CONNECT,n=1;
+14:51:54.709 < 26,318.3,BT_DISCONNECT,n=0;reason=213;
+14:51:54.709 < 26,580.1,BT_CONNECT,n=1;
+14:51:54.709 < 26,684.4,BT_DISCONNECT,n=0;reason=213;
+14:51:54.709 < 26,684.6,BT_CONNECT,n=1;
+14:51:54.709 < 26,761.6,BT_DISCONNECT,n=0;reason=213;
+14:51:54.709 < 26,761.8,BT_CONNECT,n=1;
+14:51:54.709 < 26,856.1,BT_DISCONNECT,n=0;reason=213;
+14:51:54.709 < 26,856.3,BT_CONNECT,n=1;
+14:51:54.709 < 27,2.5,BOOT,fw=0.7.3;reset=USB;tyre=285/70R17;air_L=248;target=2.30;offset=0.357;c=0.00;offcap=0.800;rate=0.0702;kTop=0.0597;bias=0.000;dev=0.050;learned=1;tauD=118.0;learnedD=1;calA=1.0000;calB=0.000;cmp_h=0.13;vent_h=0.08;svc_h=0.13;
+14:51:54.709 < 27,2.7,BT,on=1;bonds=2;
+14:51:54.709 < 27,4.4,BT_CONNECT,n=1;
+14:51:54.709 < 27,91.3,BT_DISCONNECT,n=0;reason=213;
+14:51:54.709 < 27,91.5,BT_CONNECT,n=1;
+14:51:54.709 < 27,137.8,BT_DISCONNECT,n=0;reason=213;
+14:51:54.713 < 27,137.9,BT_CONNECT,n=1;
+14:51:54.713 < 27,218.8,BT_DISCONNECT,n=0;reason=213;
+14:51:54.713 < 27,218.9,BT_CONNECT,n=1;
+14:51:54.713 < 27,303.4,BT_DISCONNECT,n=0;reason=213;
+14:51:54.713 < 27,303.7,BT_CONNECT,n=1;
+14:51:54.713 < 27,363.2,BT_DISCONNECT,n=0;reason=213;
+14:51:54.713 < 27,367.0,BT_CONNECT,n=1;
+14:51:54.713 < 27,406.5,BT_DISCONNECT,n=0;reason=213;
+14:51:54.713 < 27,406.7,BT_CONNECT,n=1;
+14:51:54.713 < 27,445.8,BT_DISCONNECT,n=0;reason=213;
+14:51:54.713 < 27,445.9,BT_CONNECT,n=1;
+14:51:54.713 < 27,743.7,BT_DISCONNECT,n=0;reason=213;
+14:51:54.713 < 27,747.0,BT_CONNECT,n=1;
+14:51:54.713 < 27,1162.0,BT_DISCONNECT,n=0;reason=213;
+14:51:54.713 < 27,1162.1,BT_CONNECT,n=1;
+14:51:54.713 < 27,1190.5,BT_DISCONNECT,n=0;reason=213;
+14:51:54.713 < 27,1190.7,BT_CONNECT,n=1;
+14:51:54.713 < 27,1286.5,BT_DISCONNECT,n=0;reason=213;
+14:51:54.713 < 27,1286.6,BT_CONNECT,n=1;
+14:51:54.713 < 27,1352.1,BT_DISCONNECT,n=0;reason=213;
+14:51:54.713 < 27,1352.3,BT_CONNECT,n=1;
+14:51:54.713 < 27,1446.7,BT_DISCONNECT,n=0;reason=213;
+14:51:54.713 < 27,1446.8,BT_CONNECT,n=1;
+14:51:54.713 < 28,2.5,BOOT,fw=0.7.4;reset=USB;tyre=285/70R17;air_L=248;target=1.00;offset=0.357;c=0.00;offcap=0.800;rate=0.0702;kTop=0.0597;bias=0.000;dev=0.050;learned=1;tauD=118.0;learnedD=1;calA=1.0000;calB=0.000;cmp_h=0.13;vent_h=0.08;svc_h=0.13;
+14:51:54.713 < 28,2.7,BT,on=1;bonds=2;
+14:51:54.714 < 28,4.3,BT_CONNECT,n=1;
+14:51:54.714 < 28,29.2,BT_DISCONNECT,n=0;reason=213;
+14:51:54.714 < 28,29.7,BT_CONNECT,n=1;
+14:51:54.714 < 28,69.1,BT_DISCONNECT,n=0;reason=213;
+14:51:54.714 < 28,69.3,BT_CONNECT,n=1;
+14:51:54.714 < 28,137.0,BT_DISCONNECT,n=0;reason=213;
+14:51:54.714 < 28,137.3,BT_CONNECT,n=1;
+14:51:54.714 < 28,229.4,TYRE,from=285/70R17;to=255/75R17;air_L=210;rate=0.0830;tauD=99.9;
+14:51:54.714 < 28,231.0,TYRE,from=255/75R17;to=285/70R17;air_L=248;rate=0.0702;tauD=118.0;
+14:51:54.714 < 28,244.6,CUSTOM_SET,custom=1.70;wheels=1;
+14:51:54.714 < 28,247.6,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:51:54.714 < 28,248.5,RUN,target=1.70;fw=0.7.4;
+14:51:54.714 < 28,258.8,STATIC,after=START;p=0.014;settle_s=6.2;
+14:51:54.714 < 28,260.8,MODE,mode=INF;p0=0.014;target=1.70;
+14:51:54.714 < 28,267.0,END,result=ERR_SENSOR;mode=INF;target=1.70;p0=0.014;p=0.014;starts= 1;vents= 0;run_s=16.4;cmp_h=0.13;vent_h=0.08;adc_fail= 0;loop_max_ms=6135;
+14:51:54.714 < 28,279.6,CUSTOM_SET,custom=1.70;wheels=1;
+14:51:54.714 < 28,281.9,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:51:54.714 < 28,284.9,ARM_CANCEL,reason=TIMEOUT;
+14:51:54.714 < 28,289.6,CUSTOM_SET,custom=1.70;wheels=1;
+14:51:54.714 < 28,292.6,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:51:54.714 < 28,295.4,RUN,target=1.70;fw=0.7.4;
+14:51:54.714 < 28,305.6,STATIC,after=START;p=0.011;settle_s=6.2;
+14:51:54.714 < 28,307.8,MODE,mode=INF;p0=0.011;target=1.70;
+14:51:54.714 < 28,313.9,END,result=ERR_SENSOR;mode=INF;target=1.70;p0=0.011;p=0.011;starts= 1;vents= 0;run_s=18.6;cmp_h=0.13;vent_h=0.08;adc_fail= 0;loop_max_ms=6236;
+14:51:54.714 < 29,2.5,BOOT,fw=0.7.4;reset=USB;tyre=285/70R17;air_L=248;target=2.30;offset=0.357;c=0.00;offcap=0.800;rate=0.0702;kTop=0.0597;bias=0.000;dev=0.050;learned=1;tauD=118.0;learnedD=1;calA=1.0000;calB=0.000;cmp_h=0.13;vent_h=0.08;svc_h=0.13;
+14:51:54.714 < 29,2.6,BT,on=1;bonds=2;
+14:51:54.714 < 29,4.3,BT_CONNECT,n=1;
+14:51:54.714 < 29,7.3,BT_DISCONNECT,n=0;reason=213;
+14:51:54.714 < 29,7.5,BT_CONNECT,n=1;
+14:51:54.714 < 29,76.4,BT_DISCONNECT,n=0;reason=213;
+14:51:54.715 < 29,76.6,BT_CONNECT,n=1;
+14:51:54.715 < 29,82.8,FAKE,bar=1.000;
+14:51:54.715 < 29,85.4,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:51:54.715 < 29,86.4,RUN,target=2.30;fw=0.7.4;
+14:51:54.715 < 29,88.6,STATIC,after=START;p=1.000;settle_s=1.3;
+14:51:54.715 < 29,88.6,MODE,mode=INF;p0=1.000;target=2.30;
+14:51:54.715 < 29,96.1,END,result=STOPPED;mode=INF;target=2.30;p0=1.000;p=1.000;starts= 1;vents= 0;run_s=9.7;cmp_h=0.14;vent_h=0.08;adc_fail= 0;loop_max_ms=156;
+14:51:54.715 < 29,100.2,FAKE,bar=5.500;
+14:51:54.715 < 29,109.2,PUMP_STUCK,p=5.500;rise=0.000;high=1;
+14:51:54.715 < 29,109.3,END,result=ERR_PUMP_ON;mode=-;target=2.30;p0=5.500;p=5.500;starts= 1;vents= 0;run_s=0.0;cmp_h=0.14;vent_h=0.08;adc_fail= 0;loop_max_ms=402;
+14:51:54.715 < 29,109.4,ARM_CANCEL,reason=ERROR;
+14:51:54.715 < 29,127.9,FAKE,bar=1.000;
+14:51:54.715 < 29,131.5,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:51:54.715 < 29,132.5,RUN,target=2.30;fw=0.7.4;
+14:51:54.715 < 29,134.7,STATIC,after=START;p=1.000;settle_s=1.3;
+14:51:54.715 < 29,134.7,MODE,mode=INF;p0=1.000;target=2.30;
+14:51:54.715 < 29,138.6,FAKE,bar=4.000;
+14:51:54.715 < 29,138.7,END,result=ERR_OVER;mode=INF;target=2.30;p0=1.000;p=1.000;starts= 1;vents= 0;run_s=6.2;cmp_h=0.14;vent_h=0.08;adc_fail= 0;loop_max_ms=152;
+14:51:54.715 < 29,697.7,BT_DISCONNECT,n=0;reason=213;
+14:51:54.715 < 29,697.8,BT_CONNECT,n=1;
+14:51:54.715 < 29,755.5,BT_DISCONNECT,n=0;reason=213;
+14:51:54.715 < 29,755.6,BT_CONNECT,n=1;
+14:51:54.715 < 29,903.0,BT_DISCONNECT,n=0;reason=213;
+14:51:54.715 < 29,903.5,BT_CONNECT,n=1;
+14:51:54.715 < 29,911.5,FAKE,bar=1.000;
+14:51:54.715 < 29,914.0,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:51:54.715 < 29,914.1,ARM_CANCEL,reason=KNOB;
+14:51:54.715 < 29,916.0,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:51:54.716 < 29,917.1,RUN,target=1.20;fw=0.7.4;
+14:51:54.716 < 29,919.0,STATIC,after=START;p=1.000;settle_s=1.1;
+14:51:54.716 < 29,919.1,MODE,mode=INF;p0=1.000;target=1.20;
+14:51:54.718 < 29,922.2,STOP,phase=TOPUP;t_s=3.02;line_bar=1.000;est_bar=0.643;by=TIME;
+14:51:54.718 < 29,924.1,STATIC,after=AFTER_TOPUP;p=1.000;settle_s=1.1;
+14:51:54.718 < 29,924.2,LEARN_INF,from=TOPUP;k_meas=0.0000;kTop=0.0597>0.0597;
+14:51:54.718 < 29,926.3,FAKE,bar=4.000;
+14:51:54.718 < 29,926.3,END,result=ERR_OVER;mode=INF;target=1.20;p0=1.000;p=1.000;starts= 2;vents= 0;run_s=9.3;cmp_h=0.14;vent_h=0.08;adc_fail= 0;loop_max_ms=154;
+14:51:54.718 < 29,986.8,BT_DISCONNECT,n=0;reason=213;
+14:51:54.718 < 29,986.9,BT_CONNECT,n=1;
+14:51:54.718 < 29,1129.7,BT_DISCONNECT,n=0;reason=213;
+14:51:54.718 < 29,1129.9,BT_CONNECT,n=1;
+14:51:54.718 < 30,2.4,BOOT,fw=0.7.5;reset=USB;tyre=285/70R17;air_L=248;target=1.80;offset=0.357;c=0.00;offcap=0.800;rate=0.0702;kTop=0.0597;bias=0.000;dev=0.050;learned=1;tauD=118.0;learnedD=1;calA=1.0000;calB=0.000;cmp_h=0.14;vent_h=0.08;svc_h=0.14;
+14:51:54.718 < 30,2.5,BT,on=1;bonds=2;
+14:51:54.718 < 30,4.2,BT_CONNECT,n=1;
+14:51:54.718 < 31,2.3,BOOT,fw=0.7.6;reset=USB;tyre=285/70R17;air_L=248;target=1.80;offset=0.357;c=0.00;offcap=0.800;rate=0.0702;kTop=0.0597;bias=0.000;dev=0.050;learned=1;tauD=118.0;learnedD=1;calA=1.0000;calB=0.000;cmp_h=0.14;vent_h=0.08;svc_h=0.14;
+14:51:54.718 < 31,2.4,BT,on=1;bonds=2;
+14:51:54.718 < 31,4.1,BT_CONNECT,n=1;
+14:51:54.718 < 31,194.5,BT_DISCONNECT,n=0;reason=213;
+14:51:54.718 < 31,198.1,BT_CONNECT,n=1;
+14:51:54.718 < 31,225.9,CUSTOM_SET,custom=0.50;wheels=1;
+14:51:54.718 < 31,227.8,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:51:54.718 < 31,229.0,RUN,target=0.50;fw=0.7.6;
+14:51:54.718 < 31,233.1,STATIC,after=START;p=0.013;settle_s=1.3;
+14:51:54.718 < 31,235.2,MODE,mode=INF;p0=0.013;target=0.50;
+14:51:54.718 < 31,241.3,END,result=ERR_SENSOR;mode=INF;target=0.50;p0=0.013;p=0.013;starts= 1;vents= 0;run_s=10.4;cmp_h=0.14;vent_h=0.08;adc_fail= 0;loop_max_ms=6148;
+14:51:54.718 < 31,246.4,BT_DISCONNECT,n=0;reason=213;
+14:51:54.718 < 31,248.5,BT_CONNECT,n=1;
+14:51:54.718 < 31,252.9,FAKE,bar=1.000;
+14:51:54.718 < 31,256.4,CUSTOM_SET,custom=0.50;wheels=1;
+14:51:54.718 < 31,257.5,RUN,target=0.50;fw=0.7.6;
+14:51:54.718 < 31,259.7,STATIC,after=START;p=1.000;settle_s=1.4;
+14:51:54.718 < 31,259.8,MODE,mode=DEF;p0=1.000;target=0.50;
+14:51:54.718 < 31,259.8,VENT,p=1.000;aim=0.575;tauD=81.4;t_s=19.30;
+14:51:54.719 < 31,263.6,FAKE,bar=1.400;
+14:51:54.719 < 31,267.0,END,result=STOPPED;mode=DEF;target=0.50;p0=1.000;p=1.000;starts= 0;vents= 1;run_s=9.5;cmp_h=0.14;vent_h=0.08;adc_fail= 0;loop_max_ms=177;
+14:51:54.719 < 32,2.3,BOOT,fw=0.7.7;reset=USB;tyre=285/70R17;air_L=248;target=0.50;offset=0.357;c=0.00;offcap=0.800;rate=0.0702;kTop=0.0597;bias=0.000;dev=0.050;learned=1;tauD=118.0;learnedD=1;calA=1.0000;calB=0.000;cmp_h=0.14;vent_h=0.08;svc_h=0.14;
+14:51:54.719 < 32,2.4,BT,on=1;bonds=2;
+14:51:54.719 < 32,4.1,BT_CONNECT,n=1;
+14:51:54.719 < 32,32.3,BT_DISCONNECT,n=0;reason=213;
+14:51:54.719 < 32,32.5,BT_CONNECT,n=1;
+14:51:54.719 < 32,123.5,FAKE,bar=1.000;
+14:51:54.719 < 32,139.5,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:51:54.719 < 32,141.1,ARM_CANCEL,reason=KNOB;
+14:51:54.719 < 32,155.3,BT_DISCONNECT,n=0;reason=213;
+14:51:54.719 < 32,155.4,BT_CONNECT,n=1;
+14:51:54.719 < 32,268.0,FAKE,bar=1.000;
+14:51:54.719 < 32,270.6,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:51:54.719 < 32,271.7,RUN,target=2.30;fw=0.7.7;
+14:51:54.719 < 32,273.8,STATIC,after=START;p=1.000;settle_s=1.3;
+14:51:54.719 < 32,273.8,MODE,mode=INF;p0=1.000;target=2.30;
+14:51:54.719 < 32,277.9,FAKE,bar=4.000;
+14:51:54.719 < 32,278.0,END,result=ERR_OVER;mode=INF;target=2.30;p0=1.000;p=1.000;starts= 1;vents= 0;run_s=6.3;cmp_h=0.14;vent_h=0.08;adc_fail= 0;loop_max_ms=146;
+14:51:54.719 < 32,281.0,FAKE,bar=2.300;
+14:51:54.719 < 32,303.9,FAKE,bar=1.000;
+14:51:54.719 < 32,319.9,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:51:54.719 < 32,321.5,ARM_CANCEL,reason=KNOB;
+14:51:54.719 < 32,447.1,FAKE,bar=1.000;
+14:51:54.719 < 32,449.6,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:51:54.719 < 32,450.6,RUN,target=2.30;fw=0.7.7;
+14:51:54.719 < 32,452.7,STATIC,after=START;p=1.000;settle_s=1.1;
+14:51:54.719 < 32,452.7,MODE,mode=INF;p0=1.000;target=2.30;
+14:51:54.719 < 32,456.8,FAKE,bar=4.000;
+14:51:54.719 < 32,456.9,END,result=ERR_OVER;mode=INF;target=2.30;p0=1.000;p=1.000;starts= 1;vents= 0;run_s=6.3;cmp_h=0.14;vent_h=0.08;adc_fail= 0;loop_max_ms=235;
+14:51:54.719 < 32,459.9,FAKE,bar=2.300;
+14:51:54.719 < 32,474.6,DEMO,on=1;
+14:51:54.719 < 32,482.0,RUN,target=2.30;fw=0.7.7;
+14:51:54.719 < 32,482.0,LEARN_TEST,mode=INF;
+14:51:54.719 < 32,484.1,STATIC,after=START;p=1.000;settle_s=1.3;
+14:51:54.719 < 32,499.2,STOP,phase=CAL_PULSE;t_s=15.01;line_bar=2.187;est_bar=1.830;offset=0.357;rate=0.0506;margin=0.130;offcap=0.800;
+14:51:54.719 < 32,504.4,STATIC,after=AFTER_CAL;p=1.853;settle_s=4.3;
+14:51:54.719 < 32,504.4,LEARN_INF,from=CAL_PULSE;off_meas=0.335;c_meas=6.62;rate_meas=0.0568;miss=0.000;offset=0.357>0.351;c=0.00>6.62;rate=0.0702>0.0662;kTop=0.0597>0.0563;bias=0.000>0.000;dev=0.050>0.050;
+14:51:54.719 < 32,504.5,LEARN_INF_TEST,p_before=1.000;p_after=1.853;t_s=15.0;ok=1;rate=0.0702>0.0662;
+14:51:54.723 < 32,504.6,END,result=DONE;mode=INF;target=2.30;p0=1.000;p=1.853;starts= 1;vents= 0;run_s=22.6;cmp_h=0.15;vent_h=0.08;adc_fail= 0;loop_max_ms=132;
+14:51:54.723 < 32,512.5,RUN,target=2.30;fw=0.7.7;
+14:51:54.723 < 32,512.5,LEARN_TEST,mode=DEF;
+14:51:54.723 < 32,513.3,END,result=STOPPED;mode=-;target=2.30;p0=1.000;p=1.853;starts= 0;vents= 0;run_s=0.8;cmp_h=0.15;vent_h=0.08;adc_fail= 0;loop_max_ms=122;
+14:51:54.723 < 32,545.3,ARM_CANCEL,reason=KNOB;
+14:51:54.723 < 32,549.5,DEMO,on=0;
+14:51:54.723 < 32,551.8,FAKE,bar=0.000;
+14:51:54.723 < 32,556.1,ENGINE_CONFIRM,in=CAL;aux1=0.0;
+14:51:54.723 < 32,556.7,CAL_POINT,n= 0;raw=0.000;gauge=0.00;
+14:51:54.723 < 32,557.4,FAKE,bar=0.550;
+14:51:54.723 < 32,557.7,FAKE,bar=0.800;
+14:51:54.723 < 32,557.9,FAKE,bar=1.050;
+14:51:54.723 < 32,558.2,FAKE,bar=1.300;
+14:51:54.723 < 32,558.4,FAKE,bar=1.550;
+14:51:54.723 < 32,562.7,CAL_POINT,n= 1;raw=1.550;gauge=1.55;
+14:51:54.723 < 32,563.5,FAKE,bar=0.550;
+14:51:54.723 < 32,563.8,FAKE,bar=0.800;
+14:51:54.723 < 32,564.0,FAKE,bar=1.050;
+14:51:54.723 < 32,564.3,FAKE,bar=1.300;
+14:51:54.723 < 32,564.6,FAKE,bar=1.550;
+14:51:54.723 < 32,564.8,FAKE,bar=1.800;
+14:51:54.723 < 32,565.1,FAKE,bar=2.050;
+14:51:54.723 < 32,565.4,FAKE,bar=2.300;
+14:51:54.723 < 32,565.6,FAKE,bar=2.550;
+14:51:54.723 < 32,569.9,CAL_POINT,n= 2;raw=2.550;gauge=2.55;
+14:51:54.723 < 32,570.7,FAKE,bar=0.550;
+14:51:54.723 < 32,571.0,FAKE,bar=0.800;
+14:51:54.723 < 32,571.3,FAKE,bar=1.050;
+14:51:54.723 < 32,571.6,FAKE,bar=1.300;
+14:51:54.723 < 32,571.8,FAKE,bar=1.550;
+14:51:54.723 < 32,572.1,FAKE,bar=1.800;
+14:51:54.723 < 32,572.3,FAKE,bar=2.050;
+14:51:54.724 < 32,572.6,FAKE,bar=2.300;
+14:51:54.724 < 32,572.9,FAKE,bar=2.550;
+14:51:54.724 < 32,573.2,FAKE,bar=2.800;
+14:51:54.724 < 32,573.5,FAKE,bar=3.050;
+14:51:54.724 < 32,573.7,FAKE,bar=3.300;
+14:51:54.724 < 32,574.0,FAKE,bar=3.550;
+14:51:54.724 < 32,578.3,CAL_POINT,n= 3;raw=3.550;gauge=3.55;
+14:51:54.724 < 32,578.3,CAL_DONE,calA=1.0000>1.0000;calB=0.000>0.000;fit_err=0.000;
+14:51:54.724 < 32,586.1,RESET_LEARNING,
+14:51:54.724 < 32,836.8,FILTER_RESET,svc_h=0.15;cmp_h=0.15;
+14:51:54.724 < 32,838.7,FILTER_RESET,svc_h=0.00;cmp_h=0.15;
+14:51:54.724 < 32,840.5,FILTER_RESET,svc_h=0.00;cmp_h=0.15;
+14:51:54.724 < 32,845.2,FILTER_RESET,svc_h=0.00;cmp_h=0.15;
+14:51:54.724 < 32,845.8,FILTER_RESET,svc_h=0.00;cmp_h=0.15;
+14:51:54.724 < 32,847.3,FILTER_RESET,svc_h=0.00;cmp_h=0.15;
+14:51:54.724 < 32,907.8,BT_DISCONNECT,n=0;reason=213;
+14:51:54.724 < 32,907.9,BT_CONNECT,n=1;
+14:51:54.724 < 32,941.5,FILTER_RESET,svc_h=0.00;cmp_h=0.15;
+14:51:54.724 < 32,944.0,FILTER_RESET,svc_h=0.00;cmp_h=0.15;
+14:51:54.724 < 32,945.5,FILTER_RESET,svc_h=0.00;cmp_h=0.15;
+14:51:54.724 < 32,946.7,FILTER_RESET,svc_h=0.00;cmp_h=0.15;
+14:51:54.724 < 32,1094.0,BT_DISCONNECT,n=0;reason=213;
+14:51:54.724 < 32,1094.1,BT_CONNECT,n=1;
+14:51:54.724 < 33,2.3,BOOT,fw=0.7.7;reset=USB;tyre=285/70R17;air_L=248;target=2.30;offset=0.400;c=0.00;offcap=0.800;rate=0.0097;kTop=0.0058;bias=0.000;dev=0.050;learned=0;tauD=211.8;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.15;vent_h=0.08;svc_h=0.00;
+14:51:54.724 < 33,2.4,BT,on=1;bonds=2;
+14:51:54.724 < 33,4.1,BT_CONNECT,n=1;
+14:51:54.724 < 34,0.3,BOOT,fw=0.7.7;reset=POWERON;tyre=285/70R17;air_L=248;target=2.30;offset=0.400;c=0.00;offcap=0.800;rate=0.0097;kTop=0.0058;bias=0.000;dev=0.050;learned=0;tauD=211.8;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.15;vent_h=0.08;svc_h=0.00;
+14:51:54.724 < 34,0.4,BT,on=1;bonds=2;
+14:51:54.724 < 34,2.1,BT_CONNECT,n=1;
+14:51:54.724 < 34,17.3,CUSTOM_SET,custom=0.50;wheels=3;
+14:51:54.724 < 34,19.3,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:51:54.724 < 34,20.5,RUN,target=0.50;fw=0.7.7;
+14:51:54.724 < 34,22.6,STATIC,after=START;p=0.013;settle_s=1.3;
+14:51:54.724 < 34,22.7,MODE,mode=INF;p0=0.013;target=0.50;
+14:51:54.724 < 34,25.8,END,result=ERR_SENSOR;mode=INF;target=0.50;p0=0.013;p=0.013;starts= 1;vents= 0;run_s=5.3;cmp_h=0.15;vent_h=0.08;adc_fail= 0;loop_max_ms=156;
+14:51:54.724 < 35,0.6,BOOT,fw=0.7.7;reset=POWERON;tyre=285/70R17;air_L=248;target=0.80;offset=0.400;c=0.00;offcap=0.800;rate=0.0097;kTop=0.0058;bias=0.000;dev=0.050;learned=0;tauD=211.8;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.15;vent_h=0.08;svc_h=0.00;
+14:51:54.724 < 35,0.8,BT,on=1;bonds=2;
+14:51:54.724 < 35,48.6,BT_CONNECT,n=1;
+14:51:54.724 < 36,0.5,BOOT,fw=0.7.7;reset=POWERON;tyre=285/70R17;air_L=248;target=0.80;offset=0.400;c=0.00;offcap=0.800;rate=0.0097;kTop=0.0058;bias=0.000;dev=0.050;learned=0;tauD=211.8;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.15;vent_h=0.08;svc_h=0.00;
+14:51:54.724 < 36,0.6,BT,on=1;bonds=2;
+14:51:54.724 < 36,2.5,BT_CONNECT,n=1;
+14:51:54.724 < 36,66.7,BT_DISCONNECT,n=0;reason=213;
+14:51:54.724 < 36,66.8,BT_CONNECT,n=1;
+14:51:54.725 < 36,102.8,BT_DISCONNECT,n=0;reason=213;
+14:51:54.725 < 36,103.0,BT_CONNECT,n=1;
+14:51:54.725 < 36,126.2,BT_DISCONNECT,n=0;reason=213;
+14:51:54.725 < 36,126.3,BT_CONNECT,n=1;
+14:51:54.725 < 36,160.8,FAKE,bar=1.000;
+14:51:54.725 < 36,176.8,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:51:54.725 < 36,178.4,ARM_CANCEL,reason=KNOB;
+14:51:54.725 < 36,305.5,FAKE,bar=1.000;
+14:51:54.725 < 36,308.1,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:51:54.725 < 36,309.1,RUN,target=2.30;fw=0.7.7;
+14:51:54.725 < 36,311.3,STATIC,after=START;p=1.000;settle_s=1.3;
+14:51:54.725 < 36,311.3,MODE,mode=INF;p0=1.000;target=2.30;
+14:51:54.725 < 36,315.3,FAKE,bar=4.000;
+14:51:54.725 < 36,315.4,END,result=ERR_OVER;mode=INF;target=2.30;p0=1.000;p=1.000;starts= 1;vents= 0;run_s=6.2;cmp_h=0.15;vent_h=0.08;adc_fail= 0;loop_max_ms=151;
+14:51:54.728 < 36,318.4,FAKE,bar=2.300;
+14:51:54.728 < 36,341.3,FAKE,bar=1.000;
+14:51:54.728 < 36,357.3,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:51:54.728 < 36,358.9,ARM_CANCEL,reason=KNOB;
+14:51:54.728 < 36,484.3,FAKE,bar=1.000;
+14:51:54.728 < 36,486.9,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:51:54.728 < 36,488.0,RUN,target=2.30;fw=0.7.7;
+14:51:54.728 < 36,490.0,STATIC,after=START;p=1.000;settle_s=1.1;
+14:51:54.728 < 36,490.0,MODE,mode=INF;p0=1.000;target=2.30;
+14:51:54.728 < 36,494.2,FAKE,bar=4.000;
+14:51:54.728 < 36,494.3,END,result=ERR_OVER;mode=INF;target=2.30;p0=1.000;p=1.000;starts= 1;vents= 0;run_s=6.2;cmp_h=0.15;vent_h=0.08;adc_fail= 0;loop_max_ms=147;
+14:51:54.728 < 36,497.3,FAKE,bar=2.300;
+14:51:54.728 < 36,511.9,DEMO,on=1;
+14:51:54.728 < 36,519.4,RUN,target=2.30;fw=0.7.7;
+14:51:54.728 < 36,519.5,LEARN_TEST,mode=INF;
+14:51:54.728 < 36,521.6,STATIC,after=START;p=0.999;settle_s=1.3;
+14:51:54.728 < 36,536.7,STOP,phase=CAL_PULSE;t_s=15.04;line_bar=2.188;est_bar=1.788;offset=0.400;rate=0.0500;margin=0.100;offcap=0.800;
+14:51:54.728 < 36,541.6,STATIC,after=AFTER_CAL;p=1.854;settle_s=4.1;
+14:51:54.728 < 36,541.7,LEARN_INF,from=CAL_PULSE;off_meas=0.334;c_meas=6.68;rate_meas=0.0568;miss=0.000;offset=0.400>0.334;c=0.00>6.68;rate=0.0097>0.0568;kTop=0.0058>0.0483;bias=0.000>0.000;dev=0.050>0.050;
+14:51:54.728 < 36,541.7,LEARN_INF_TEST,p_before=0.999;p_after=1.854;t_s=15.0;ok=1;rate=0.0097>0.0568;
+14:51:54.728 < 36,541.8,END,result=DONE;mode=INF;target=2.30;p0=0.999;p=1.854;starts= 1;vents= 0;run_s=22.4;cmp_h=0.16;vent_h=0.08;adc_fail= 0;loop_max_ms=107;
+14:51:54.728 < 36,550.1,RUN,target=2.30;fw=0.7.7;
+14:51:54.728 < 36,550.2,LEARN_TEST,mode=DEF;
+14:51:54.728 < 36,552.3,STATIC,after=START;p=1.854;settle_s=1.3;
+14:51:54.728 < 36,572.4,STOP,phase=VENT;t_s=20.00;line_bar=1.028;
+14:51:54.728 < 36,575.0,STATIC,after=AFTER_VENT;p=1.471;settle_s=1.8;
+14:51:54.729 < 36,575.1,LEARN_DEF_TEST,p_before=1.854;p_after=1.471;t_s=20.0;tau_meas=139.5;ok=1;tau=211.8>139.5;
+14:51:54.729 < 36,575.2,END,result=DONE;mode=DEF;target=2.30;p0=1.854;p=1.471;starts= 0;vents= 1;run_s=25.1;cmp_h=0.16;vent_h=0.09;adc_fail= 0;loop_max_ms=123;
+14:51:54.729 < 36,585.7,DEMO,on=0;
+14:51:54.729 < 36,588.0,FAKE,bar=0.000;
+14:51:54.729 < 36,592.3,ENGINE_CONFIRM,in=CAL;aux1=0.0;
+14:51:54.729 < 36,592.9,CAL_POINT,n= 0;raw=0.000;gauge=0.00;
+14:51:54.729 < 36,593.6,FAKE,bar=0.550;
+14:51:54.729 < 36,593.9,FAKE,bar=0.800;
+14:51:54.729 < 36,594.1,FAKE,bar=1.050;
+14:51:54.729 < 36,594.4,FAKE,bar=1.300;
+14:51:54.729 < 36,594.7,FAKE,bar=1.550;
+14:51:54.729 < 36,599.0,CAL_POINT,n= 1;raw=1.550;gauge=1.55;
+14:51:54.729 < 36,599.7,FAKE,bar=0.550;
+14:51:54.729 < 36,600.0,FAKE,bar=0.800;
+14:51:54.729 < 36,600.3,FAKE,bar=1.050;
+14:51:54.729 < 36,600.6,FAKE,bar=1.300;
+14:51:54.729 < 36,600.9,FAKE,bar=1.550;
+14:51:54.729 < 36,601.1,FAKE,bar=1.800;
+14:51:54.729 < 36,601.3,FAKE,bar=2.050;
+14:51:54.729 < 36,601.6,FAKE,bar=2.300;
+14:51:54.729 < 36,601.9,FAKE,bar=2.550;
+14:51:54.729 < 36,606.2,CAL_POINT,n= 2;raw=2.550;gauge=2.55;
+14:51:54.729 < 36,607.0,FAKE,bar=0.550;
+14:51:54.729 < 36,607.3,FAKE,bar=0.800;
+14:51:54.729 < 36,607.6,FAKE,bar=1.050;
+14:51:54.729 < 36,607.8,FAKE,bar=1.300;
+14:51:54.729 < 36,608.1,FAKE,bar=1.550;
+14:51:54.729 < 36,608.4,FAKE,bar=1.800;
+14:51:54.729 < 36,608.6,FAKE,bar=2.050;
+14:51:54.729 < 36,608.9,FAKE,bar=2.300;
+14:51:54.729 < 36,609.2,FAKE,bar=2.550;
+14:51:54.729 < 36,609.5,FAKE,bar=2.800;
+14:51:54.729 < 36,609.8,FAKE,bar=3.050;
+14:51:54.729 < 36,610.0,FAKE,bar=3.300;
+14:51:54.729 < 36,610.2,FAKE,bar=3.550;
+14:51:54.729 < 36,614.6,CAL_POINT,n= 3;raw=3.550;gauge=3.55;
+14:51:54.729 < 36,614.6,CAL_DONE,calA=1.0000>1.0000;calB=0.000>0.000;fit_err=0.000;
+14:51:54.729 < 36,622.4,RESET_LEARNING,
+14:51:54.729 < 36,636.7,BT,on=0;
+14:51:54.729 < 37,2.5,BOOT,fw=0.7.7;reset=SW;tyre=285/70R17;air_L=248;target=2.30;offset=0.400;c=0.00;offcap=0.800;rate=0.0097;kTop=0.0058;bias=0.000;dev=0.050;learned=0;tauD=211.8;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.16;vent_h=0.09;svc_h=0.01;
+14:51:54.729 < 37,2.7,BT,on=1;bonds=2;
+14:51:54.729 < 37,4.4,BT_CONNECT,n=1;
+14:51:54.729 < 37,30.1,OTA,app_valid=1;
+14:51:54.730 < 37,91.9,BT_DISCONNECT,n=0;reason=213;
+14:51:54.730 < 37,92.1,BT_CONNECT,n=1;
+14:51:54.730 < 37,128.5,BT_DISCONNECT,n=0;reason=213;
+14:51:54.730 < 37,128.6,BT_CONNECT,n=1;
+14:51:54.730 < 38,0.3,BOOT,fw=0.7.7;reset=POWERON;tyre=285/70R17;air_L=248;target=2.30;offset=0.400;c=0.00;offcap=0.800;rate=0.0097;kTop=0.0058;bias=0.000;dev=0.050;learned=0;tauD=211.8;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.16;vent_h=0.09;svc_h=0.01;
+14:51:54.730 < 38,0.6,BT,on=1;bonds=2;
+14:51:54.730 < 38,30.3,OFFSET_MAX,auto=0;cap=1.000;
+14:51:54.730 < 38,91.5,ENGINE_CONFIRM,in=CAL;aux1=0.0;
+14:51:54.730 < 38,92.9,CAL_POINT,n= 0;raw=0.013;gauge=0.00;
+14:51:54.730 < 38,133.6,BT_CONNECT,n=1;
+14:51:54.730 < 39,0.5,BOOT,fw=0.7.7;reset=POWERON;tyre=285/70R17;air_L=248;target=2.30;offset=0.400;c=0.00;offcap=1.000;rate=0.0097;kTop=0.0058;bias=0.000;dev=0.050;learned=0;tauD=211.8;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.16;vent_h=0.09;svc_h=0.01;
+14:51:54.730 < 39,0.7,BT,on=1;bonds=2;
+14:51:54.733 < 40,0.3,BOOT,fw=0.7.7;reset=POWERON;tyre=285/70R17;air_L=248;target=1.00;offset=0.400;c=0.00;offcap=1.000;rate=0.0097;kTop=0.0058;bias=0.000;dev=0.050;learned=0;tauD=211.8;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.16;vent_h=0.09;svc_h=0.01;
+14:51:54.733 < 40,0.5,BT,on=1;bonds=2;
+14:51:54.733 < 41,0.5,BOOT,fw=0.7.7;reset=POWERON;tyre=285/70R17;air_L=248;target=1.80;offset=0.400;c=0.00;offcap=1.000;rate=0.0097;kTop=0.0058;bias=0.000;dev=0.050;learned=0;tauD=211.8;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.16;vent_h=0.09;svc_h=0.01;
+14:51:54.733 < 41,0.6,BT,on=1;bonds=2;
+14:51:54.733 < 42,0.5,BOOT,fw=0.7.7;reset=POWERON;tyre=285/70R17;air_L=248;target=1.00;offset=0.400;c=0.00;offcap=1.000;rate=0.0097;kTop=0.0058;bias=0.000;dev=0.050;learned=0;tauD=211.8;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.16;vent_h=0.09;svc_h=0.01;
+14:51:54.733 < 42,0.7,BT,on=1;bonds=2;
+14:51:54.733 < 43,0.3,BOOT,fw=0.7.7;reset=POWERON;tyre=285/70R17;air_L=248;target=1.00;offset=0.400;c=0.00;offcap=1.000;rate=0.0097;kTop=0.0058;bias=0.000;dev=0.050;learned=0;tauD=211.8;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.16;vent_h=0.09;svc_h=0.01;
+14:51:54.733 < 43,0.4,BT,on=1;bonds=2;
+14:51:54.733 < 44,0.3,BOOT,fw=0.7.7;reset=POWERON;tyre=285/70R17;air_L=248;target=1.00;offset=0.400;c=0.00;offcap=1.000;rate=0.0097;kTop=0.0058;bias=0.000;dev=0.050;learned=0;tauD=211.8;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.16;vent_h=0.09;svc_h=0.01;
+14:51:54.733 < 44,0.5,BT,on=1;bonds=2;
+14:51:54.733 < 45,0.3,BOOT,fw=0.7.7;reset=POWERON;tyre=285/70R17;air_L=248;target=1.00;offset=0.400;c=0.00;offcap=1.000;rate=0.0097;kTop=0.0058;bias=0.000;dev=0.050;learned=0;tauD=211.8;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.16;vent_h=0.09;svc_h=0.01;
+14:51:54.733 < 45,0.4,BT,on=1;bonds=2;
+14:51:54.733 < 46,0.3,BOOT,fw=0.7.7;reset=POWERON;tyre=285/70R17;air_L=248;target=1.00;offset=0.400;c=0.00;offcap=1.000;rate=0.0097;kTop=0.0058;bias=0.000;dev=0.050;learned=0;tauD=211.8;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.16;vent_h=0.09;svc_h=0.01;
+14:51:54.733 < 46,0.4,BT,on=1;bonds=2;
+14:51:54.733 < 47,0.3,BOOT,fw=0.7.7;reset=POWERON;tyre=285/70R17;air_L=248;target=1.00;offset=0.400;c=0.00;offcap=1.000;rate=0.0097;kTop=0.0058;bias=0.000;dev=0.050;learned=0;tauD=211.8;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.16;vent_h=0.09;svc_h=0.01;
+14:51:54.733 < 47,0.4,BT,on=1;bonds=2;
+14:51:54.733 < 48,0.3,BOOT,fw=0.7.7;reset=POWERON;tyre=285/70R17;air_L=248;target=1.00;offset=0.400;c=0.00;offcap=1.000;rate=0.0097;kTop=0.0058;bias=0.000;dev=0.050;learned=0;tauD=211.8;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.16;vent_h=0.09;svc_h=0.01;
+14:51:54.733 < 48,0.4,BT,on=1;bonds=2;
+14:51:54.733 < 49,0.3,BOOT,fw=0.7.7;reset=POWERON;tyre=285/70R17;air_L=248;target=1.00;offset=0.400;c=0.00;offcap=1.000;rate=0.0097;kTop=0.0058;bias=0.000;dev=0.050;learned=0;tauD=211.8;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.16;vent_h=0.09;svc_h=0.01;
+14:51:54.733 < 49,0.4,BT,on=1;bonds=2;
+14:51:54.733 < 49,112.3,OUTPUT_TEST,output=VALVE;p_before=0.012;p_after=0.012;fault=0;
+14:51:54.733 < 49,115.5,OUTPUT_TEST,output=K1;p_before=0.012;p_after=0.012;fault=0;
+14:51:54.733 < 49,4530.5,BT_CONNECT,n=1;
+14:51:54.733 < 49,4558.8,CUSTOM_SET,custom=0.50;wheels=3;
+14:51:54.733 < 49,4561.0,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:51:54.733 < 49,4562.9,RUN,target=0.50;fw=0.7.7;
+14:51:54.733 < 49,4565.1,STATIC,after=START;p=0.013;settle_s=1.3;
+14:51:54.734 < 49,4565.2,MODE,mode=INF;p0=0.013;target=0.50;
+14:51:54.734 < 49,4568.2,END,result=ERR_SENSOR;mode=INF;target=0.50;p0=0.013;p=0.013;starts= 1;vents= 0;run_s=5.4;cmp_h=0.16;vent_h=0.09;adc_fail= 0;loop_max_ms=190;
+14:51:54.734 < 50,0.5,BOOT,fw=0.7.7;reset=POWERON;tyre=285/70R17;air_L=248;target=0.80;offset=0.400;c=0.00;offcap=1.000;rate=0.0097;kTop=0.0058;bias=0.000;dev=0.050;learned=0;tauD=211.8;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.16;vent_h=0.09;svc_h=0.01;
+14:51:54.734 < 50,0.7,BT,on=1;bonds=2;
+14:51:54.734 < 50,27.2,CUSTOM_SET,custom=3.00;wheels=1;
+14:51:54.734 < 50,28.9,ENGINE_CONFIRM,eng=NO VOLTAGE;aux1=0.0;
+14:51:54.734 < 50,30.1,RUN,target=3.00;fw=0.7.7;
+14:51:54.734 < 50,32.1,STATIC,after=START;p=0.013;settle_s=1.1;
+14:51:54.734 < 50,32.2,MODE,mode=INF;p0=0.013;target=3.00;
+14:51:54.734 < 50,34.8,END,result=STOPPED;mode=INF;target=3.00;p0=0.013;p=0.013;starts= 1;vents= 0;run_s=4.7;cmp_h=0.16;vent_h=0.09;adc_fail= 0;loop_max_ms=159;
+14:51:54.734 < 50,60.4,ENGINE_CONFIRM,in=CAL;aux1=0.0;
+14:51:54.734 < 50,61.1,CAL_POINT,n= 0;raw=0.012;gauge=0.00;
+14:51:54.734 < 51,0.5,BOOT,fw=0.7.7;reset=POWERON;tyre=285/70R17;air_L=248;target=1.20;offset=0.400;c=0.00;offcap=1.000;rate=0.0097;kTop=0.0058;bias=0.000;dev=0.050;learned=0;tauD=211.8;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.16;vent_h=0.09;svc_h=0.01;
+14:51:54.734 < 51,0.7,BT,on=1;bonds=2;
+14:51:54.789 < 52,0.6,BOOT,fw=0.7.7;reset=POWERON;tyre=285/70R17;air_L=248;target=2.30;offset=0.400;c=0.00;offcap=1.000;rate=0.0097;kTop=0.0058;bias=0.000;dev=0.050;learned=0;tauD=211.8;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.16;vent_h=0.09;svc_h=0.01;
+14:51:54.789 < 52,0.8,BT,on=1;bonds=2;
+14:51:54.789 < 52,506.7,BT_CONNECT,n=1;
+14:51:54.789 < 52,3185.0,TYRE,from=285/70R17;to=255/75R17;air_L=210;rate=0.0114;tauD=179.3;
+14:51:54.789 < 52,3186.3,TYRE,from=255/75R17;to=285/70R17;air_L=248;rate=0.0097;tauD=211.8;
+14:51:54.789 < 52,3187.0,TYRE,from=285/70R17;to=255/75R17;air_L=210;rate=0.0114;tauD=179.3;
+14:51:54.789 < 52,3187.7,TYRE,from=255/75R17;to=285/70R17;air_L=248;rate=0.0097;tauD=211.8;
+14:51:54.789 < 52,3229.3,TYRE,from=285/70R17;to=255/75R17;air_L=210;rate=0.0114;tauD=179.3;
+14:51:54.789 < 53,0.5,BOOT,fw=0.7.7;reset=POWERON;tyre=255/75R17;air_L=210;target=0.50;offset=0.400;c=0.00;offcap=1.000;rate=0.0114;kTop=0.0069;bias=0.000;dev=0.050;learned=0;tauD=179.3;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.16;vent_h=0.09;svc_h=0.01;
+14:51:54.789 < 53,0.6,BT,on=1;bonds=2;
+14:51:54.789 < 54,0.5,BOOT,fw=0.7.7;reset=POWERON;tyre=255/75R17;air_L=210;target=0.50;offset=0.400;c=0.00;offcap=1.000;rate=0.0114;kTop=0.0069;bias=0.000;dev=0.050;learned=0;tauD=179.3;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.16;vent_h=0.09;svc_h=0.01;
+14:51:54.789 < 54,0.7,BT,on=1;bonds=2;
+14:51:54.789 < 55,0.5,BOOT,fw=0.7.7;reset=POWERON;tyre=255/75R17;air_L=210;target=0.50;offset=0.400;c=0.00;offcap=1.000;rate=0.0114;kTop=0.0069;bias=0.000;dev=0.050;learned=0;tauD=179.3;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.16;vent_h=0.09;svc_h=0.01;
+14:51:54.789 < 55,0.7,BT,on=1;bonds=2;
+14:51:54.790 < 56,0.5,BOOT,fw=0.7.7;reset=POWERON;tyre=255/75R17;air_L=210;target=0.50;offset=0.400;c=0.00;offcap=1.000;rate=0.0114;kTop=0.0069;bias=0.000;dev=0.050;learned=0;tauD=179.3;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.16;vent_h=0.09;svc_h=0.01;
+14:51:54.790 < 56,0.7,BT,on=1;bonds=2;
+14:51:54.790 < 57,0.6,BOOT,fw=0.7.7;reset=POWERON;tyre=255/75R17;air_L=210;target=0.50;offset=0.400;c=0.00;offcap=1.000;rate=0.0114;kTop=0.0069;bias=0.000;dev=0.050;learned=0;tauD=179.3;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.16;vent_h=0.09;svc_h=0.01;
+14:51:54.790 < 57,0.7,BT,on=1;bonds=2;
+14:51:54.790 < 58,0.5,BOOT,fw=0.7.7;reset=POWERON;tyre=255/75R17;air_L=210;target=1.00;offset=0.400;c=0.00;offcap=1.000;rate=0.0114;kTop=0.0069;bias=0.000;dev=0.050;learned=0;tauD=179.3;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.16;vent_h=0.09;svc_h=0.01;
+14:51:54.790 < 58,0.6,BT,on=1;bonds=2;
+14:51:54.790 < 59,0.5,BOOT,fw=0.7.7;reset=POWERON;tyre=255/75R17;air_L=210;target=1.00;offset=0.400;c=0.00;offcap=1.000;rate=0.0114;kTop=0.0069;bias=0.000;dev=0.050;learned=0;tauD=179.3;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.16;vent_h=0.09;svc_h=0.01;
+14:51:54.790 < 59,0.6,BT,on=1;bonds=2;
+14:51:54.790 < 60,2.5,BOOT,fw=0.8.0;reset=USB;tyre=255/75R17;air_L=210;target=1.00;offset=0.400;c=0.00;offcap=1.000;rate=0.0114;kTop=0.0069;bias=0.000;dev=0.050;learned=0;tauD=179.3;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.16;vent_h=0.09;svc_h=0.01;p_highway=2.50;p_rough_road=1.80;p_gravel=1.50;p_trail=1.20;p_rock=1.00;p_sand=0.80;p_recovery=0.50;p_custom=3.00;
+14:51:54.790 < 60,2.7,BT,on=1;bonds=2;
+14:51:54.790 < 61,2.5,BOOT,fw=0.8.0;reset=USB;tyre=255/75R17;air_L=210;target=1.00;offset=0.400;c=0.00;offcap=1.000;rate=0.0114;kTop=0.0069;bias=0.000;dev=0.050;learned=0;tauD=179.3;learnedD=0;calA=1.0000;calB=0.000;cmp_h=0.16;vent_h=0.09;svc_h=0.01;p_highway=2.50;p_rough_road=1.80;p_gravel=1.50;p_trail=1.20;p_rock=1.00;p_sand=0.80;p_recovery=0.50;p_custom=3.00;
+14:51:54.790 < 61,2.7,BT,on=1;bonds=2;
+14:51:54.790 < 61,34.8,PRESET_SET,name=ROUGH ROAD;tyre=255/75R17;bar=1.80>2.00;target=1.00;
+14:51:54.790 < 61,39.6,PRESET_SET,name=ROCK;tyre=255/75R17;bar=1.00>1.10;target=1.10;
+14:51:54.790 < 61,46.2,PRESET_SET,name=CUSTOM;tyre=255/75R17;bar=3.00>2.00;target=1.10;
+14:51:54.790 < # ---- end
+14:52:06.834 > ui
+14:52:06.885 < UI,1446,1,7,4,0,0,0,0.014,0.014,1.10,0.000,0.00,0,0,1,0,0,0,59832
+14:52:07.474 > right
+14:52:08.114 > press
+14:52:08.541 > dl
+14:52:08.593 < DL,240,135,6,1
+14:52:08.593 < DLT,120,117,142,18,1,3,PRESS: SELECT
+14:52:08.594 < DLT,8,2,133,16,0,1,PRESETS 255/75R17
+14:52:08.594 < DLT,8,32,146,18,4,3,CUSTOM: 2.0 bar
+14:52:08.594 < DLT,8,58,126,18,4,3,PRESS AGAIN
+14:52:08.594 < DLT,8,84,68,18,4,3,< BACK
+14:52:09.076 > press
+14:52:09.128 < 61,62.1,PRESETS_RESET,p_highway=2.50;p_rough_road=1.80;p_gravel=1.50;p_trail=1.20;p_rock=1.00;p_sand=0.80;p_recovery=0.50;p_custom=2.00;
+14:52:09.916 > presets
+14:52:09.972 < # 255/75R17 (in use):  HIGHWAY 2.50  ROUGH ROAD 1.80  GRAVEL 1.50  TRAIL 1.20  ROCK 1.00  SAND 0.80  RECOVERY 0.50
+14:52:09.972 < # 285/70R17:  HIGHWAY 2.30  ROUGH ROAD 1.80  GRAVEL 1.50  TRAIL 1.20  ROCK 1.00  SAND 0.80  RECOVERY 0.50
+14:52:09.973 < # CUSTOM 2.00  preset ROCK  target 1.00 bar
+14:52:10.564 > right
+14:52:11.209 > press
+14:52:12.049 > ui
+14:52:12.100 < UI,1581,1,1,4,0,0,0,0.013,0.013,1.00,0.000,0.00,0,0,1,0,0,0,65025
+14:52:12.675 > left
+14:52:13.312 > press
+14:52:13.415 < 61,66.4,TYRE,from=255/75R17;to=285/70R17;air_L=248;rate=0.0097;tauD=211.8;
+14:52:14.164 > ui
+14:52:14.218 < UI,1636,1,0,4,0,0,0,0.014,0.014,1.00,0.000,0.00,0,0,1,0,0,0,67142
+14:52:14.812 > presets
+14:52:14.868 < # 255/75R17:  HIGHWAY 2.50  ROUGH ROAD 1.80  GRAVEL 1.50  TRAIL 1.20  ROCK 1.00  SAND 0.80  RECOVERY 0.50
+14:52:14.868 < # 285/70R17 (in use):  HIGHWAY 2.30  ROUGH ROAD 1.80  GRAVEL 1.50  TRAIL 1.20  ROCK 1.00  SAND 0.80  RECOVERY 0.50
+14:52:14.868 < # CUSTOM 2.00  preset ROCK  target 1.00 bar
+14:52:15.452 > press
+14:52:15.504 < 61,68.5,TYRE,from=285/70R17;to=255/75R17;air_L=210;rate=0.0114;tauD=179.3;
+14:52:16.257 > presets
+14:52:16.309 < # 255/75R17 (in use):  HIGHWAY 2.50  ROUGH ROAD 1.80  GRAVEL 1.50  TRAIL 1.20  ROCK 1.00  SAND 0.80  RECOVERY 0.50
+14:52:16.309 < # 285/70R17:  HIGHWAY 2.30  ROUGH ROAD 1.80  GRAVEL 1.50  TRAIL 1.20  ROCK 1.00  SAND 0.80  RECOVERY 0.50
+14:52:16.309 < # CUSTOM 2.00  preset ROCK  target 1.00 bar
+14:52:23.797 > right
+14:52:24.442 > right
+14:52:25.085 > press
+14:52:25.719 > right
+14:52:26.365 > right
+14:52:27.001 > press
+14:52:27.630 > hold
+14:52:28.638 > hold
+14:52:29.648 > right
+14:52:30.295 > press
+14:52:30.939 > dl
+14:52:30.991 < DL,240,135,6,1
+14:52:30.991 < DLT,120,117,142,18,1,3,PRESS: SELECT
+14:52:30.991 < DLT,8,2,133,16,0,1,PRESETS 255/75R17
+14:52:30.991 < DLT,8,32,148,18,4,3,HIGHWAY: 36 psi
+14:52:30.991 < DLT,8,58,185,18,4,3,ROUGH ROAD: 26 psi
+14:52:30.991 < DLT,8,84,135,18,4,3,GRAVEL: 22 psi
+14:52:31.572 > press
+14:52:32.205 > dl
+14:52:32.257 < DL,240,135,5,16
+14:52:32.257 < DLT,120,6,88,18,1,3,HIGHWAY
+14:52:32.257 < DLT,120,30,99,33,1,5,36 psi
+14:52:32.257 < DLT,120,69,97,18,1,2,= DEFAULT
+14:52:32.257 < DLT,120,93,140,18,1,2,TYRE 255/75R17
+14:52:32.257 < DLT,120,117,119,18,1,3,PRESS: SAVE
+14:52:32.747 > right
+14:52:33.383 > dl
+14:52:33.436 < DL,240,135,5,16
+14:52:33.437 < DLT,120,6,88,18,1,3,HIGHWAY
+14:52:33.437 < DLT,120,30,99,33,1,5,37 psi
+14:52:33.437 < DLT,120,69,208,18,1,2,DEFAULT 36: PRESS 1 S
+14:52:33.437 < DLT,120,93,140,18,1,2,TYRE 255/75R17
+14:52:33.437 < DLT,120,117,119,18,1,3,PRESS: SAVE
+14:52:34.024 > hold
+14:52:35.044 > ui
+14:52:35.095 < UI,2193,1,0,4,0,0,0,0.012,0.012,1.00,0.000,0.00,0,0,1,0,0,0,88035
+14:55:56.236 > fake off
+14:55:56.291 < # fake off: real sensor
+14:55:56.342 < 61,289.3,STATIC,after=START;p=0.896;settle_s=1.3;
+14:55:56.444 < 61,289.4,MODE,mode=INF;p0=0.896;target=2.50;
+14:55:56.495 < LIVE,289.5,0.012,0.012,C,1,0
+14:55:56.879 > ui
+14:55:56.931 < UI,7305,0,7,0,3,0,0,0.013,-0.387,2.50,0.896,0.00,1,0,1,0,0,2665,414
+14:55:56.982 < LIVE,290.0,0.015,-0.385,C,1,0
+14:55:57.525 < LIVE,290.5,0.012,-0.388,C,1,0
+14:55:57.525 > status
+14:55:57.576 < # fw 0.8.0  preset HIGHWAY  target 2.50 bar  sensor 0.012 bar (0.003 V)  state 3 err 0
+14:55:57.577 < # ADC2 failed samples since the last RUN: 0
+14:55:57.577 < # AUX1 0.00 V  no module  volt check 1  engine confirm 1  valve 1  demo 0
+14:55:57.577 < # tyre 255/75R17  rate 0.0114  kTop 0.0069  offset 0.400  c 0.00  offcap 1.00  tauD 179.3  learned 0/0  cal a 1.0000 b 0.000
+14:55:57.577 < # BT on  bonds 2  connected 1  pairing 0  phone inputs 1
+14:55:57.577 < # compressor 0.16 h  valve 0.09 h  since filter service 0.01 h  boot 61
+14:55:58.060 < LIVE,291.0,0.015,-0.385,C,1,0
+14:56:05.388 > press
+14:56:06.418 > ui
+14:56:06.473 < UI,7516,0,7,0,0,1,0,0.014,0.014,2.50,0.896,0.00,0,0,1,0,0,5291,9952
+14:56:16.806 > dl
+14:56:16.861 < DL,240,135,9,0
+14:56:16.861 < DLT,168,2,64,48,0,6,36
+14:56:16.861 < DLT,232,56,26,18,2,3,psi
+14:56:16.861 < DLT,120,72,117,23,1,4,HIGHWAY
+14:56:16.861 < DLT,120,99,173,18,1,3,CONNECT SYSTEM
+14:56:16.861 < DLT,120,117,115,18,1,3,HOLD: MENU
+14:56:16.861 < DLT,3,2,12,8,0,0,BT
+14:56:17.656 > presets
+14:56:17.711 < # 255/75R17 (in use):  HIGHWAY 2.50  ROUGH ROAD 1.80  GRAVEL 1.50  TRAIL 1.20  ROCK 1.00  SAND 0.80  RECOVERY 0.50
+14:56:17.711 < # 285/70R17:  HIGHWAY 2.30  ROUGH ROAD 1.80  GRAVEL 1.50  TRAIL 1.20  ROCK 1.00  SAND 0.80  RECOVERY 0.50
+14:56:17.711 < # CUSTOM 2.00  preset HIGHWAY  target 2.50 bar
+14:56:23.915 > hold
+14:56:24.935 > right
+14:56:25.546 > right
+14:56:26.193 > press
+14:56:26.827 > right
+14:56:27.465 > right
+14:56:28.111 > press
+14:56:28.762 > hold
+14:56:29.783 > hold
+14:56:30.799 > right
+14:56:31.449 > press
+14:56:32.088 > right
+14:56:32.741 > right
+14:56:33.382 > right
+14:56:34.030 > right
+14:56:34.667 > right
+14:56:35.298 > right
+14:56:35.939 > right
+14:56:36.574 > press
+14:56:37.209 > right
+14:56:37.855 > right
+14:56:38.497 > right
+14:56:39.137 > right
+14:56:39.788 > right
+14:56:40.440 > right
+14:56:41.091 > right
+14:56:41.730 > right
+14:56:42.369 > right
+14:56:43.013 > right
+14:56:43.654 > press
+14:56:43.707 < 61,336.7,PRESET_SET,name=CUSTOM;tyre=255/75R17;bar=2.00>3.00;target=2.50;
+14:56:44.456 > hold
+14:56:45.477 > presets
+14:56:45.533 < # 255/75R17 (in use):  HIGHWAY 2.50  ROUGH ROAD 1.80  GRAVEL 1.50  TRAIL 1.20  ROCK 1.00  SAND 0.80  RECOVERY 0.50
+14:56:45.533 < # 285/70R17:  HIGHWAY 2.30  ROUGH ROAD 1.80  GRAVEL 1.50  TRAIL 1.20  ROCK 1.00  SAND 0.80  RECOVERY 0.50
+14:56:45.533 < # CUSTOM 3.00  preset HIGHWAY  target 2.50 bar
+14:56:46.131 > ui
+14:56:46.183 < UI,8481,0,7,0,0,1,0,0.011,0.011,2.50,0.896,0.00,0,0,1,0,0,5291,49682

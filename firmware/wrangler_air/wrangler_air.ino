@@ -69,16 +69,20 @@ Guards guards; // idle safety checks: VALVE CHECK, PUMP CHECK, battery guard (gu
 M5Canvas canvas(&M5.Display);
 
 enum IdleDir { D_UP, D_DOWN, D_OK, D_ABOVE, D_DEAD };   // what a start would do from the idle screen
-enum class Screen { MAIN, MENU, EDIT, CAL, OTA, VERSION, SENSOR, CUSTOM, LEARN_PICK, LEARN_CONF, LEARN_MSG, HOURS, HOURS_CONF, OUT_TEST, WIFI_PASS, BT };
+enum class Screen { MAIN, MENU, EDIT, CAL, OTA, VERSION, SENSOR, CUSTOM, LEARN_PICK, LEARN_CONF, LEARN_MSG, HOURS, HOURS_CONF, OUT_TEST, WIFI_PASS, BT, PRESET_EDIT };
+int presetIdx = 0; float presetEdit = 0;   // menu PRESETS: the preset being set and its value (bar)
+uint32_t presetResetArm = 0;               // RESET ALL: two presses within 3 s
 int btPos = 0; uint32_t btForgetArm = 0;   // menu BLUETOOTH
 Screen screen = Screen::MAIN;
 int menuPos = 0;
-enum MenuItem { M_CAL, M_LEARN, M_SENSOR, M_OUTPUT, M_DEMO, M_UNITS, M_TYRE, M_OFFSET, M_OFFMAX, M_SETTLE, M_VALVE, M_VSTUCK, M_PSTUCK, M_VCHECK, M_VTRIM, M_ECONF, M_WDOG, M_SCREEN, M_RESET, M_UPDATE, M_WIFIPASS, M_BT, M_VERSION, M_HOURS, M_EXIT };
+enum MenuItem { M_CAL, M_LEARN, M_SENSOR, M_OUTPUT, M_DEMO, M_UNITS, M_TYRE, M_OFFSET, M_OFFMAX, M_SETTLE, M_VALVE, M_VSTUCK, M_PSTUCK, M_VCHECK, M_VTRIM, M_ECONF, M_WDOG, M_SCREEN, M_RESET, M_UPDATE, M_WIFIPASS, M_BT, M_VERSION, M_HOURS, M_EXIT,
+  M_P0, M_P1, M_P2, M_P3, M_P4, M_P5, M_P6, M_P7, M_PRESET_RESET };   // 0.8.0 menu PRESETS: one row per preset, then RESET ALL
 // 0.7.2, owner: names that explain themselves (labels only, NVS keys unchanged); same order as MenuItem
 const char* const MENU[] = {"CALIBRATE GAUGE", "LEARN TEST", "SENSOR LIVE", "OUTPUT TEST", "DEMO MODE", "UNITS", "TYRE",
   "FLOW OFFSET", "OFFSET LIMIT", "SETTLE TIME", "VALVE FITTED", "STUCK VALVE ALARM", "STUCK PUMP ALARM", "READ AUX1 VOLTS",
   "AUX1 VOLT TRIM", "ASK IF ENGINE OFF", "HANG RESTART", "SCREEN", "FORGET LEARNING", "WIFI UPDATE + LOG", "WIFI PASSWORD",
-  "BLUETOOTH", "VERSION + VALUES", "COMPRESSOR HOURS", "EXIT"};
+  "BLUETOOTH", "VERSION + VALUES", "COMPRESSOR HOURS", "EXIT",
+  "", "", "", "", "", "", "", "", "RESET ALL"};   // preset rows are named from PRESETS (ui_screens.h menuRow)
 const int MENU_N = sizeof(MENU) / sizeof(MENU[0]);
 // 0.7.2, owner: the menu in groups. Top level: TYRE (changed often), five groups, EXIT. In a group the last entry is BACK.
 // Entry codes: >= 0 a MenuItem, -1 BACK, <= -2 group (-2 - index). Hold leaves the menu from any level.
@@ -88,14 +92,28 @@ const int8_t G_SERVICE[] = {M_SENSOR, M_OUTPUT, M_HOURS, M_RESET, M_VERSION};
 const int8_t G_CONNECT[] = {M_BT, M_UPDATE, M_WIFIPASS};
 const int8_t G_ALARMS[]  = {M_VALVE, M_VSTUCK, M_PSTUCK, M_VCHECK, M_ECONF, M_WDOG, M_VTRIM};
 const int8_t G_TUNING[]  = {M_OFFSET, M_OFFMAX, M_SETTLE};
+const int8_t G_PRESETS[] = {M_P0, M_P1, M_P2, M_P3, M_P4, M_P5, M_P6, M_P7, M_PRESET_RESET};
+static_assert(N_PRESETS == 8, "menu PRESETS has one row per preset");
 #define MG(n, a) {n, a, (int)(sizeof(a) / sizeof(a[0]))}
-const MenuGroup GROUPS[] = {MG("SETUP", G_SETUP), MG("SERVICE", G_SERVICE), MG("CONNECT", G_CONNECT), MG("SAFETY", G_ALARMS), MG("PUMP TUNING", G_TUNING)};
+const MenuGroup GROUPS[] = {MG("SETUP", G_SETUP), MG("SERVICE", G_SERVICE), MG("CONNECT", G_CONNECT), MG("SAFETY", G_ALARMS), MG("PUMP TUNING", G_TUNING), MG("PRESETS", G_PRESETS)};
 #undef MG
-const int8_t MENU_TOP[] = {M_TYRE, -2, -3, -4, -5, -6, M_EXIT};
+// 0.8.0: PRESETS (group 5, code -7) right under TYRE: the values shown are the ones of that tyre size
+const int8_t MENU_TOP[] = {M_TYRE, -7, -2, -3, -4, -5, -6, M_EXIT};
 constexpr int MENU_TOP_N = sizeof(MENU_TOP);
 int menuGroup = -1;   // -1 = top level
 int menuLen() { return menuGroup < 0 ? MENU_TOP_N : GROUPS[menuGroup].n + 1; }
 int menuEntry(int i) { return menuGroup < 0 ? MENU_TOP[i] : i < GROUPS[menuGroup].n ? GROUPS[menuGroup].items[i] : -1; }
+// where a group sits on the top level (BACK and the phone back key land on it)
+int topPos(int g) { for (int k = 0; k < MENU_TOP_N; k++) if (MENU_TOP[k] == -2 - g) return k; return 0; }
+// the preset table of the tyre size in use, for BOOT and PRESETS_RESET: p_highway=2.30;p_rough_road=1.80;...
+String presetsKv() {
+  String r;
+  for (int i = 0; i < N_PRESETS; i++) {
+    String k = String("p_") + PRESETS[i].name; k.toLowerCase(); k.replace(" ", "_");
+    r += wlog::kv(k.c_str(), settings.presetBar(i), 2);
+  }
+  return r;
+}
 
 // ---------- OFFSET / SETTLE editor: index 0 = AUTO ----------
 const int OFF_N = 30;                     // 0.05 .. 1.50 bar
@@ -267,7 +285,7 @@ void benchCommand(String c) {
   c.trim(); c.toLowerCase();
   if (!c.length()) return;
   if (c == "help") {
-    Serial.println("# commands: status | log | runs | run <id> | clear | pulse k1 | pulse valve | k1 on|off | valve on|off | fake <bar>|off | io | ui | dl | press | hold | left | right | help");
+    Serial.println("# commands: status | log | runs | run <id> | clear | pulse k1 | pulse valve | k1 on|off | valve on|off | fake <bar>|off | io | ui | dl | presets | press | mid | hold | left | right | help");
     Serial.println("# k1 / valve on: held up to 30 s, never both; fake: the sensor reads the typed pressure (FAKE tag), off at power-up");
   } else if (c == "status") {
     Serial.printf("# fw %s  preset %s  target %.2f bar  sensor %.3f bar (%.3f V)%s  state %d err %d\n", FW_VERSION,
@@ -309,6 +327,13 @@ void benchCommand(String c) {
     if (v && !DEFLATE) Serial.println("# no valve in this build");
     else if (!pump.pulse(v)) Serial.println("# blocked: a run or a pulse is active");
     else Serial.printf("# %s pulse %lu ms\n", v ? "VALVE" : "K1", (unsigned long)OUTPUT_PULSE_MS);
+  } else if (c == "presets") {   // 0.8.0: the preset table, both tyre sizes, the one in use marked
+    for (int t = 0; t < N_TYRE_SIZES; t++) {
+      Serial.printf("# %s%s:", TYRES[t].name, t == settings.tyre ? " (in use)" : "");
+      for (int i = 0; i < N_PRESETS - 1; i++) Serial.printf("  %s %.2f", PRESETS[i].name, settings.ptab[t][i]);
+      Serial.println();
+    }
+    Serial.printf("# CUSTOM %.2f  preset %s  target %.2f bar\n", settings.custom, PRESETS[settings.preset].name, settings.target);
   } else if (c == "io") {   // one line for the Mac bench app: IO,t,bar,pinV,aux1V,k1,valve,fake,state,err,adcfail
     const UiSnapshot u = uiRead();
     Serial.printf("IO,%.1f,%.3f,%.3f,%.2f,%d,%d,%d,%d,%d,%lu\n", millis() / 1000.0f, u.bar, sensor.vG1(),
@@ -327,8 +352,8 @@ void benchCommand(String c) {
       char t[dl::MAXT + 1]; memcpy(t, it.t, it.len); t[it.len] = 0;
       Serial.printf("DLT,%d,%d,%d,%d,%d,%d,%s\n", it.x, it.y, it.w, it.h, it.datum, it.aux, t);
     }
-  } else if (c == "press" || c == "hold" || c == "left" || c == "right") {   // the phone path, typed: same queue as the knob
-    input::send(c == "left" ? -1 : c == "right" ? 1 : 0, c == "press" ? input::Btn::SHORT : c == "hold" ? input::Btn::LONG : input::Btn::NONE, input::Src::USB);
+  } else if (c == "press" || c == "mid" || c == "hold" || c == "left" || c == "right") {   // the phone path, typed: same queue as the knob (mid = the 1 s press, 0.8.0)
+    input::send(c == "left" ? -1 : c == "right" ? 1 : 0, c == "press" ? input::Btn::SHORT : c == "mid" ? input::Btn::MID : c == "hold" ? input::Btn::LONG : input::Btn::NONE, input::Src::USB);
   } else if (c == "k1 on" || c == "valve on") {
     const bool v = c.startsWith("valve");
     if (v && !DEFLATE) Serial.println("# no valve (menu VALVE off)");
@@ -433,6 +458,7 @@ void publishUi(int scr) {
   u.k1 = pump.compressorOn(); u.valve = pump.valveOpen(); u.noAir = noAir; u.inBand = pump.inBand(); u.offTarget = pump.offTarget();
   u.fake = g_fakeV >= 0; u.demo = g_demo;
   u.bar = sensor.bar(settings.calA, settings.calB); u.est = pump.estimate(); u.target = settings.target; u.staticBar = pump.staticBar(); u.p0 = pump.p0(); u.customEdit = customEdit; u.customStep = customStep; u.customWheels = customWheels;
+  u.psi = settings.psi; for (int i = 0; i < N_PRESETS && i < 8; i++) u.presets[i] = settings.presetBar(i);
   u.aux1 = supply.volts(); u.runMs = pump.runMs(); u.phaseMs = pump.phaseMs(); u.adcFails = adc2::fails;
   uiPublish(u);
   ble::update(u);   // notify the phone (ble.h), nothing when BT is off
@@ -463,7 +489,7 @@ void setup() {
                    wlog::kv("learned", settings.learned ? "1" : "0") + wlog::kv("tauD", settings.tauD, 1) +
                    wlog::kv("learnedD", settings.learnedD ? "1" : "0") + wlog::kv("calA", settings.calA, 4) + wlog::kv("calB", settings.calB) +
                    wlog::kv("cmp_h", settings.cmpSec / 3600.0f, 2) + wlog::kv("vent_h", settings.ventSec / 3600.0f, 2) +
-                   wlog::kv("svc_h", settings.svcHours(), 2));
+                   wlog::kv("svc_h", settings.svcHours(), 2) + presetsKv());
   applyRotation();     // WIDE / PORTRAIT, chosen in the menu
   sensor.begin();
   supply.begin();
@@ -554,7 +580,7 @@ void loop() {
   // the phone back key (0.7.2): in a menu group one level up, on the main screen nothing (the app handles it),
   // anywhere else the same as a hold (each screen's own way back)
   if (b == input::Btn::BACK) {
-    if (screen == Screen::MENU && menuGroup >= 0) { menuPos = 1 + menuGroup; menuGroup = -1; b = input::Btn::NONE; }
+    if (screen == Screen::MENU && menuGroup >= 0) { menuPos = topPos(menuGroup); menuGroup = -1; b = input::Btn::NONE; }
     else if (screen == Screen::MAIN) b = input::Btn::NONE;
     // 0.7.7, owner on the phone: "I cannot leave FILTERS CLEANED". On the two HOURS screens a hold is not the way back:
     // it opens the question and then resets the service counter, so the back key looped between them. A press there.
@@ -635,7 +661,15 @@ void loop() {
       if (b == input::Btn::LONG) { screen = Screen::MAIN; menuGroup = -1; }          // hold leaves the menu from any level
       if (b == input::Btn::SHORT) {
         const int e = menuEntry(menuPos);
-        if (e == -1) { menuPos = 1 + menuGroup; menuGroup = -1; }                     // BACK: up, on the group just left
+        if (e == -1) { menuPos = topPos(menuGroup); menuGroup = -1; }                 // BACK: up, on the group just left
+        else if (e >= M_P0 && e <= M_P7) { presetIdx = e - M_P0; presetEdit = settings.presetBar(presetIdx); screen = Screen::PRESET_EDIT; }
+        else if (e == M_PRESET_RESET) {   // two presses within 3 s
+          if (presetResetArm && millis() - presetResetArm < 3000) {
+            presetResetArm = 0;
+            if (settings.resetPresets(pump.busy() || pump.pulsing() || cal.active())) { wlog::ev("PRESETS_RESET", presetsKv()); beep(); }
+            else sound::refuse();
+          } else presetResetArm = millis();
+        }
         else if (e <= -2) { menuGroup = -2 - e; menuPos = 0; }                      // into a group
         else switch (e) {
           case M_CAL:     pump.stop(); cal.start(); calEngArm = false; screen = Screen::CAL; break;   // no IO TEST pulse left on (review item 5)
@@ -660,6 +694,7 @@ void loop() {
             // with the valve the lowest target is 0.5 bar: the CUSTOM value too, not only the active target
             if (settings.target < TARGET_MIN) settings.target = TARGET_MIN;
             if (settings.custom < TARGET_MIN) settings.custom = TARGET_MIN;
+            for (auto& row : settings.ptab) for (float& v : row) if (v < TARGET_MIN) v = TARGET_MIN;   // the preset table too (0.8.0)
             settings.save(); wlog::ev("VALVE", wlog::kv("on", String(g_valve ? 1 : 0))); break;
           case M_VCHECK:  settings.vcheck = !settings.vcheck; settings.save(); break;
           case M_VTRIM:   // set the shown AUX1 volts to the multimeter reading (needs the module and a voltage)
@@ -718,6 +753,26 @@ void loop() {
       if (b == input::Btn::LONG) screen = Screen::MENU;   // leave without saving
       if (screen == Screen::EDIT) drawEdit();
       break;
+
+    case Screen::PRESET_EDIT: {   // menu PRESETS: turn 0.1 bar (1 psi), press save, 1 s press the factory value, hold back
+      if (steps) {
+        if (settings.psi) presetEdit = (roundf(presetEdit * PSI_PER_BAR) + steps) / PSI_PER_BAR;
+        else presetEdit = roundf(presetEdit * 10 + steps) / 10.0f;
+        presetEdit = constrain(presetEdit, (float)TARGET_MIN, TARGET_MAX);
+      }
+      if (b == input::Btn::MID) presetEdit = settings.presetFactory(presetIdx);   // DEFAULT: shown, saved by the next press
+      if (b == input::Btn::SHORT) {
+        const float was = settings.presetBar(presetIdx);
+        if (settings.setPresetBar(presetIdx, presetEdit, pump.busy() || pump.pulsing() || cal.active())) {
+          wlog::ev("PRESET_SET", wlog::kv("name", String(PRESETS[presetIdx].name)) + wlog::kv("tyre", String(TYRES[settings.tyre].name)) +
+                                 wlog::mv("bar", was, settings.presetBar(presetIdx), 2) + wlog::kv("target", settings.target, 2));
+          beep();
+        } else sound::refuse();
+        screen = Screen::MENU;
+      }
+      if (b == input::Btn::LONG) screen = Screen::MENU;   // leave without saving
+      if (screen == Screen::PRESET_EDIT) drawPresetEdit();
+    } break;
 
     case Screen::CUSTOM:   // CUSTOM preset: turn 0.1 bar, press = save and arm, long = cancel
       updateNoAir();

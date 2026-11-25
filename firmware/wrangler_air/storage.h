@@ -6,6 +6,17 @@
 #include "config.h"
 
 struct Settings {
+  // 0.8.0, owner: the preset pressures are set in the menu PRESETS and kept per tyre size (the pressure depends on the
+  // tyre). ptab[tyre][i] for every preset but CUSTOM, which stays the one value "custom" (its own editor writes it too).
+  // NVS "pt0", "pt1": the row as raw floats; a missing row, a wrong length or a bad value gives the factory value.
+  static constexpr int N_PT = N_PRESETS - 1;
+  float ptab[N_TYRE_SIZES][N_PT];
+  static float factoryBar(int tyre, int i) {
+    if (i == P_CUSTOM) return PRESETS[P_CUSTOM].bar;
+    return i == 0 ? HIGHWAY_BY_TYRE[tyre >= 0 && tyre < N_TYRE_SIZES ? tyre : 0] : PRESETS[i].bar;
+  }
+  void factoryTable() { for (int t = 0; t < N_TYRE_SIZES; t++) for (int i = 0; i < N_PT; i++) ptab[t][i] = factoryBar(t, i); }
+  Settings() { factoryTable(); }
   uint8_t preset = 0;             // index into PRESETS (config.h); the target follows it
   float custom  = PRESETS[P_CUSTOM].bar; // bar, value of the CUSTOM preset
   float target  = PRESETS[0].bar; // bar
@@ -78,12 +89,36 @@ struct Settings {
     rate /= k; kTop /= k; c *= k; tauD *= tauWheels(constrain((int)n, 1, 4));
   }
   float airL() const { return airVL(tyre) * wk; }
-  float presetBar(int i) const { return i == P_CUSTOM ? custom : i == 0 ? HIGHWAY_BY_TYRE[tyre < N_TYRE_SIZES ? tyre : 0] : PRESETS[i].bar; }
+  float presetBar(int i) const { return i == P_CUSTOM ? custom : i >= 0 && i < N_PT ? ptab[tyre < N_TYRE_SIZES ? tyre : 0][i] : PRESETS[0].bar; }
+  float presetFactory(int i) const { return factoryBar(tyre, i); }
+  // menu PRESETS: set one preset of the current tyre size. Refused while the pump works (a run, a pulse, calibration),
+  // like every other setting. The active target follows when the active preset is changed.
+  bool setPresetBar(int i, float bar, bool busy) {
+    if (busy || i < 0 || i >= N_PRESETS || !std::isfinite(bar)) return false;
+    bar = constrain(bar, (float)TARGET_MIN, TARGET_MAX);
+    if (i == P_CUSTOM) custom = bar; else ptab[tyre][i] = bar;
+    if (i == preset) target = bar;
+    save();
+    return true;
+  }
+  // menu PRESETS > RESET ALL: every preset of both tyre sizes and CUSTOM back to the factory values
+  bool resetPresets(bool busy) {
+    if (busy) return false;
+    factoryTable(); custom = PRESETS[P_CUSTOM].bar;
+    target = constrain(presetBar(preset), (float)TARGET_MIN, TARGET_MAX);
+    save();
+    return true;
+  }
 
   void load() {
     Preferences p; p.begin("air", true);
     preset       = p.getUChar("preset", preset); if (preset >= N_PRESETS) preset = 0;
     custom       = p.getFloat("custom", custom);   // clamped in sanitize(), once g_valve is loaded
+    for (int t = 0; t < N_TYRE_SIZES; t++) {         // checked in sanitize(); a row of another length is left at the factory values
+      char k[4] = {'p', 't', (char)('0' + t), 0};
+      float row[N_PT];
+      if (p.getBytesLength(k) == sizeof row && p.getBytes(k, row, sizeof row) == sizeof row) memcpy(ptab[t], row, sizeof row);
+    }
     psi          = p.getBool ("psi", psi);
     rot          = p.getUChar("rot", rot) & 3;
     valve        = p.getBool ("valve", valve); g_valve = valve;
@@ -135,6 +170,9 @@ struct Settings {
   void sanitize() {
     // custom after g_valve is known: TARGET_MIN depends on the VALVE setting
     custom       = std::isfinite(custom) ? constrain(custom, (float)TARGET_MIN, TARGET_MAX) : PRESETS[P_CUSTOM].bar;
+    for (int t = 0; t < N_TYRE_SIZES; t++)            // the same check as custom: finite, then into TARGET_MIN..TARGET_MAX
+      for (int i = 0; i < N_PT; i++)
+        ptab[t][i] = std::isfinite(ptab[t][i]) ? constrain(ptab[t][i], (float)TARGET_MIN, TARGET_MAX) : factoryBar(t, i);
     target       = presetBar(preset);
     if (!std::isfinite(target)) target = PRESETS[0].bar;
     target       = constrain(target, (float)TARGET_MIN, TARGET_MAX);
@@ -159,6 +197,7 @@ struct Settings {
     const Learn w = wk != 1.0f ? L4 : learnNow();
     p.putUChar("preset", preset);
     p.putFloat("custom", custom);
+    for (int t = 0; t < N_TYRE_SIZES; t++) { char k[4] = {'p', 't', (char)('0' + t), 0}; p.putBytes(k, ptab[t], sizeof ptab[t]); }
     p.putFloat("target", target);
     p.putBool ("psi", psi);
     p.putUChar("rot", rot);
@@ -204,7 +243,7 @@ struct Settings {
     if (i >= N_TYRE_SIZES || i == tyre || wk != 1.0f) return;
     const float k = airVL(i) / airVL(tyre);
     rate /= k; kTop /= k; tauD *= k; c *= k; tyre = i;
-    if (preset == 0) target = presetBar(0);   // HIGHWAY follows the tyre size
+    target = presetBar(preset);                // every preset has its own value per tyre size (0.8.0; was HIGHWAY only)
     save();
   }
   void resetLearning() {

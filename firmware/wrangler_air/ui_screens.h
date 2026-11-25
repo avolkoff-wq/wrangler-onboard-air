@@ -40,6 +40,9 @@ extern int outPos;
 extern Screen screen;
 extern int btPos;
 extern uint32_t btForgetArm;
+extern int presetIdx;
+extern float presetEdit;
+extern uint32_t presetResetArm;
 extern const char* const MENU[];
 extern const int MENU_N;
 // menu groups: menuGroup, menuLen(), menuEntry(), GROUPS are defined in the .ino before this header
@@ -298,6 +301,13 @@ void drawMain() {
   push();
 }
 
+// a group's title; PRESETS names the tyre size its values belong to
+String groupTitle(int g) {
+  String t = GROUPS[g].name;
+  if (GROUPS[g].items[0] == M_P0) t += String(" ") + TYRES[settings.tyre].name;
+  return t;
+}
+
 // one menu row as data (0.7.3): the DinMeter draws it, the phone gets it as a list (menuBlob below).
 // kind: 0 action, 1 group, 2 back, 3 exit, 4 switch on, 5 switch off, 6 waiting for the second press (red)
 void menuRow(int pos, String& label, String& value, uint8_t& kind) {
@@ -318,6 +328,8 @@ void menuRow(int pos, String& label, String& value, uint8_t& kind) {
     kind = on ? 4 : 5;
   }
   if (i == M_RESET && resetArm && millis() - resetArm < 3000) { label = "PRESS AGAIN"; kind = 6; }
+  if (i >= M_P0 && i <= M_P7) { label = PRESETS[i - M_P0].name; value = String(fmt(settings.presetBar(i - M_P0))) + " " + unitName(); }
+  if (i == M_PRESET_RESET && presetResetArm && millis() - presetResetArm < 3000) { label = "PRESS AGAIN"; kind = 6; }
 }
 
 // the whole menu level for the phone: 'M', 1, group (255 = top), cursor, count, title, then per row kind, label, value
@@ -328,7 +340,7 @@ size_t menuBlob(uint8_t* b, size_t cap) {
   auto str = [&](const String& t) { const uint8_t L = min((int)t.length(), 40); if (n + 1 + L > cap) return; b[n++] = L; memcpy(b + n, t.c_str(), L); n += L; };
   const int cnt = menuLen();
   b[n++] = 'M'; b[n++] = 1; b[n++] = menuGroup < 0 ? 255 : menuGroup; b[n++] = menuPos; b[n++] = cnt;
-  str(menuGroup < 0 ? String("MENU") : String(GROUPS[menuGroup].name));
+  str(menuGroup < 0 ? String("MENU") : groupTitle(menuGroup));
   for (int pos = 0; pos < cnt && n + 90 < cap; pos++) {
     String label, value; uint8_t kind; menuRow(pos, label, value, kind);
     b[n++] = kind; str(label); str(value);
@@ -350,7 +362,7 @@ void drawMenu() {
   canvas.setTextDatum(middle_left);
   int top = 2;
   if (menuGroup >= 0) {   // group title in grey over the list
-    textAt(String(GROUPS[menuGroup].name), 8, 2, &fonts::Font2, C_LGREY, top_left);
+    textAt(groupTitle(menuGroup), 8, 2, &fonts::Font2, C_LGREY, top_left);
     top = 19;
   }
   // 0.7.7, bench: in portrait "[x] STUCK VALVE ALARM" ran off the 135 px screen even in the 16 px font. Such a row now
@@ -475,6 +487,19 @@ void drawTrim(float shown, float trim) {
               {String(shown, 2) + " V", F_LARGE, TFT_GREENYELLOW, F_MID},
               {"trim x" + String(trim, 3), F_SMALL, TFT_LIGHTGREY} }, 0, H() - 18);
   drawHint("press: save  hold: back  turn: 0.05 V");
+  push();
+}
+
+// menu PRESETS, one preset: name, the value being set, the factory value and the tyre size it belongs to
+void drawPresetEdit() {
+  dlClear(TFT_BLACK);
+  const float def = settings.presetFactory(presetIdx);
+  const bool isDef = fabsf(presetEdit - def) < 0.005f;
+  drawLines({ {PRESETS[presetIdx].name, F_TEXT, TFT_CYAN},
+              {String(fmt(presetEdit)) + " " + unitName(), F_LARGE, TFT_GREENYELLOW, F_MID},
+              {isDef ? String("= DEFAULT") : String("DEFAULT ") + fmt(def) + ": PRESS 1 S", F_SMALL, TFT_LIGHTGREY},
+              {String("TYRE ") + TYRES[settings.tyre].name, F_SMALL, C_LGREY} }, 0, H() - 18);
+  drawHint(settings.psi ? "press: save  hold: back  turn: 1 psi" : "press: save  hold: back  turn: 0.1");
   push();
 }
 

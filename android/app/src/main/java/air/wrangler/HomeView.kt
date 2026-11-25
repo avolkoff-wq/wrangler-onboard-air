@@ -118,6 +118,14 @@ class HomeView(ctx: Context, private val onTurn: (Int) -> Unit = {}) : View(ctx)
         return if (abs(span) < 0.01f) 1f else ((cur - s.p0) / span).coerceIn(0f, 1f)
     }
 
+    // ---------- units: what the DinMeter shows (menu UNITS), 0.8.0 ----------
+    private val psi get() = state?.psi == true
+    private val UNIT get() = if (psi) "PSI" else "BAR"
+    private fun n1(v: Float) = if (psi) "%.0f".format(v * 14.5038f) else "%.1f".format(v)
+    private fun n2(v: Float) = if (psi) "%.0f".format(v * 14.5038f) else "%.2f".format(v)
+    /** the target of a preset as the DinMeter has it (menu PRESETS, per tyre size); the live target when the table is not there */
+    private fun presetTarget(s: Ble.State) = s.presets?.getOrNull(s.preset) ?: s.target
+
     // ---------- idle and results ----------
     // Jeep style (owner): heavy condensed capitals for the name, the numbers and the line under them
     private val jeepFont: Typeface = Typeface.create(Typeface.create("sans-serif-condensed", Typeface.BOLD), 800, false)
@@ -170,26 +178,26 @@ class HomeView(ctx: Context, private val onTurn: (Int) -> Unit = {}) : View(ctx)
         val numSize = numSize()
         y += numSize * 0.92f
         p.typeface = jeepFont; p.textSize = numSize; p.color = 0xFFF5F5F7.toInt()
-        val num = "%.1f".format(s.target)
+        val num = n1(presetTarget(s))
         p.textScaleX = 0.9f
         val nw = p.measureText(num)
         val pu = Paint(p).apply { textSize = numSize * 0.22f; color = GREY; letterSpacing = 0.08f; textScaleX = 1f; style = Paint.Style.FILL }
-        val total = nw + 8 * dp + pu.measureText("BAR")
+        val total = nw + 8 * dp + pu.measureText(UNIT)
         val x0 = (w - total) / 2
         heavy { c.drawText(num, x0, y, p) }
         p.textScaleX = 1f
-        c.drawText("BAR", x0 + nw + 8 * dp, y, pu)
+        c.drawText(UNIT, x0 + nw + 8 * dp, y, pu)
         y += 34 * dp
         val (line, col) = when {
-            s.state == 7 && s.inBand -> "ALREADY WITHIN 0.1 BAR" to GREEN
-            s.state == 7 && s.offTarget -> "OFF TARGET: %.2f BAR".format(s.staticBar) to ORANGE
-            s.state == 7 -> "DONE: %.2f BAR IN %s".format(s.staticBar, mmss(s.runMs)) to GREEN
+            s.state == 7 && s.inBand -> (if (psi) "ALREADY ON TARGET" else "ALREADY WITHIN 0.1 BAR") to GREEN
+            s.state == 7 && s.offTarget -> "OFF TARGET: ${n2(s.staticBar)} $UNIT" to ORANGE
+            s.state == 7 -> "DONE: ${n2(s.staticBar)} $UNIT IN ${mmss(s.runMs)}" to GREEN
             s.armStage == 2 -> "ENGINE OFF? PRESS AGAIN" to RED
             s.armStage == 1 -> "PRESS AGAIN TO START" to Color.WHITE
             s.noAir -> "NO PRESSURE  ·  CONNECT THE HOSE" to GREY
-            abs(s.bar - s.target) <= 0.1f -> "NOW %.1f BAR  ·  OK".format(s.bar) to GREEN
-            s.bar < s.target -> "NOW %.1f BAR  ·  ▲ INFLATE".format(s.bar) to ORANGE
-            else -> "NOW %.1f BAR  ·  ▼ DEFLATE".format(s.bar) to BLUE
+            abs(s.bar - s.target) <= 0.1f -> "NOW ${n1(s.bar)} $UNIT  ·  OK" to GREEN
+            s.bar < s.target -> "NOW ${n1(s.bar)} $UNIT  ·  ▲ INFLATE" to ORANGE
+            else -> "NOW ${n1(s.bar)} $UNIT  ·  ▼ DEFLATE" to BLUE
         }
         p.letterSpacing = 0.1f
         if (s.armStage > 0 || s.state == 7) pill(c, line, y, col) else centeredF(c, line, y, 15f, col)
@@ -205,8 +213,8 @@ class HomeView(ctx: Context, private val onTurn: (Int) -> Unit = {}) : View(ctx)
         val numSize = numSize()
         y += numSize * 0.92f
         p.typeface = jeepFont; p.textSize = numSize; p.color = 0xFF64D2FF.toInt(); p.textScaleX = 0.9f
-        val num = if (s.customStep == 0) "%.1f".format(s.customEdit) else "${s.customWheels}"
-        val unit = if (s.customStep == 0) "BAR" else if (s.customWheels == 1) "WHEEL" else "WHEELS"
+        val num = if (s.customStep == 0) n1(s.customEdit) else "${s.customWheels}"
+        val unit = if (s.customStep == 0) UNIT else if (s.customWheels == 1) "WHEEL" else "WHEELS"
         val nw = p.measureText(num)
         val pu = Paint(p).apply { textSize = numSize * 0.22f; color = GREY; letterSpacing = 0.08f; textScaleX = 1f; style = Paint.Style.FILL }
         val x0 = (w - nw - 8 * dp - pu.measureText(unit)) / 2
@@ -267,13 +275,13 @@ class HomeView(ctx: Context, private val onTurn: (Int) -> Unit = {}) : View(ctx)
         val numSize = numSize()
         y += numSize * 0.92f
         p.typeface = jeepFont; p.textSize = numSize; p.color = 0xFFF5F5F7.toInt(); p.textScaleX = 0.9f
-        val num = "%.2f".format(v)
+        val num = n2(v)
         val nw = p.measureText(num)
         val pu = Paint(p).apply { textSize = numSize * 0.22f; color = GREY; letterSpacing = 0.08f; textScaleX = 1f; style = Paint.Style.FILL }
-        val x0 = (w - nw - 8 * dp - pu.measureText("BAR")) / 2
+        val x0 = (w - nw - 8 * dp - pu.measureText(UNIT)) / 2
         heavy { c.drawText(num, x0, y, p) }
         p.textScaleX = 1f
-        c.drawText("BAR", x0 + nw + 8 * dp, y, pu)
+        c.drawText(UNIT, x0 + nw + 8 * dp, y, pu)
         if (est) c.drawText("EST", x0 + nw + 8 * dp, y - numSize * 0.3f, pu)      // the tyre estimate while pumping
         // progress capsule from the start pressure to the target, the two numbers at its ends
         y += 26 * dp
@@ -283,8 +291,8 @@ class HomeView(ctx: Context, private val onTurn: (Int) -> Unit = {}) : View(ctx)
         r.set(bx0, y, bx0 + (bx1 - bx0) * ringShown.coerceIn(0.02f, 1f), y + bh); p.color = accent; c.drawRoundRect(r, bh / 2, bh / 2, p)
         y += bh + 22 * dp
         p.typeface = jeepFont; p.textSize = 14 * dp; p.color = GREY; p.letterSpacing = 0.08f
-        c.drawText("%.1f".format(s.p0), bx0, y, p)
-        val tt = "TARGET %.1f".format(s.target); c.drawText(tt, bx1 - p.measureText(tt), y, p)
+        c.drawText(n1(s.p0), bx0, y, p)
+        val tt = "TARGET ${n1(s.target)}"; c.drawText(tt, bx1 - p.measureText(tt), y, p)
         p.letterSpacing = 0f
         y += 30 * dp
         p.letterSpacing = 0.1f; centeredF(c, "PRESS THE KNOB TO STOP", y, 13f, GREY); p.letterSpacing = 0f
@@ -303,11 +311,11 @@ class HomeView(ctx: Context, private val onTurn: (Int) -> Unit = {}) : View(ctx)
         val numSize = numSize()
         y += numSize * 0.92f
         p.typeface = jeepFont; p.textSize = numSize; p.color = 0xFFF5F5F7.toInt(); p.textScaleX = 0.9f
-        val num = "%.2f".format(s.bar); val nw = p.measureText(num)
+        val num = n2(s.bar); val nw = p.measureText(num)
         val pu = Paint(p).apply { textSize = numSize * 0.22f; color = GREY; letterSpacing = 0.08f; textScaleX = 1f; style = Paint.Style.FILL }
-        val x0 = (w - nw - 8 * dp - pu.measureText("BAR")) / 2
+        val x0 = (w - nw - 8 * dp - pu.measureText(UNIT)) / 2
         heavy { c.drawText(num, x0, y, p) }
-        p.textScaleX = 1f; c.drawText("BAR", x0 + nw + 8 * dp, y, pu)
+        p.textScaleX = 1f; c.drawText(UNIT, x0 + nw + 8 * dp, y, pu)
         c.drawText("NOW", x0 + nw + 8 * dp, y - numSize * 0.3f, pu)
         y += 30 * dp
         p.letterSpacing = 0.06f; centeredF(c, sub.uppercase(), y, 13f, 0xFFFFB4AE.toInt())

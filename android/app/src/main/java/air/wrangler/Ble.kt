@@ -45,7 +45,8 @@ class Ble(private val ctx: Context, private val listener: Listener) {
                      val fake: Boolean, val demo: Boolean, val bar: Float, val est: Float, val target: Float, val staticBar: Float,
                      val aux1: Float, val runMs: Long, val phaseMs: Long, val seq: Long, val adcFails: Long, val p0: Float,
                      val customEdit: Float = 0f, val customStep: Int = 0, val customWheels: Int = 4,
-                     val sndSeq: Int = -1, val sndId: Int = 0)
+                     val sndSeq: Int = -1, val sndId: Int = 0,
+                     val psi: Boolean = false, val presets: FloatArray? = null)   // 0.8.0: units and the preset table of the DinMeter
 
     companion object {
         val SVC: UUID = UUID.fromString("7a1f0001-5c0e-4b6a-9d2f-57a1e5a1c0de")
@@ -245,7 +246,8 @@ class Ble(private val ctx: Context, private val listener: Listener) {
             s16(8) / 1000f, s16(10) / 1000f, s16(12) / 1000f, s16(14) / 1000f, s16(16) / 100f,
             u32(18), u32(22), u32(26), u32(30), if (b.size >= 36) s16(34) / 1000f else 0f,
             if (b.size >= 40) s16(36) / 1000f else 0f, if (b.size >= 40) u8(38) else 0, if (b.size >= 40) u8(39) else 4,
-            if (b.size >= 42) u8(40) else -1, if (b.size >= 42) u8(41) else 0)
+            if (b.size >= 42) u8(40) else -1, if (b.size >= 42) u8(41) else 0,
+            fl and 128 != 0, if (b.size >= 58) FloatArray(8) { s16(42 + 2 * it) / 1000f } else null)
     }
 
     private fun status(t: String) = listener.onStatus(t)
